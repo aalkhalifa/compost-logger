@@ -7,6 +7,7 @@
 <title>Compost Academy Logger</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -15,41 +16,47 @@ html,body{background:#000;color:#fff;font-family:Inter,sans-serif;min-height:100
 .mono{font-family:"Share Tech Mono",monospace}
 .card{background:#0a0a0a;border:1px solid #1e1e1e;border-radius:4px;padding:1rem;margin-bottom:1rem}
 .lbl{display:block;font-size:0.65rem;letter-spacing:0.1em;color:#555;font-weight:600;margin-bottom:0.3rem}
-input,textarea,select{background:#050505;border:1px solid #222;border-radius:3px;color:#fff;padding:0.6rem 0.75rem;font-size:0.9rem;font-family:Inter,sans-serif;width:100%;box-sizing:border-box}
+input,textarea{background:#050505;border:1px solid #222;border-radius:3px;color:#fff;padding:0.6rem 0.75rem;font-size:0.9rem;font-family:Inter,sans-serif;width:100%;box-sizing:border-box}
 input:focus,textarea:focus{border-color:#444;outline:none}
 input[type=checkbox]{width:16px;height:16px;accent-color:#4ade80}
 input[type=date]::-webkit-calendar-picker-indicator,
 input[type=time]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:0.5}
 .btn{display:block;width:100%;padding:0.75rem;background:#fff;color:#000;border:none;border-radius:3px;font-size:0.85rem;font-weight:600;letter-spacing:0.05em;cursor:pointer;font-family:Inter,sans-serif;text-align:center}
 .btn-sm{background:#0a0a0a;border:1px solid #222;color:#666;border-radius:3px;padding:0.3rem 0.75rem;cursor:pointer;font-size:0.72rem;font-family:Inter,sans-serif;white-space:nowrap}
-.btn-danger{background:none;border:1px solid #3a1a1a;color:#9a4a4a;border-radius:3px;padding:0.3rem 0.6rem;cursor:pointer;font-size:0.68rem;font-family:Inter,sans-serif}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.6rem}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;margin-bottom:0.6rem}
 .pbar-wrap{height:5px;background:#111;border-radius:2px;margin-top:0.2rem}
 .pbar{height:100%;border-radius:2px;transition:width 0.5s}
 .sticky{position:sticky;top:0;background:#000;z-index:100;padding:0.75rem 1rem;border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center}
-.pile-card{cursor:pointer}
-.pile-card:hover{border-color:#333}
 .dropdown-list{position:absolute;top:100%;left:0;right:0;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:3px;z-index:999;max-height:180px;overflow-y:auto;display:none}
 .dropdown-list.open{display:block}
 .dropdown-item{padding:0.55rem 0.75rem;cursor:pointer;border-bottom:1px solid #111;color:#bbb;font-size:0.85rem}
 .dropdown-item:hover{background:#111}
 .wrap{padding:1rem;max-width:700px;margin:0 auto}
 .hidden{display:none}
+.warn-banner{background:#ff0000;color:#fff;padding:1rem;text-align:center;font-weight:bold;font-size:1rem;letter-spacing:0.05em;margin-bottom:1rem;border-radius:4px;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.7}}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:0.45rem 0;border-bottom:1px solid #0f0f0f}
+.stat-label{font-size:0.68rem;color:#555;letter-spacing:0.08em;font-weight:600}
+.stat-value{font-size:0.85rem;font-family:"Share Tech Mono",monospace;text-align:right}
+.drive-bar{display:flex;align-items:center;gap:0.5rem;padding:0.6rem 0.75rem;background:#050505;border:1px solid #1a1a1a;border-radius:3px;margin-bottom:1rem}
+.drive-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 </style>
 </head>
 <body>
 
-<!-- HOME VIEW -->
+<!-- HOME -->
 
 <div id="view-home">
   <div style="padding:1.25rem 1rem 1rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" style="width:100%;max-width:280px;display:block;margin:0 auto"/>
-    <div class="mono" style="font-size:0.6rem;color:#333;letter-spacing:0.2em;margin-top:0.4rem">FIELD LOGGER v1.0</div>
-    <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem;margin-top:0.6rem">
-      <div id="drive-dot" style="width:6px;height:6px;border-radius:50%;background:#333"></div>
-      <span id="drive-label" class="mono" style="font-size:0.62rem;color:#333">NOT CONNECTED</span>
-      <button id="btn-connect" class="btn-sm" style="margin-left:0.5rem">CONNECT DRIVE</button>
+    <div class="mono" style="font-size:0.6rem;color:#333;letter-spacing:0.2em;margin-top:0.4rem">FIELD LOGGER v2.0</div>
+    <div id="drive-bar-home" class="drive-bar" style="margin-top:0.75rem;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:0.5rem">
+        <div id="home-drive-dot" class="drive-dot" style="background:#333"></div>
+        <span id="home-drive-label" class="mono" style="font-size:0.65rem;color:#555">LOCAL ONLY</span>
+      </div>
+      <button id="btn-connect-home" class="btn-sm" onclick="connectDrive()">CONNECT DRIVE</button>
     </div>
   </div>
   <div class="wrap">
@@ -61,7 +68,7 @@ input[type=time]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:0.5
   </div>
 </div>
 
-<!-- SETUP VIEW -->
+<!-- SETUP -->
 
 <div id="view-setup" class="hidden">
   <div class="sticky">
@@ -89,131 +96,157 @@ input[type=time]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:0.5
   </div>
 </div>
 
-<!-- DASHBOARD VIEW -->
+<!-- DASHBOARD -->
 
 <div id="view-dashboard" class="hidden">
   <div class="sticky">
     <div style="display:flex;align-items:center;gap:0.75rem">
       <button onclick="showView('home')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.3rem">←</button>
       <div>
-        <div id="dash-pile-name" class="hd" style="font-size:1.1rem;color:#fff;line-height:1"></div>
-        <div id="dash-subtitle" class="mono" style="font-size:0.58rem;color:#333"></div>
+        <div id="dash-name" class="hd" style="font-size:1.1rem;color:#fff;line-height:1"></div>
+        <div id="dash-sub" class="mono" style="font-size:0.58rem;color:#333"></div>
       </div>
     </div>
-    <div id="dash-core-temp" class="mono" style="font-size:1.4rem;color:#333;font-weight:bold">–</div>
+    <div id="dash-core" class="mono" style="font-size:1.4rem;color:#333;font-weight:bold">–</div>
   </div>
   <div class="wrap">
-    <!-- Timer -->
-    <div id="timer-card" class="card" style="border-left:3px solid #222">
-      <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">TURN TIMER</div>
-      <div id="timer-content"><div class="mono" style="color:#333;font-size:0.78rem;text-align:center">LOG ENTRIES TO ACTIVATE</div></div>
+    <!-- TURN NOW warning banner -->
+    <div id="warn-banner" class="warn-banner hidden">⚠ TURN NOW — TEMPERATURE TOO HIGH (175°F+)</div>
+
+```
+<!-- STATUS CARD -->
+<div class="card" id="status-card">
+  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.85rem">TEMPERATURE STATUS</div>
+  <div id="status-rows"></div>
+</div>
+
+<!-- TURN TIMER -->
+<div id="timer-card" class="card" style="border-left:3px solid #222">
+  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">TURN TIMER</div>
+  <div id="timer-content"></div>
+</div>
+
+<!-- LOG ENTRY -->
+<div class="card">
+  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.9rem">LOG ENTRY</div>
+  <div class="grid2">
+    <div><label class="lbl">DATE</label><input type="date" id="f-date"/></div>
+    <div><label class="lbl">TIME</label><input type="time" id="f-time"/></div>
+  </div>
+  <div class="grid3">
+    <div><label class="lbl" style="color:#f97316">CORE °F</label><input type="number" id="f-core" placeholder="0"/></div>
+    <div><label class="lbl" style="color:#4ade80">TOP °F</label><input type="number" id="f-top" placeholder="0"/></div>
+    <div><label class="lbl" style="color:#38bdf8">BOTTOM °F</label><input type="number" id="f-bottom" placeholder="0"/></div>
+  </div>
+  <div class="grid2">
+    <div>
+      <label class="lbl">MOISTURE % <span id="moist-pill"></span></label>
+      <input type="number" id="f-moisture" placeholder="40-60" oninput="updateMoistPill()"/>
     </div>
-    <!-- Log Entry -->
-    <div class="card">
-      <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.9rem">LOG ENTRY</div>
-      <div class="grid2">
-        <div><label class="lbl">DATE</label><input type="date" id="f-date"/></div>
-        <div><label class="lbl">TIME</label><input type="time" id="f-time"/></div>
-      </div>
-      <div class="grid3">
-        <div><label class="lbl" style="color:#f97316">CORE °F</label><input type="number" id="f-core" placeholder="0"/></div>
-        <div><label class="lbl" style="color:#4ade80">TOP °F</label><input type="number" id="f-top" placeholder="0"/></div>
-        <div><label class="lbl" style="color:#38bdf8">BOTTOM °F</label><input type="number" id="f-bottom" placeholder="0"/></div>
-      </div>
-      <div class="grid2">
-        <div>
-          <label class="lbl">MOISTURE % <span id="moist-pill"></span></label>
-          <input type="number" id="f-moisture" placeholder="40-60" oninput="updateMoistPill()"/>
-        </div>
-        <div style="display:flex;flex-direction:column;justify-content:flex-end">
-          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;padding-bottom:2px">
-            <input type="checkbox" id="f-turned"/>
-            <span id="turned-label" class="mono" style="font-size:0.7rem;color:#444">PILE TURNED</span>
-          </label>
-        </div>
-      </div>
-      <div style="margin-bottom:0.75rem"><label class="lbl">NOTES</label><textarea id="f-notes" placeholder="Observations..." style="height:52px;resize:none"></textarea></div>
-      <button class="btn" onclick="addEntry()">+ LOG ENTRY</button>
+    <div style="display:flex;flex-direction:column;justify-content:flex-end">
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;padding-bottom:2px">
+        <input type="checkbox" id="f-turned"/>
+        <span id="turned-lbl" class="mono" style="font-size:0.7rem;color:#444">PILE TURNED</span>
+      </label>
     </div>
-    <!-- Charts -->
-    <div id="chart-section" class="hidden">
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem">
-          <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMPERATURES °F</div>
-          <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
-        </div>
-        <canvas id="temp-chart" height="200"></canvas>
-        <div id="turn-legend" class="mono" style="font-size:0.62rem;color:#4ade80;margin-top:0.5rem;display:none">GREEN LINES = PILE TURNED</div>
-      </div>
-      <div class="card">
-        <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.9rem">MOISTURE %</div>
-        <canvas id="moist-chart" height="120"></canvas>
-      </div>
+  </div>
+  <div style="margin-bottom:0.75rem">
+    <label class="lbl">NOTES</label>
+    <textarea id="f-notes" placeholder="Observations, smell, texture..." style="height:52px;resize:none"></textarea>
+  </div>
+  <button class="btn" onclick="addEntry()">+ LOG ENTRY</button>
+</div>
+
+<!-- CHARTS -->
+<div id="chart-section" class="hidden">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem">
+      <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMPERATURES °F</div>
+      <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
     </div>
-    <!-- Recipe summary -->
-    <div class="card">
-      <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">RECIPE</div>
-      <div id="dash-recipe"></div>
-      <div style="display:grid;grid-template-columns:1fr auto;gap:0.5rem;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #111">
-        <input id="recipe-name" placeholder="Save as recipe..."/>
-        <button class="btn-sm" onclick="saveRecipe()">SAVE</button>
-      </div>
-    </div>
-    <!-- Reference -->
-    <div class="card">
-      <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">TEMPERATURE REFERENCE</div>
-      <div id="temp-ref"></div>
-    </div>
-    <!-- Log Table -->
-    <div class="card">
-      <div id="log-count" class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">ENTRIES</div>
-      <div style="overflow-x:auto"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
-    </div>
+    <canvas id="temp-chart"></canvas>
+    <div id="turn-legend" class="mono" style="font-size:0.62rem;color:#4ade80;margin-top:0.5rem;display:none">▏GREEN LINES = PILE TURNED</div>
+  </div>
+  <div class="card">
+    <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.9rem">MOISTURE %</div>
+    <canvas id="moist-chart"></canvas>
+  </div>
+</div>
+
+<!-- RECIPE SUMMARY -->
+<div class="card">
+  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">RECIPE</div>
+  <div id="dash-recipe"></div>
+  <div style="display:grid;grid-template-columns:1fr auto;gap:0.5rem;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #111">
+    <input id="recipe-name" placeholder="Save as recipe..."/>
+    <button class="btn-sm" onclick="saveRecipe()">SAVE</button>
+  </div>
+</div>
+
+<!-- TEMP REFERENCE -->
+<div class="card">
+  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">TEMPERATURE REFERENCE</div>
+  <div id="temp-ref"></div>
+</div>
+
+<!-- LOG TABLE -->
+<div class="card">
+  <div id="log-count" class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">ENTRIES</div>
+  <div style="overflow-x:auto"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
+</div>
+```
+
   </div>
 </div>
 
 <script>
-// ── DATA ──
-const BANDS=[
+// ── CONSTANTS ──
+const CLIENT_ID = "646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercontent.com";
+const BANDS = [
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
   {min:150,max:155,hours:48,label:"Stage 2",color:"#f97316"},
   {min:156,max:164,hours:24,label:"Stage 3",color:"#ef4444"},
   {min:165,max:174,hours:12,label:"Stage 4",color:"#dc2626"},
-  {min:175,max:Infinity,hours:0,label:"Turn Now!",color:"#ff0000"},
+  {min:175,max:Infinity,hours:0,label:"TURN NOW",color:"#ff0000"},
 ];
-const CATS=[
+const CATS = [
   {key:"highN",label:"HIGH NITROGEN",sub:"Manures, seeds, meals",color:"#ef4444"},
   {key:"greens",label:"GREENS",sub:"Grass, alfalfa, kitchen",color:"#4ade80"},
   {key:"browns",label:"BROWNS",sub:"Wood chips, leaves, straw",color:"#d97706"},
 ];
-const DEF_HIST={
+const DEF_HIST = {
   highN:["Chicken manure","Blood meal","Fish meal","Horse manure","Cow manure","Feather meal"],
   greens:["Alfalfa","Grass clippings","Kitchen scraps","Coffee grounds","Fresh leaves","Seaweed"],
   browns:["Wood chips","Dry leaves","Cardboard","Straw","Sawdust","Hay"],
 };
 
+// ── STATE ──
 let piles=[], recipes=[], ingHist=JSON.parse(JSON.stringify(DEF_HIST));
 let activeId=null, tempMode="three";
 let tempChart=null, moistChart=null;
 let driveToken=null, driveFileId=null, driveStatus="disconnected";
-let tokenClient=null, saveTimer=null;
+let tokenClient=null, saveTimer=null, timerInterval=null;
 let newMaterials={highN:[],greens:[],browns:[]};
 
+// ── UTILS ──
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const newItem=()=>({id:uid(),name:"",volume:"",notes:""});
 const newMats=()=>({highN:[newItem()],greens:[newItem()],browns:[newItem()]});
-
+const totVol=m=>Object.values(m).flat().reduce((s,i)=>s+(parseFloat(i.volume)||0),0);
+const catVol=items=>items.reduce((s,i)=>s+(parseFloat(i.volume)||0),0);
 function getBand(t){if(!t||t<131)return null;return BANDS.find(b=>t>=b.min&&t<=b.max)||null;}
 function mColor(p){if(!p)return"#222";if(p>=60)return"#1565c0";if(p>=50)return"#1e88e5";if(p>=40)return"#4a90d9";return"#7ab3e0";}
-function totVol(m){return Object.values(m).flat().reduce((s,i)=>s+(parseFloat(i.volume)||0),0);}
-function catVol(items){return items.reduce((s,i)=>s+(parseFloat(i.volume)||0),0);}
+function fmtHours(ms){const h=Math.floor(ms/3600000);const m=Math.round((ms%3600000)/60000);return h+"h "+m+"m";}
+function fmtDate(d){return d.toLocaleDateString()+" "+d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});}
 
+// ── TIMER CALCULATION ──
 function calcTimer(entries){
   if(!entries.length)return null;
   const s=[...entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-  const lat=s[s.length-1]; const band=getBand(lat.core);
+  const lat=s[s.length-1];
+  const band=getBand(lat.core);
   if(!band)return null;
-  if(band.hours===0)return{band,turnNow:true,deadline:null};
+  if(band.hours===0)return{band,turnNow:true,deadline:null,progress:100,remaining:0,elapsed:0};
   let streak=new Date(lat.ts);
   for(let i=s.length-2;i>=0;i--){
     const b=getBand(s[i].core);
@@ -225,6 +258,13 @@ function calcTimer(entries){
   const progress=Math.min(100,elapsed/band.hours*100);
   const deadline=new Date(streak.getTime()+band.hours*3600000);
   return{band,elapsed,remaining,progress,complete:elapsed>=band.hours,turnNow:false,deadline};
+}
+
+// Hours since last turn
+function hoursSinceLastTurn(entries){
+  const turns=[...entries].filter(e=>e.turned).sort((a,b)=>new Date(b.ts)-new Date(a.ts));
+  if(!turns.length)return null;
+  return Date.now()-new Date(turns[0].ts);
 }
 
 // ── PERSIST ──
@@ -239,18 +279,21 @@ function load(){
 
 // ── VIEWS ──
 function showView(v){
-  ["home","setup","dashboard"].forEach(x=>document.getElementById("view-"+x).classList.add("hidden"));
+  ["home","setup","dashboard"].forEach(x=>{
+    document.getElementById("view-"+x).classList.add("hidden");
+  });
   document.getElementById("view-"+v).classList.remove("hidden");
-  if(v==="home")renderHome();
-  if(v==="setup")renderSetup();
-  if(v==="dashboard")renderDashboard();
+  if(v==="home"){clearInterval(timerInterval);renderHome();}
+  if(v==="setup"){clearInterval(timerInterval);renderSetup();}
+  if(v==="dashboard") renderDashboard();
 }
 
 // ── HOME ──
 function renderHome(){
+  updateDriveUI();
   const el=document.getElementById("pile-list");
   if(!piles.length){
-    el.innerHTML='<div style="text-align:center;padding:3rem 1rem;border:1px dashed #1a1a1a;border-radius:4px"><div style="font-size:2rem;margin-bottom:0.5rem">🌱</div><div class="hd" style="font-size:1.2rem;color:#333">NO PILES YET</div></div>';
+    el.innerHTML='<div style="text-align:center;padding:3rem 1rem;border:1px dashed #1a1a1a;border-radius:4px"><div style="font-size:2rem;margin-bottom:0.5rem">🌱</div><div class="hd" style="font-size:1.2rem;color:#333">NO PILES YET</div><div style="font-size:0.8rem;color:#333;margin-top:0.5rem">Create your first compost pile</div></div>';
     return;
   }
   el.innerHTML=piles.map(p=>{
@@ -258,26 +301,29 @@ function renderHome(){
     const lat=sorted[sorted.length-1];
     const t=calcTimer(p.entries);
     const band=lat?getBand(lat.core):null;
-    const borderColor=band?band.color:"#222";
+    const sinceMs=hoursSinceLastTurn(p.entries);
     let timerHtml="";
     if(t&&!t.turnNow){
       const label=t.complete?"READY ✓":Math.floor(t.remaining)+"h "+Math.round((t.remaining%1)*60)+"m LEFT";
-      const barColor=t.complete?"#4ade80":t.band.color;
       timerHtml=`<div style="margin-top:0.75rem">
         <div style="display:flex;justify-content:space-between;margin-bottom:0.3rem">
           <span class="mono" style="font-size:0.65rem;color:${t.band.color}">${t.band.label}</span>
           <span class="mono" style="font-size:0.65rem;color:${t.complete?"#4ade80":"#666"}">${label}</span>
         </div>
-        <div class="pbar-wrap"><div class="pbar" style="width:${t.progress}%;background:${barColor}"></div></div>
+        <div class="pbar-wrap"><div class="pbar" style="width:${t.progress}%;background:${t.complete?"#4ade80":t.band.color}"></div></div>
       </div>`;
     } else if(t?.turnNow){
-      timerHtml=`<div class="mono" style="margin-top:0.5rem;color:#ff0000;font-size:0.85rem">TURN NOW!</div>`;
+      timerHtml=`<div class="mono" style="margin-top:0.5rem;color:#ff0000;font-size:0.85rem">⚠ TURN NOW!</div>`;
     }
-    return `<div class="card pile-card" style="border-left:3px solid ${borderColor}" onclick="openPile('${p.id}')">
+    const sinceHtml=sinceMs!==null
+      ?`<div class="mono" style="font-size:0.6rem;color:#444;margin-top:0.3rem">LAST TURN: ${fmtHours(sinceMs)} AGO</div>`
+      :`<div class="mono" style="font-size:0.6rem;color:#333;margin-top:0.3rem">NO TURN RECORDED</div>`;
+    return `<div class="card" style="cursor:pointer;border-left:3px solid ${band?band.color:"#222"}" onclick="openPile('${p.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div class="hd" style="font-size:1.3rem;color:#fff">${p.name}</div>
           <div class="mono" style="font-size:0.62rem;color:#444;margin-top:0.15rem">DAY ${p.entries.length} · ${new Date(p.created).toLocaleDateString()}</div>
+          ${sinceHtml}
         </div>
         <div style="text-align:right">
           <div class="mono" style="font-size:1.5rem;color:${band?band.color:"#333"};font-weight:bold">${lat&&lat.core?lat.core+"°":"–"}</div>
@@ -289,10 +335,7 @@ function renderHome(){
   }).join("");
 }
 
-function openPile(id){
-  activeId=id;
-  showView("dashboard");
-}
+function openPile(id){activeId=id;showView("dashboard");}
 
 // ── SETUP ──
 function renderSetup(){
@@ -303,9 +346,8 @@ function renderSetup(){
 }
 
 function renderCatEditors(){
-  const el=document.getElementById("cat-editors");
-  el.innerHTML=CATS.map(cat=>`
-    <div id="cat-${cat.key}" style="margin-bottom:1.5rem">
+  document.getElementById("cat-editors").innerHTML=CATS.map(cat=>`
+    <div style="margin-bottom:1.5rem">
       <div style="display:flex;justify-content:space-between;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:1px solid #111">
         <div>
           <span class="hd" style="font-size:1rem;color:${cat.color}">${cat.label}</span>
@@ -317,16 +359,15 @@ function renderCatEditors(){
       <button onclick="addCatItem('${cat.key}')" style="width:100%;padding:0.45rem;background:none;border:1px dashed #222;border-radius:3px;color:${cat.color};cursor:pointer;font-size:0.75rem;font-family:Inter,sans-serif">
         + ADD ${cat.label} INGREDIENT
       </button>
-    </div>
-  `).join("");
+    </div>`).join("");
   CATS.forEach(cat=>renderCatItems(cat));
 }
 
 function renderCatItems(cat){
   const el=document.getElementById("items-"+cat.key);
-  const items=newMaterials[cat.key];
-  el.innerHTML=items.map(item=>`
-    <div id="item-${item.id}" style="background:#050505;border:1px solid #111;border-radius:3px;padding:0.75rem;margin-bottom:0.5rem">
+  if(!el)return;
+  el.innerHTML=newMaterials[cat.key].map(item=>`
+    <div style="background:#050505;border:1px solid #111;border-radius:3px;padding:0.75rem;margin-bottom:0.5rem">
       <div style="display:grid;grid-template-columns:1fr 90px 32px;gap:0.5rem;margin-bottom:0.5rem;align-items:end">
         <div style="position:relative">
           <label class="lbl">INGREDIENT</label>
@@ -342,13 +383,13 @@ function renderCatItems(cat){
           <input type="number" value="${item.volume}" placeholder="0" id="ivol-${item.id}"
             oninput="updateItem('${cat.key}','${item.id}','volume',this.value)"/>
         </div>
-        <button onclick="removeCatItem('${cat.key}','${item.id}')" style="background:none;border:1px solid #222;color:#444;cursor:pointer;border-radius:3px;width:32px;height:38px;font-size:0.9rem;align-self:end">✕</button>
+        <button onclick="removeCatItem('${cat.key}','${item.id}')"
+          style="background:none;border:1px solid #222;color:#444;cursor:pointer;border-radius:3px;width:32px;height:38px;font-size:0.9rem;align-self:end">✕</button>
       </div>
       <label class="lbl">NOTES</label>
       <input value="${item.notes}" placeholder="Source, condition, smell..." id="inote-${item.id}"
         oninput="updateItem('${cat.key}','${item.id}','notes',this.value)"/>
-    </div>
-  `).join("");
+    </div>`).join("");
   updateCatVol(cat.key);
 }
 
@@ -359,16 +400,16 @@ function showSugg(catKey,itemId){
   const el=document.getElementById("sugg-"+itemId);
   if(!el)return;
   if(!sugg.length){el.classList.remove("open");return;}
-  el.innerHTML=sugg.map(s=>`<div class="dropdown-item" onmousedown="pickSugg('${catKey}','${itemId}','${s.replace(/'/g,"\\'")}')">${s}</div>`).join("");
+  el.innerHTML=sugg.map(s=>`<div class="dropdown-item" onmousedown="pickSugg('${catKey}','${itemId}','${s.replace(/'/g,"\\'")}')"> ${s}</div>`).join("");
   el.classList.add("open");
 }
 function hideSugg(id){const el=document.getElementById("sugg-"+id);if(el)el.classList.remove("open");}
 function pickSugg(catKey,itemId,val){
   updateItem(catKey,itemId,"name",val);
-  const inp=document.getElementById("iname-"+itemId);if(inp)inp.value=val;
+  const inp=document.getElementById("iname-"+itemId);
+  if(inp)inp.value=val;
   hideSugg(itemId);
 }
-
 function updateItem(catKey,itemId,field,val){
   const item=newMaterials[catKey].find(i=>i.id===itemId);
   if(item){item[field]=val;if(field==="volume")updateCatVol(catKey);}
@@ -379,12 +420,10 @@ function updateCatVol(catKey){
   if(el)el.textContent=catVol(newMaterials[catKey]).toFixed(1)+" gal";
 }
 function updateTotalVol(){
-  document.getElementById("total-vol").textContent=totVol(newMaterials).toFixed(1)+" GAL";
+  const el=document.getElementById("total-vol");
+  if(el)el.textContent=totVol(newMaterials).toFixed(1)+" GAL";
 }
-function addCatItem(catKey){
-  newMaterials[catKey].push(newItem());
-  renderCatItems(CATS.find(c=>c.key===catKey));
-}
+function addCatItem(catKey){newMaterials[catKey].push(newItem());renderCatItems(CATS.find(c=>c.key===catKey));}
 function removeCatItem(catKey,itemId){
   newMaterials[catKey]=newMaterials[catKey].filter(i=>i.id!==itemId);
   renderCatItems(CATS.find(c=>c.key===catKey));
@@ -401,8 +440,7 @@ function renderRecipesPanel(){
         <div class="mono" style="font-size:0.62rem;color:#444">${totVol(r.materials).toFixed(1)} gal · ${r.saved}</div>
       </div>
       <button class="btn-sm" onclick="loadRecipe('${r.id}')">LOAD</button>
-    </div>
-  `).join("");
+    </div>`).join("");
 }
 
 function loadRecipe(id){
@@ -417,11 +455,10 @@ function createPile(){
   const name=document.getElementById("new-pile-name").value.trim();
   if(!name)return alert("Please enter a pile name");
   CATS.forEach(cat=>newMaterials[cat.key].forEach(i=>{if(i.name)addToHist(cat.key,i.name);}));
-  const pile={id:uid(),name,created:new Date().toISOString(),materials:JSON.parse(JSON.stringify(newMaterials)),entries:[]};
-  piles.push(pile);
-  activeId=pile.id;
-  save();
-  showView("dashboard");
+  const pile={id:uid(),name,created:new Date().toISOString(),
+    materials:JSON.parse(JSON.stringify(newMaterials)),entries:[]};
+  piles.push(pile);activeId=pile.id;
+  save();showView("dashboard");
 }
 
 // ── DASHBOARD ──
@@ -434,28 +471,90 @@ function renderDashboard(){
   const lat=sorted[sorted.length-1];
   const band=lat?getBand(lat.core):null;
 
-  document.getElementById("dash-pile-name").textContent=pile.name;
-  document.getElementById("dash-subtitle").textContent="DAY "+pile.entries.length+" · "+driveLabel();
-  document.getElementById("dash-core-temp").textContent=lat&&lat.core?lat.core+"°F":"–";
-  document.getElementById("dash-core-temp").style.color=band?band.color:"#333";
+  document.getElementById("dash-name").textContent=pile.name;
+  document.getElementById("dash-sub").textContent="DAY "+pile.entries.length+" · "+driveLabelShort();
+  document.getElementById("dash-core").textContent=lat&&lat.core?lat.core+"°F":"–";
+  document.getElementById("dash-core").style.color=band?band.color:"#333";
 
-  // Set today's date/time
+  // Set form defaults
   const now=new Date();
   document.getElementById("f-date").value=now.toISOString().split("T")[0];
   document.getElementById("f-time").value=now.toTimeString().slice(0,5);
+  document.getElementById("f-turned").onchange=function(){
+    document.getElementById("turned-lbl").style.color=this.checked?"#4ade80":"#444";
+  };
 
-  // Turned checkbox color
-  document.getElementById("f-turned").addEventListener("change",function(){
-    document.getElementById("turned-label").style.color=this.checked?"#4ade80":"#444";
-  });
+  // Warning banner
+  const warn=document.getElementById("warn-banner");
+  if(lat&&lat.core>=175){warn.classList.remove("hidden");}
+  else{warn.classList.add("hidden");}
 
+  renderStatusCard(pile,sorted,lat,band);
   renderTimer(pile);
   renderCharts(sorted);
   renderRecipeSummary(pile);
   renderTempRef();
   renderLogTable(sorted);
+
+  // Live timer update every minute
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    const p=getActivePile();if(!p)return;
+    const s=[...p.entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
+    const l=s[s.length-1];const b=l?getBand(l.core):null;
+    renderStatusCard(p,s,l,b);
+    renderTimer(p);
+  },60000);
 }
 
+// ── STATUS CARD ──
+function renderStatusCard(pile,sorted,lat,band){
+  const el=document.getElementById("status-rows");
+
+  // Hours since last turn
+  const sinceMs=hoursSinceLastTurn(pile.entries);
+  const sinceStr=sinceMs!==null?fmtHours(sinceMs):"No turn recorded yet";
+  const sinceColor=sinceMs!==null?"#fff":"#444";
+
+  // Turn now?
+  if(lat&&lat.core>=175){
+    el.innerHTML=`
+      <div class="stat-row"><span class="stat-label">CURRENT TEMP</span><span class="stat-value" style="color:#ff0000">${lat.core}°F</span></div>
+      <div class="stat-row"><span class="stat-label">STAGE</span><span class="stat-value" style="color:#ff0000">TURN NOW!</span></div>
+      <div class="stat-row"><span class="stat-label">ACTION</span><span class="stat-value" style="color:#ff0000">TURN IMMEDIATELY</span></div>
+      <div class="stat-row"><span class="stat-label">HOURS SINCE LAST TURN</span><span class="stat-value" style="color:${sinceColor}">${sinceStr}</span></div>`;
+    document.getElementById("status-card").style.borderColor="#ff0000";
+    return;
+  }
+
+  if(!lat||!band){
+    el.innerHTML=`
+      <div class="stat-row"><span class="stat-label">CURRENT TEMP</span><span class="stat-value" style="color:#333">No data yet</span></div>
+      <div class="stat-row"><span class="stat-label">HOURS SINCE LAST TURN</span><span class="stat-value" style="color:${sinceColor}">${sinceStr}</span></div>`;
+    document.getElementById("status-card").style.borderColor="#222";
+    return;
+  }
+
+  // Timer calculation for status
+  const t=calcTimer(pile.entries);
+  const timeCompleted=t?fmtHours(t.elapsed*3600000):"–";
+  const timeRemaining=t&&!t.complete?fmtHours(t.remaining*3600000):"Complete ✓";
+  const nextDue=t&&t.deadline?fmtDate(t.deadline):"–";
+  const action=t?.complete?"CLEAR TO TURN — turn the pile now":
+    t?`Wait ${fmtHours(t.remaining*3600000)} more`:"Log entries to activate";
+
+  document.getElementById("status-card").style.borderColor=band.color;
+  el.innerHTML=`
+    <div class="stat-row"><span class="stat-label">CURRENT TEMP</span><span class="stat-value" style="color:${band.color}">${lat.core}°F</span></div>
+    <div class="stat-row"><span class="stat-label">CURRENT STAGE</span><span class="stat-value" style="color:${band.color}">${band.label} (${band.min}–${band.max===Infinity?"+":band.max}°F)</span></div>
+    <div class="stat-row"><span class="stat-label">REQUIRED TIME</span><span class="stat-value">${band.hours}h continuous</span></div>
+    <div class="stat-row"><span class="stat-label">TIME COMPLETED</span><span class="stat-value" style="color:${t?.complete?"#4ade80":"#fff"}">${timeCompleted}</span></div>
+    <div class="stat-row"><span class="stat-label">NEXT TURN DUE</span><span class="stat-value" style="color:${t?.complete?"#4ade80":"#aaa"}">${nextDue}</span></div>
+    <div class="stat-row"><span class="stat-label">ACTION</span><span class="stat-value" style="color:${t?.complete?"#4ade80":"#fff"};font-size:0.75rem">${action}</span></div>
+    <div class="stat-row"><span class="stat-label">HOURS SINCE LAST TURN</span><span class="stat-value" style="color:${sinceColor}">${sinceStr}</span></div>`;
+}
+
+// ── TIMER CARD ──
 function renderTimer(pile){
   const t=calcTimer(pile.entries);
   const card=document.getElementById("timer-card");
@@ -473,12 +572,13 @@ function renderTimer(pile){
   }
   card.style.borderLeftColor=t.complete?"#4ade80":t.band.color;
   const timeLeft=t.complete?"CLEAR TO TURN ✓":Math.floor(t.remaining)+"h "+Math.round((t.remaining%1)*60)+"m";
-  const calBtn=t.deadline?`<button class="btn-sm" onclick="addToCalendar('${pile.name}',${t.deadline.getTime()})" style="margin-top:0.75rem;width:100%;padding:0.55rem">CALENDAR REMINDER — ${t.deadline.toLocaleString()}</button>`:"";
+  const calBtn=t.deadline
+    ?`<button class="btn-sm" onclick="addToCalendar('${pile.name}',${t.deadline.getTime()})" style="margin-top:0.75rem;width:100%;padding:0.55rem">CALENDAR REMINDER — ${fmtDate(t.deadline)}</button>`:"";
   content.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1rem">
       <div>
         <span class="hd" style="color:${t.band.color};font-size:1.2rem">${t.band.label}</span>
-        <span class="mono" style="color:#444;font-size:0.7rem;margin-left:0.5rem">${t.band.min}-${t.band.max===Infinity?"+":t.band.max}°F</span>
+        <span class="mono" style="color:#444;font-size:0.7rem;margin-left:0.5rem">${t.band.min}–${t.band.max===Infinity?"+":t.band.max}°F</span>
       </div>
       <span class="${t.complete?"hd":"mono"}" style="color:${t.complete?"#4ade80":"#fff"};font-size:${t.complete?"1rem":"0.95rem"}">${timeLeft}</span>
     </div>
@@ -487,37 +587,20 @@ function renderTimer(pile){
       const pct=isCur?t.progress:0;
       return `<div style="margin-bottom:0.6rem">
         <div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">
-          <span class="mono" style="font-size:0.62rem;color:${isCur?band.color:"#222"}">${band.label} · ${band.min}-${band.max===Infinity?"+":band.max}°F · ${band.hours}H</span>
+          <span class="mono" style="font-size:0.62rem;color:${isCur?band.color:"#222"}">${band.label} · ${band.min}–${band.max===Infinity?"+":band.max}°F · ${band.hours}H</span>
           <span class="mono" style="font-size:0.62rem;color:${isCur?band.color:"#222"}">${isCur?Math.round(pct):0}%</span>
         </div>
         <div class="pbar-wrap"><div class="pbar" style="width:${pct}%;background:${band.color}"></div></div>
       </div>`;
     }).join("")}
-    ${calBtn}
-  `;
+    ${calBtn}`;
 
-  // Notification
-  if(t.complete){
-    if("Notification"in window&&Notification.permission==="granted"){
-      new Notification("Compost Academy",{body:pile.name+" is ready to turn!"});
-    }
+  if(t.complete&&"Notification"in window&&Notification.permission==="granted"){
+    new Notification("Compost Academy",{body:pile.name+" is ready to turn!"});
   }
 }
 
-function addToCalendar(name,ms){
-  const deadline=new Date(ms);
-  const fmt=d=>d.toISOString().replace(/[-:.]/g,"").slice(0,15)+"Z";
-  const ics=["BEGIN:VCALENDAR","VERSION:2.0","BEGIN:VEVENT",
-    "DTSTART:"+fmt(deadline),"DTEND:"+fmt(new Date(ms+900000)),
-    "SUMMARY:Turn "+name,"DESCRIPTION:Compost pile ready to turn",
-    "BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY","DESCRIPTION:30min reminder","END:VALARM",
-    "END:VEVENT","END:VCALENDAR"].join("\r\n");
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));
-  a.download="turn-"+name.replace(/\s+/g,"-")+".ics";
-  a.click();
-}
-
+// ── CHARTS ──
 function renderCharts(sorted){
   const section=document.getElementById("chart-section");
   if(!sorted.length){section.classList.add("hidden");return;}
@@ -526,80 +609,96 @@ function renderCharts(sorted){
   const labels=sorted.map((_,i)=>"D"+(i+1));
   const turnDays=sorted.map((e,i)=>e.turned?"D"+(i+1):null).filter(Boolean);
 
-  // Turn line annotations
-  const annotations={};
-  turnDays.forEach((d,i)=>{
-    annotations["turn"+i]={type:"line",xMin:d,xMax:d,borderColor:"#4ade80",borderWidth:2};
-  });
-
-  // Destroy old charts
   if(tempChart){tempChart.destroy();tempChart=null;}
   if(moistChart){moistChart.destroy();moistChart=null;}
 
-  const refLines=[
-    {type:"line",yMin:131,yMax:131,borderColor:"#f59e0b",borderWidth:1,borderDash:[4,4]},
-    {type:"line",yMin:150,yMax:150,borderColor:"#f97316",borderWidth:1,borderDash:[4,4]},
-    {type:"line",yMin:165,yMax:165,borderColor:"#ef4444",borderWidth:1,borderDash:[4,4]},
-    ...Object.values(annotations)
-  ];
-
-  const commonOpts={
-    responsive:true,
-    animation:false,
-    plugins:{legend:{labels:{color:"#444",font:{size:11}}},annotation:{annotations:{}}},
-    scales:{
-      x:{ticks:{color:"#444",font:{size:10}},grid:{color:"#111"}},
-      y:{ticks:{color:"#444",font:{size:10}},grid:{color:"#111"}}
-    }
-  };
-
-  // Temp chart
-  const tCanvas=document.getElementById("temp-chart");
-  const datasets=tempMode==="three"?[
-    {label:"Core",data:sorted.map(e=>e.core),borderColor:"#f97316",backgroundColor:"#f9731622",tension:0.3,pointRadius:3,pointBackgroundColor:"#f97316"},
-    {label:"Top",data:sorted.map(e=>e.top),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:2.5,pointBackgroundColor:"#4ade80"},
-    {label:"Bottom",data:sorted.map(e=>e.bottom),borderColor:"#38bdf8",backgroundColor:"transparent",tension:0.3,pointRadius:2.5,pointBackgroundColor:"#38bdf8"},
-  ]:[
-    {label:"Average",data:sorted.map(e=>e.core&&e.top&&e.bottom?+((e.core+e.top+e.bottom)/3).toFixed(1):null),borderColor:"#fff",backgroundColor:"#ffffff11",tension:0.3,pointRadius:3,pointBackgroundColor:"#fff"},
-  ];
-
-  tempChart=new Chart(tCanvas,{
-    type:"line",
-    data:{labels,datasets},
-    options:{...commonOpts,
-      plugins:{...commonOpts.plugins,annotation:{annotations:{
-        r131:{type:"line",yMin:131,yMax:131,borderColor:"#f59e0b88",borderWidth:1,borderDash:[4,4]},
-        r150:{type:"line",yMin:150,yMax:150,borderColor:"#f9731688",borderWidth:1,borderDash:[4,4]},
-        r165:{type:"line",yMin:165,yMax:165,borderColor:"#ef444488",borderWidth:1,borderDash:[4,4]},
-        ...Object.fromEntries(turnDays.map((d,i)=>[
-          "turn"+i,{type:"line",xMin:d,xMax:d,borderColor:"#4ade80",borderWidth:2}
-        ]))
-      }}},
-      scales:{...commonOpts.scales,y:{...commonOpts.scales.y,min:60,max:180}}}
+  // Turn line annotations for temp chart
+  const turnAnnotations={};
+  turnDays.forEach((d,i)=>{
+    turnAnnotations["turn"+i]={
+      type:"line",xMin:d,xMax:d,
+      borderColor:"#4ade80",borderWidth:2,
+      label:{content:"TURN",display:true,position:"start",
+        backgroundColor:"transparent",color:"#4ade80",
+        font:{size:9,family:"Share Tech Mono, monospace"},
+        yAdjust:-8}
+    };
   });
 
-  // Turn legend
-  const tl=document.getElementById("turn-legend");
-  tl.style.display=turnDays.length?"block":"none";
+  // Danger zone annotation above 175
+  const dangerZone={
+    type:"box",
+    yMin:175,yMax:220,
+    backgroundColor:"rgba(255,0,0,0.06)",
+    borderColor:"rgba(255,0,0,0.3)",
+    borderWidth:1,
+    label:{content:"DANGER ZONE",display:true,position:{x:"end",y:"start"},
+      backgroundColor:"transparent",color:"rgba(255,0,0,0.4)",
+      font:{size:9,family:"Share Tech Mono, monospace"}}
+  };
 
-  // Moisture chart
-  const mCanvas=document.getElementById("moist-chart");
-  moistChart=new Chart(mCanvas,{
+  const datasets=tempMode==="three"?[
+    {label:"Core",data:sorted.map(e=>e.core),borderColor:"#f97316",backgroundColor:"#f9731615",tension:0.3,pointRadius:3,pointBackgroundColor:"#f97316",spanGaps:true},
+    {label:"Top",data:sorted.map(e=>e.top),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:2.5,pointBackgroundColor:"#4ade80",spanGaps:true},
+    {label:"Bottom",data:sorted.map(e=>e.bottom),borderColor:"#38bdf8",backgroundColor:"transparent",tension:0.3,pointRadius:2.5,pointBackgroundColor:"#38bdf8",spanGaps:true},
+  ]:[
+    {label:"Average",data:sorted.map(e=>e.core&&e.top&&e.bottom?+((e.core+e.top+e.bottom)/3).toFixed(1):null),
+      borderColor:"#fff",backgroundColor:"#ffffff11",tension:0.3,pointRadius:3,pointBackgroundColor:"#fff",spanGaps:true},
+  ];
+
+  tempChart=new Chart(document.getElementById("temp-chart"),{
+    type:"line",
+    data:{labels,datasets},
+    options:{
+      responsive:true,animation:false,
+      plugins:{
+        legend:{labels:{color:"#444",font:{size:11}}},
+        annotation:{annotations:{
+          r131:{type:"line",yMin:131,yMax:131,borderColor:"#f59e0b88",borderWidth:1,borderDash:[4,4]},
+          r150:{type:"line",yMin:150,yMax:150,borderColor:"#f9731688",borderWidth:1,borderDash:[4,4]},
+          r165:{type:"line",yMin:165,yMax:165,borderColor:"#ef444488",borderWidth:1,borderDash:[4,4]},
+          r175:{type:"line",yMin:175,yMax:175,borderColor:"#ff0000",borderWidth:1.5,borderDash:[4,4]},
+          danger:dangerZone,
+          ...turnAnnotations
+        }}
+      },
+      scales:{
+        x:{ticks:{color:"#444",font:{size:10}},grid:{color:"#111"}},
+        y:{min:60,max:220,ticks:{color:"#444",font:{size:10}},grid:{color:"#111"}}
+      }
+    }
+  });
+
+  document.getElementById("turn-legend").style.display=turnDays.length?"block":"none";
+
+  // Moisture chart with turn lines
+  const moistTurnAnnotations={};
+  turnDays.forEach((d,i)=>{
+    moistTurnAnnotations["turn"+i]={type:"line",xMin:d,xMax:d,borderColor:"#4ade80",borderWidth:2};
+  });
+
+  moistChart=new Chart(document.getElementById("moist-chart"),{
     type:"line",
     data:{labels,datasets:[{
       label:"Moisture",data:sorted.map(e=>e.moisture),
       borderColor:"#1e88e5",backgroundColor:"#1e88e522",
-      fill:true,tension:0.3,pointRadius:3,pointBackgroundColor:"#1e88e5"
+      fill:true,tension:0.3,pointRadius:3,pointBackgroundColor:"#1e88e5",spanGaps:true
     }]},
-    options:{...commonOpts,
-      plugins:{...commonOpts.plugins,annotation:{annotations:{
-        r60:{type:"line",yMin:60,yMax:60,borderColor:"#1565c088",borderWidth:1,borderDash:[4,4]},
-        r40:{type:"line",yMin:40,yMax:40,borderColor:"#90caf988",borderWidth:1,borderDash:[4,4]},
-        ...Object.fromEntries(turnDays.map((d,i)=>[
-          "turn"+i,{type:"line",xMin:d,xMax:d,borderColor:"#4ade80",borderWidth:2}
-        ]))
-      }}},
-      scales:{...commonOpts.scales,y:{...commonOpts.scales.y,min:0,max:100}}}
+    options:{
+      responsive:true,animation:false,
+      plugins:{
+        legend:{labels:{color:"#444",font:{size:11}}},
+        annotation:{annotations:{
+          r60:{type:"line",yMin:60,yMax:60,borderColor:"#1565c088",borderWidth:1,borderDash:[4,4]},
+          r40:{type:"line",yMin:40,yMax:40,borderColor:"#90caf988",borderWidth:1,borderDash:[4,4]},
+          ...moistTurnAnnotations
+        }}
+      },
+      scales:{
+        x:{ticks:{color:"#444",font:{size:10}},grid:{color:"#111"}},
+        y:{min:0,max:100,ticks:{color:"#444",font:{size:10}},grid:{color:"#111"}}
+      }
+    }
   });
 }
 
@@ -611,10 +710,10 @@ function toggleChart(){
   renderCharts(sorted);
 }
 
+// ── MISC RENDER ──
 function renderRecipeSummary(pile){
-  const el=document.getElementById("dash-recipe");
   const tot=totVol(pile.materials);
-  el.innerHTML=CATS.map(cat=>{
+  document.getElementById("dash-recipe").innerHTML=CATS.map(cat=>{
     const items=pile.materials[cat.key];
     const cv=catVol(items);const pct=tot>0?cv/tot*100:0;
     return `<div style="margin-bottom:0.65rem">
@@ -633,16 +732,14 @@ function renderTempRef(){
     <div style="display:flex;justify-content:space-between;align-items:center;padding:0.38rem 0;border-bottom:1px solid #0a0a0a">
       <div style="display:flex;align-items:center;gap:0.45rem">
         <div style="width:6px;height:6px;border-radius:50%;background:${b.color}"></div>
-        <span class="mono" style="color:${b.color};font-size:0.75rem">${b.min}-${b.max===Infinity?"175+":b.max}°F</span>
+        <span class="mono" style="color:${b.color};font-size:0.75rem">${b.min}–${b.max===Infinity?"175+":b.max}°F</span>
       </div>
       <span class="mono" style="color:#333;font-size:0.75rem">${b.hours?b.hours+"H CONTINUOUS":"TURN NOW"}</span>
-    </div>
-  `).join("");
+    </div>`).join("");
 }
 
 function renderLogTable(sorted){
-  const count=document.getElementById("log-count");
-  count.textContent="ALL ENTRIES ("+sorted.length+")";
+  document.getElementById("log-count").textContent="ALL ENTRIES ("+sorted.length+")";
   const table=document.getElementById("log-table");
   if(!sorted.length){table.innerHTML="";return;}
   table.innerHTML=`<thead><tr>${["DAY","DATE","CORE","TOP","BOT","MOIST","TURN"].map(h=>`<th class="mono" style="text-align:left;padding:0.28rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#333;letter-spacing:0.05em">${h}</th>`).join("")}</tr></thead>
@@ -661,7 +758,7 @@ function renderLogTable(sorted){
 function updateMoistPill(){
   const v=parseFloat(document.getElementById("f-moisture").value);
   const pill=document.getElementById("moist-pill");
-  if(!v){pill.textContent="";return;}
+  if(!v){pill.innerHTML="";return;}
   pill.innerHTML=`<span style="background:${mColor(v)};color:#fff;padding:0.05rem 0.3rem;border-radius:2px;font-size:0.6rem;font-family:'Share Tech Mono',monospace">${v}%</span>`;
 }
 
@@ -670,24 +767,23 @@ function addEntry(){
   const core=parseFloat(document.getElementById("f-core").value)||null;
   const top=parseFloat(document.getElementById("f-top").value)||null;
   const bottom=parseFloat(document.getElementById("f-bottom").value)||null;
-  if(!core&&!top&&!bottom)return;
+  if(!core&&!top&&!bottom)return alert("Enter at least one temperature");
   const date=document.getElementById("f-date").value;
   const time=document.getElementById("f-time").value;
-  const entry={id:uid(),ts:new Date(date+"T"+time).toISOString(),
+  const turned=document.getElementById("f-turned").checked;
+  pile.entries.push({id:uid(),ts:new Date(date+"T"+time).toISOString(),
     date,time,core,top,bottom,
     moisture:parseFloat(document.getElementById("f-moisture").value)||null,
-    turned:document.getElementById("f-turned").checked,
-    notes:document.getElementById("f-notes").value};
-  pile.entries.push(entry);
+    turned,notes:document.getElementById("f-notes").value});
   save();
-  // Reset form
   document.getElementById("f-core").value="";
   document.getElementById("f-top").value="";
   document.getElementById("f-bottom").value="";
   document.getElementById("f-moisture").value="";
   document.getElementById("f-turned").checked=false;
+  document.getElementById("turned-lbl").style.color="#444";
   document.getElementById("f-notes").value="";
-  document.getElementById("moist-pill").textContent="";
+  document.getElementById("moist-pill").innerHTML="";
   renderDashboard();
 }
 
@@ -703,95 +799,151 @@ function saveRecipe(){
 
 function addToHist(cat,name){
   if(!name.trim())return;
+  if(!ingHist[cat])ingHist[cat]=[];
   if(!ingHist[cat].includes(name))ingHist[cat].unshift(name);
   if(ingHist[cat].length>50)ingHist[cat].pop();
 }
 
-// ── DRIVE ──
-const CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercontent.com";
+function addToCalendar(name,ms){
+  const deadline=new Date(ms);
+  const fmt=d=>d.toISOString().replace(/[-:.]/g,"").slice(0,15)+"Z";
+  const ics=["BEGIN:VCALENDAR","VERSION:2.0","BEGIN:VEVENT",
+    "DTSTART:"+fmt(deadline),"DTEND:"+fmt(new Date(ms+900000)),
+    "SUMMARY:Turn "+name,"DESCRIPTION:Compost pile ready to turn",
+    "BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY","DESCRIPTION:30min reminder","END:VALARM",
+    "END:VEVENT","END:VCALENDAR"].join("\r\n");
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));
+  a.download="turn-"+name.replace(/\s+/g,"-")+".ics";a.click();
+}
 
-function driveLabel(){
-  if(driveStatus==="connected")return"SYNCED";
-  if(driveStatus==="connecting")return"CONNECTING...";
-  return"LOCAL ONLY";
+// ── GOOGLE DRIVE ──
+function driveLabelShort(){
+  return{disconnected:"LOCAL ONLY",connecting:"CONNECTING...",connected:"DRIVE SYNCED",error:"SYNC FAILED"}[driveStatus];
 }
 
 function updateDriveUI(){
   const colors={disconnected:"#333",connecting:"#f59e0b",connected:"#4ade80",error:"#ef4444"};
-  const labels={disconnected:"NOT CONNECTED",connecting:"CONNECTING...",connected:"DRIVE SYNCED",error:"DRIVE ERROR"};
+  const labels={disconnected:"LOCAL ONLY",connecting:"CONNECTING...",connected:"GOOGLE DRIVE CONNECTED",error:"SYNC FAILED — tap to retry"};
   const c=colors[driveStatus];
-  document.getElementById("drive-dot").style.background=c;
-  document.getElementById("drive-label").style.color=c;
-  document.getElementById("drive-label").textContent=labels[driveStatus];
-  document.getElementById("btn-connect").style.display=driveStatus==="connected"?"none":"inline";
+  const dot=document.getElementById("home-drive-dot");
+  const lbl=document.getElementById("home-drive-label");
+  const btn=document.getElementById("btn-connect-home");
+  if(dot){dot.style.background=c;}
+  if(lbl){lbl.style.color=c;lbl.textContent=labels[driveStatus];}
+  if(btn){btn.style.display=driveStatus==="connected"?"none":"inline";}
 }
 
-async function dFetch(path,opts={}){
+async function driveGet(path){
   const r=await fetch("https://www.googleapis.com/drive/v3"+path,
-    {...opts,headers:{Authorization:"Bearer "+driveToken,"Content-Type":"application/json",...(opts.headers||{})}});
+    {headers:{Authorization:"Bearer "+driveToken}});
+  if(!r.ok)throw new Error("Drive GET failed: "+r.status);
   return r.json();
 }
-async function dUpload(id,data){
-  await fetch("https://www.googleapis.com/upload/drive/v3/files/"+id+"?uploadType=media",
-    {method:"PATCH",headers:{Authorization:"Bearer "+driveToken,"Content-Type":"application/json"},body:JSON.stringify(data)});
+async function drivePost(path,body){
+  const r=await fetch("https://www.googleapis.com/drive/v3"+path,
+    {method:"POST",headers:{Authorization:"Bearer "+driveToken,"Content-Type":"application/json"},
+     body:JSON.stringify(body)});
+  if(!r.ok)throw new Error("Drive POST failed: "+r.status);
+  return r.json();
 }
-async function dCreate(name,fid,data){
+async function driveUpload(fileId,data){
+  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files/"+fileId+"?uploadType=media",
+    {method:"PATCH",headers:{Authorization:"Bearer "+driveToken,"Content-Type":"application/json"},
+     body:JSON.stringify(data)});
+  if(!r.ok)throw new Error("Drive upload failed: "+r.status);
+}
+async function driveCreateFile(name,folderId,data){
   const form=new FormData();
-  form.append("metadata",new Blob([JSON.stringify({name,mimeType:"application/json",parents:[fid]})],{type:"application/json"}));
+  form.append("metadata",new Blob([JSON.stringify({name,mimeType:"application/json",parents:[folderId]})],{type:"application/json"}));
   form.append("file",new Blob([JSON.stringify(data)],{type:"application/json"}));
   const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
     {method:"POST",headers:{Authorization:"Bearer "+driveToken},body:form});
+  if(!r.ok)throw new Error("Drive create failed: "+r.status);
   return r.json();
 }
 
-async function initDriveFiles(){
+async function initDriveStorage(){
+  // Find or create folder
   const q1=encodeURIComponent("name='Compost Logger' and mimeType='application/vnd.google-apps.folder' and trashed=false");
-  const fr=await dFetch("/files?q="+q1+"&fields=files(id)");
-  const fid=fr.files?.length?fr.files[0].id:(await dFetch("/files",{method:"POST",body:JSON.stringify({name:"Compost Logger",mimeType:"application/vnd.google-apps.folder"})})).id;
-  const q2=encodeURIComponent("name='compost_data.json' and '"+fid+"' in parents and trashed=false");
-  const dr=await dFetch("/files?q="+q2+"&fields=files(id)");
-  if(dr.files?.length)return{fileId:dr.files[0].id,isNew:false};
-  const f=await dCreate("compost_data.json",fid,{piles:[],recipes:[],ingHist:DEF_HIST});
-  return{fileId:f.id,isNew:true};
+  const fr=await driveGet("/files?q="+q1+"&fields=files(id)");
+  const folderId=fr.files?.length
+    ?fr.files[0].id
+    :(await drivePost("/files",{name:"Compost Logger",mimeType:"application/vnd.google-apps.folder"})).id;
+
+  // Find or create data file
+  const q2=encodeURIComponent("name='compost_data.json' and '"+folderId+"' in parents and trashed=false");
+  const dr=await driveGet("/files?q="+q2+"&fields=files(id)");
+  if(dr.files?.length){
+    driveFileId=dr.files[0].id;
+    // Load existing data
+    const r=await fetch("https://www.googleapis.com/drive/v3/files/"+driveFileId+"?alt=media",
+      {headers:{Authorization:"Bearer "+driveToken}});
+    if(r.ok){
+      const d=await r.json();
+      if(d.piles){piles=d.piles||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;
+        localStorage.setItem("ca_v4",JSON.stringify({piles,recipes,ingHist}));}
+    }
+  } else {
+    const f=await driveCreateFile("compost_data.json",folderId,{piles,recipes,ingHist});
+    driveFileId=f.id;
+  }
 }
 
 async function onDriveToken(resp){
-  if(resp.error){driveStatus="error";updateDriveUI();return;}
+  if(resp.error){
+    console.error("Drive auth error:",resp.error);
+    driveStatus="error";updateDriveUI();return;
+  }
   driveToken=resp.access_token;
   driveStatus="connecting";updateDriveUI();
   try{
-    const{fileId,isNew}=await initDriveFiles();
-    driveFileId=fileId;
-    if(!isNew){
-      const r=await fetch("https://www.googleapis.com/drive/v3/files/"+fileId+"?alt=media",
-        {headers:{Authorization:"Bearer "+driveToken}});
-      const d=await r.json();
-      if(d.piles){piles=d.piles||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;
-        localStorage.setItem("ca_v4",JSON.stringify({piles,recipes,ingHist}));
-        renderHome();}
-    }
+    await initDriveStorage();
     driveStatus="connected";updateDriveUI();
-  }catch(ex){driveStatus="error";updateDriveUI();}
+    renderHome();
+  }catch(ex){
+    console.error("Drive init error:",ex);
+    driveStatus="error";updateDriveUI();
+  }
+}
+
+function connectDrive(){
+  if(!tokenClient){
+    alert("Google auth is still loading. Please wait a moment and try again.");return;
+  }
+  tokenClient.requestAccessToken({prompt:"consent"});
 }
 
 function scheduleDriveSave(){
   if(!driveFileId||!driveToken)return;
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(()=>dUpload(driveFileId,{piles,recipes,ingHist}),3000);
+  saveTimer=setTimeout(async()=>{
+    try{
+      await driveUpload(driveFileId,{piles,recipes,ingHist});
+      driveStatus="connected";updateDriveUI();
+    }catch(ex){
+      console.error("Drive save error:",ex);
+      driveStatus="error";updateDriveUI();
+      // Try to refresh token
+      if(tokenClient)tokenClient.requestAccessToken({prompt:""});
+    }
+  },3000);
 }
 
 function initGoogleAuth(){
   const iv=setInterval(()=>{
     if(window.google?.accounts?.oauth2){
       clearInterval(iv);
-      tokenClient=window.google.accounts.oauth2.initTokenClient(
-        {client_id:CLIENT_ID,scope:"https://www.googleapis.com/auth/drive.file",callback:onDriveToken});
-      document.getElementById("btn-connect").onclick=()=>tokenClient.requestAccessToken({prompt:"consent"});
+      tokenClient=window.google.accounts.oauth2.initTokenClient({
+        client_id:CLIENT_ID,
+        scope:"https://www.googleapis.com/auth/drive.file",
+        callback:onDriveToken
+      });
     }
   },300);
 }
 
-// ── INIT ──
+// ── BOOT ──
 document.getElementById("logo-img").src="data:image/jpeg;base64,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9jBUlYF17EtjjnHGee9daLZWJMN5JGuc7VbAoAz00u2vdRvw6FZfNYhlYgmoL7w1bEguhdsYzv5robe2S3DO8pdm6uTkmqWqahb24Z2YFgP72DigDIsdMtbCVSqsx/uyKDtP1H9auahrFjplsdpXzu/PC/UmuS1fxjGqmOACR/TqAa4y+1G5v5N08hPt2oA1PEniGTVrj5WYRrwPSsCiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAfFLJC4eJ2Rh3U4Nalr4l1e14jvZCPR/mH61kUUAbsvi3WZQQ12QD2AxWVPe3NwT507vnsTxVeigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/2Q==";
 if("Notification"in window&&Notification.permission==="default")Notification.requestPermission();
 load();

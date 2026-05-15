@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -31,9 +32,9 @@ input[type=time]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:0.5
 input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:3px;
   background:linear-gradient(to right,var(--rc,#888) 0%,var(--rc,#888) var(--pct,50%),#222 var(--pct,50%));
   outline:none;border:none;padding:0;margin:0.3rem 0}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
   border-radius:50%;background:var(--rc,#888);cursor:pointer;border:2px solid #000}
-input[type=range]:disabled{opacity:0.35}
+input[type=range]:disabled{opacity:0.3}
 .btn{display:block;width:100%;padding:0.85rem;background:#fff;color:#000;border:none;
   border-radius:3px;font-size:0.9rem;font-weight:600;letter-spacing:0.05em;
   cursor:pointer;font-family:Inter,sans-serif;text-align:center}
@@ -46,7 +47,7 @@ input[type=range]:disabled{opacity:0.35}
   padding:0.9rem;font-size:1.6rem;font-family:"Share Tech Mono",monospace;
   width:100%;box-sizing:border-box;text-align:center}
 .temp-input:focus{border-color:#444;outline:none}
-.pbar-wrap{height:5px;background:#111;border-radius:2px;margin-top:0.25rem}
+.pbar-wrap{height:5px;background:#1a1a1a;border-radius:2px;margin-top:0.25rem}
 .pbar{height:100%;border-radius:2px;transition:width 0.5s}
 .sticky{position:sticky;top:0;background:#000;z-index:100;padding:0.75rem 1rem;
   border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center}
@@ -62,30 +63,36 @@ input[type=range]:disabled{opacity:0.35}
   font-weight:bold;font-size:1rem;letter-spacing:0.05em;margin-bottom:1rem;
   border-radius:4px;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.7}}
-.stat-row{display:flex;justify-content:space-between;align-items:center;
-  padding:0.42rem 0;border-bottom:1px solid #0f0f0f}
-.stat-label{font-size:0.65rem;color:#555;letter-spacing:0.08em;font-weight:600}
-.stat-value{font-size:0.85rem;font-family:"Share Tech Mono",monospace;text-align:right;max-width:65%}
-.badge-turn{background:#ff0000;color:#fff;font-size:0.58rem;padding:0.12rem 0.35rem;
-  border-radius:2px;font-family:"Share Tech Mono",monospace;letter-spacing:0.05em;
-  display:inline-block;vertical-align:middle;margin-left:0.4rem;animation:pulse 1s infinite}
-.ratio-row{display:flex;align-items:center;gap:0.4rem;margin-bottom:0.35rem}
-.ratio-lbl{font-size:0.6rem;font-family:"Share Tech Mono",monospace;width:46px;flex-shrink:0}
-.ratio-val{font-size:0.65rem;font-family:"Share Tech Mono",monospace;width:30px;text-align:right;flex-shrink:0}
-.lock-btn{background:none;border:none;cursor:pointer;font-size:0.75rem;padding:0 0.15rem;flex-shrink:0}
 .overlay{position:fixed;inset:0;background:#000;z-index:500;overflow-y:auto;padding:1rem}
 .drive-bar{display:flex;align-items:center;justify-content:space-between;
   padding:0.6rem 0.75rem;background:#050505;border:1px solid #1a1a1a;border-radius:3px;margin-top:0.75rem}
 .pill-status{display:inline-block;font-size:0.58rem;padding:0.12rem 0.4rem;border-radius:2px;
   font-family:"Share Tech Mono",monospace;letter-spacing:0.05em;vertical-align:middle;margin-left:0.4rem}
 .ing-card{background:#050505;border:1px solid #111;border-radius:3px;padding:0.75rem;margin-bottom:0.5rem}
-.turn-row{display:grid;grid-template-columns:28px 1fr;gap:0.5rem;align-items:start;
-  padding:0.65rem 0;border-bottom:1px solid #0a0a0a}
-.turn-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
-  justify-content:center;font-family:"Share Tech Mono",monospace;font-size:0.72rem;
-  background:#1a1a00;border:1px solid #f97316;color:#f97316;flex-shrink:0}
-.stage-badge{display:inline-block;font-size:0.58rem;padding:0.1rem 0.35rem;border-radius:2px;
-  font-family:"Share Tech Mono",monospace;margin-left:0.3rem;vertical-align:middle}
+.ratio-row{display:flex;align-items:center;gap:0.4rem;margin-bottom:0.35rem}
+.ratio-lbl{font-size:0.6rem;font-family:"Share Tech Mono",monospace;width:46px;flex-shrink:0}
+.ratio-val{font-size:0.65rem;font-family:"Share Tech Mono",monospace;width:30px;text-align:right;flex-shrink:0}
+.lock-btn{background:none;border:none;cursor:pointer;font-size:0.75rem;padding:0 0.15rem;flex-shrink:0}
+/* Status card redesign */
+.status-hero{background:#0a0a0a;border-radius:4px;padding:1.25rem;margin-bottom:0.75rem;
+  display:flex;justify-content:space-between;align-items:center}
+.status-temp{font-family:"Share Tech Mono",monospace;font-size:3rem;font-weight:bold;line-height:1}
+.status-time{font-family:"Share Tech Mono",monospace;font-size:2rem;font-weight:bold;line-height:1;text-align:right}
+.status-detail{display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid #0f0f0f;font-size:0.78rem}
+.status-key{color:#444;font-size:0.65rem;letter-spacing:0.08em;font-weight:600;font-family:Inter,sans-serif}
+.status-val{font-family:"Share Tech Mono",monospace;color:#ccc;text-align:right}
+/* Turn icon */
+.turn-icon{width:44px;height:44px;border-radius:50%;border:2px solid #ccc;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-family:"Share Tech Mono",monospace;font-size:0.6rem;color:#ccc;
+  line-height:1.1;text-align:center;flex-direction:column}
+.turn-icon.warn{border-color:#ef4444;color:#ef4444}
+/* Export menu */
+.export-menu{position:absolute;right:0;top:100%;background:#0a0a0a;border:1px solid #222;
+  border-radius:3px;z-index:200;min-width:140px;box-shadow:0 4px 16px rgba(0,0,0,0.8)}
+.export-item{padding:0.65rem 1rem;cursor:pointer;font-size:0.8rem;font-family:"Share Tech Mono",monospace;
+  color:#888;border-bottom:1px solid #111;letter-spacing:0.05em}
+.export-item:hover{background:#111;color:#fff}
 </style>
 </head>
 <body>
@@ -96,8 +103,8 @@ input[type=range]:disabled{opacity:0.35}
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" style="width:100%;max-width:240px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#333;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.2 · COMPOST ACADEMY</div>
-    <div id="drive-bar-home" class="drive-bar">
+    <div class="mono" style="font-size:0.58rem;color:#333;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.3 · COMPOST ACADEMY</div>
+    <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
         <span id="home-drive-label" class="mono" style="font-size:0.65rem;color:#555">LOCAL ONLY</span>
@@ -130,9 +137,9 @@ input[type=range]:disabled{opacity:0.35}
       <input id="new-pile-name" placeholder="e.g. Pile A – Spring 2025" style="margin-bottom:1.5rem"/>
       <div class="hd" style="font-size:1.1rem;color:#fff;margin-bottom:1rem">MATERIAL RECIPE</div>
       <div id="cat-editors"></div>
-      <div style="display:flex;justify-content:space-between;padding-top:0.75rem;border-top:1px solid #222;margin-top:0.5rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:0.75rem;border-top:1px solid #222;margin-top:0.5rem">
         <span class="mono" style="font-size:0.85rem;color:#555">TOTAL VOLUME</span>
-        <span id="total-vol" class="mono" style="font-size:0.85rem;color:#f59e0b;font-weight:bold">0.0 GAL</span>
+        <span id="total-vol" class="mono" style="font-size:1rem;color:#f59e0b;font-weight:bold">0.0 GAL</span>
       </div>
     </div>
     <div id="recipes-panel" class="card hidden">
@@ -155,6 +162,13 @@ input[type=range]:disabled{opacity:0.35}
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:0.5rem">
+      <div style="position:relative">
+        <button class="btn-sm" onclick="toggleExportMenu()" style="font-size:0.65rem">EXPORT ▾</button>
+        <div id="export-menu" class="export-menu hidden">
+          <div class="export-item" onclick="exportCSV()">CSV — SPREADSHEET</div>
+          <div class="export-item" onclick="exportPDF()">PDF — FULL REPORT</div>
+        </div>
+      </div>
       <button id="unit-toggle" onclick="toggleUnit()" class="btn-sm" style="font-size:0.65rem;padding:0.25rem 0.5rem">°F/°C</button>
       <div id="dash-core" class="mono" style="font-size:1.4rem;color:#333;font-weight:bold">–</div>
     </div>
@@ -163,10 +177,13 @@ input[type=range]:disabled{opacity:0.35}
     <div id="warn-banner" class="warn-banner hidden">⚠ TURN NOW — CORE TEMP TOO HIGH</div>
 
 ```
-<!-- STATUS CARD -->
-<div class="card" id="status-card" style="border-left:3px solid #222">
-  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.85rem">TEMPERATURE STATUS</div>
-  <div id="status-rows"></div>
+<!-- STATUS CARD (redesigned) -->
+<div class="card" id="status-card" style="border-left:3px solid #222;padding:0">
+  <div style="padding:0.75rem 1rem 0.5rem">
+    <div class="hd" style="font-size:0.75rem;color:#444;letter-spacing:0.15em">TEMPERATURE STATUS</div>
+  </div>
+  <div id="status-hero-area"></div>
+  <div id="status-details" style="padding:0 1rem 0.75rem"></div>
 </div>
 
 <!-- TURN TIMER -->
@@ -184,7 +201,7 @@ input[type=range]:disabled{opacity:0.35}
     <button onclick="quickLog()" class="btn-now">NOW</button>
   </div>
   <div style="margin-bottom:0.6rem">
-    <label class="lbl" style="color:#ff3333">CORE <span id="unit-lbl-core"></span></label>
+    <label class="lbl" style="color:#ff4444">CORE <span id="unit-lbl-core"></span></label>
     <input type="number" class="temp-input" id="f-core" placeholder="–" inputmode="decimal" onchange="autoAdvance('f-core','f-top')"/>
   </div>
   <div style="margin-bottom:0.6rem">
@@ -201,7 +218,7 @@ input[type=range]:disabled{opacity:0.35}
     </label>
     <input type="range" id="f-moisture-slider" min="0" max="100" step="5" value="50"
       style="--rc:#1e88e5;--pct:50%" oninput="updateSlider(this)"/>
-    <div style="display:flex;justify-content:space-between;margin-top:0.1rem">
+    <div style="display:flex;justify-content:space-between;margin-top:0.15rem">
       <span class="mono" style="font-size:0.58rem;color:#333">0%</span>
       <span class="mono" style="font-size:0.58rem;color:#90caf9">40 DRY</span>
       <span class="mono" style="font-size:0.58rem;color:#1e88e5">50 IDEAL</span>
@@ -233,12 +250,12 @@ input[type=range]:disabled{opacity:0.35}
       <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
     </div>
     <canvas id="temp-chart"></canvas>
-    <div style="display:flex;gap:0.85rem;margin-top:0.6rem;flex-wrap:wrap;align-items:center">
-      <div style="display:flex;align-items:center;gap:0.3rem"><div style="width:14px;height:3px;background:#ff3333;border-radius:1px"></div><span class="mono" style="font-size:0.58rem;color:#555">CORE</span></div>
-      <div style="display:flex;align-items:center;gap:0.3rem"><div style="width:14px;height:3px;background:#4ade80;border-radius:1px"></div><span class="mono" style="font-size:0.58rem;color:#555">TOP</span></div>
-      <div style="display:flex;align-items:center;gap:0.3rem"><div style="width:14px;height:3px;background:#a855f7;border-radius:1px"></div><span class="mono" style="font-size:0.58rem;color:#555">BOTTOM</span></div>
-      <div style="display:flex;align-items:center;gap:0.3rem"><div style="width:14px;height:6px;background:#1e88e533;border:1px solid #1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.58rem;color:#555">MOIST</span></div>
-      <div style="display:flex;align-items:center;gap:0.3rem"><div style="width:14px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.58rem;color:#555">TURN</span></div>
+    <div style="display:flex;gap:1rem;margin-top:0.75rem;flex-wrap:wrap;align-items:center">
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#ff4444;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">CORE</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#4ade80;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">TOP</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#a855f7;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">BOTTOM</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:6px;background:#1e88e533;border:1px solid #1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">MOISTURE</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">TURN</span></div>
     </div>
   </div>
 </div>
@@ -251,12 +268,12 @@ input[type=range]:disabled{opacity:0.35}
 
 <!-- TURN HISTORY -->
 <div class="card" id="turn-history-card" style="display:none">
-  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">TURN HISTORY</div>
+  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:1rem">TURN HISTORY</div>
   <div id="turn-history-content"></div>
 </div>
 
 <!-- RECIPE -->
-<div class="card" id="recipe-card">
+<div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
     <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">RECIPE</div>
     <div style="display:flex;align-items:center;gap:0.75rem">
@@ -294,7 +311,7 @@ input[type=range]:disabled{opacity:0.35}
         <div><label class="lbl">DATE</label><input type="date" id="e-date"/></div>
         <div><label class="lbl">TIME</label><input type="time" id="e-time"/></div>
       </div>
-      <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#ff3333">CORE <span id="e-unit-core"></span></label><input type="number" class="temp-input" id="e-core" placeholder="–" inputmode="decimal"/></div>
+      <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#ff4444">CORE <span id="e-unit-core"></span></label><input type="number" class="temp-input" id="e-core" placeholder="–" inputmode="decimal"/></div>
       <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#4ade80">TOP <span id="e-unit-top"></span></label><input type="number" class="temp-input" id="e-top" placeholder="–" inputmode="decimal"/></div>
       <div style="margin-bottom:0.75rem"><label class="lbl" style="color:#a855f7">BOTTOM <span id="e-unit-bot"></span></label><input type="number" class="temp-input" id="e-bottom" placeholder="–" inputmode="decimal"/></div>
       <div style="margin-bottom:0.75rem">
@@ -307,7 +324,7 @@ input[type=range]:disabled{opacity:0.35}
           <span class="mono" style="font-size:0.9rem;color:#f97316">PILE TURNED</span>
         </label>
       </div>
-      <div style="margin-bottom:0.75rem"><label class="lbl">NOTES</label><textarea id="e-notes" style="height:52px;resize:none"></textarea></div>
+      <div><label class="lbl">NOTES</label><textarea id="e-notes" style="height:52px;resize:none"></textarea></div>
     </div>
     <button class="btn" onclick="saveEdit()" style="margin-bottom:0.5rem">SAVE CHANGES</button>
     <button onclick="closeEdit()" style="width:100%;padding:0.6rem;background:none;border:1px solid #222;color:#555;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.85rem">CANCEL</button>
@@ -352,13 +369,13 @@ const N_PRESETS={
   "blood meal":{fastN:100,slowN:0,brown:0},"fish meal":{fastN:100,slowN:0,brown:0},
   "feather meal":{fastN:90,slowN:10,brown:0},"chicken manure":{fastN:80,slowN:20,brown:0},
   "horse manure":{fastN:60,slowN:30,brown:10},"cow manure":{fastN:50,slowN:30,brown:20},
-  "green manure":{fastN:60,slowN:30,brown:10},"seed meal":{fastN:85,slowN:15,brown:0},
-  "coffee grounds":{fastN:90,slowN:10,brown:0},"kitchen scraps":{fastN:70,slowN:20,brown:10},
-  "seaweed":{fastN:80,slowN:20,brown:0},"alfalfa":{fastN:20,slowN:70,brown:10},
-  "grass clippings":{fastN:30,slowN:60,brown:10},"fresh leaves":{fastN:10,slowN:40,brown:50},
-  "wood chips":{fastN:0,slowN:0,brown:100},"dry leaves":{fastN:0,slowN:10,brown:90},
-  "cardboard":{fastN:0,slowN:0,brown:100},"straw":{fastN:0,slowN:5,brown:95},
-  "sawdust":{fastN:0,slowN:0,brown:100},"hay":{fastN:5,slowN:15,brown:80},"paper":{fastN:0,slowN:0,brown:100},
+  "seed meal":{fastN:85,slowN:15,brown:0},"coffee grounds":{fastN:90,slowN:10,brown:0},
+  "kitchen scraps":{fastN:70,slowN:20,brown:10},"seaweed":{fastN:80,slowN:20,brown:0},
+  "alfalfa":{fastN:20,slowN:70,brown:10},"grass clippings":{fastN:30,slowN:60,brown:10},
+  "fresh leaves":{fastN:10,slowN:40,brown:50},"wood chips":{fastN:0,slowN:0,brown:100},
+  "dry leaves":{fastN:0,slowN:10,brown:90},"cardboard":{fastN:0,slowN:0,brown:100},
+  "straw":{fastN:0,slowN:5,brown:95},"sawdust":{fastN:0,slowN:0,brown:100},
+  "hay":{fastN:5,slowN:15,brown:80},"paper":{fastN:0,slowN:0,brown:100},
 };
 
 let piles=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
@@ -399,52 +416,56 @@ function toggleUnit(){
   renderDashboard();
 }
 
-// ── STAGE HISTORY ENGINE ──
-// Splits entries into "cycles" — each turn starts a new cycle
-// Within each cycle, computes which stages were satisfied (full continuous hours)
+// Close export menu when clicking outside
+document.addEventListener("click",function(e){
+  const menu=document.getElementById("export-menu");
+  if(menu&&!menu.classList.contains("hidden")&&!e.target.closest(".export-menu")&&!e.target.textContent.includes("EXPORT"))
+    menu.classList.add("hidden");
+});
+function toggleExportMenu(){
+  const menu=document.getElementById("export-menu");
+  if(menu)menu.classList.toggle("hidden");
+}
+
+// ── STAGE ENGINE ──
 function buildCycles(entries){
   if(!entries.length)return[];
   const sorted=[...entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-  const cycles=[];
-  let current=[];
+  const cycles=[];let current=[];
   for(const e of sorted){
     current.push(e);
-    if(e.turned){
-      cycles.push({entries:[...current],endedWithTurn:true,turnEntry:e});
-      current=[];
-    }
+    if(e.turned){cycles.push({entries:[...current],turnEntry:e});current=[];}
   }
-  if(current.length)cycles.push({entries:current,endedWithTurn:false,turnEntry:null});
+  if(current.length)cycles.push({entries:current,turnEntry:null});
   return cycles;
 }
 
 function computeSatisfiedStages(cycleEntries){
-  // For each band, find the longest continuous streak in this cycle
   const satisfied={};
   for(const band of BANDS){
     if(band.hours===0)continue;
-    let maxStreak=0,streakStart=null,streakLen=0;
-    const relevant=cycleEntries.filter(e=>e.core!=null);
-    for(let i=0;i<relevant.length;i++){
-      const inBand=getBand(relevant[i].core)?.label===band.label;
+    let maxStreak=0;let streakStart=null;
+    const rel=cycleEntries.filter(e=>e.core!=null);
+    for(let i=0;i<rel.length;i++){
+      const inBand=getBand(rel[i].core)?.label===band.label;
       if(inBand){
-        if(streakStart===null)streakStart=new Date(relevant[i].ts);
-        // Streak end = current entry time (or now if last)
-        const streakEnd=i<relevant.length-1?new Date(relevant[i+1].ts):new Date();
-        streakLen=(streakEnd-streakStart)/3600000;
-        if(streakLen>maxStreak)maxStreak=streakLen;
-      } else {
-        streakStart=null;streakLen=0;
-      }
+        if(streakStart===null)streakStart=new Date(rel[i].ts);
+        const streakEnd=i<rel.length-1?new Date(rel[i+1].ts):new Date();
+        const len=(streakEnd-streakStart)/3600000;
+        if(len>maxStreak)maxStreak=len;
+      } else {streakStart=null;}
     }
     satisfied[band.label]=maxStreak>=band.hours;
   }
   return satisfied;
 }
 
-// ── SMART TIMER ──
-// Finds the current active stage (lowest unsatisfied band the pile is currently in)
-// and shows progress within that stage since it last entered it (post last turn)
+function getHighestSatisfied(satisfiedStages){
+  const order=["Stage 4","Stage 3","Stage 2","Stage 1"];
+  for(const s of order){if(satisfiedStages[s])return s;}
+  return null;
+}
+
 function calcSmartTimer(entries){
   if(!entries.length)return null;
   const sorted=[...entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
@@ -452,39 +473,26 @@ function calcSmartTimer(entries){
   const currentBand=getBand(lat.core);
   if(!currentBand)return null;
   if(currentBand.hours===0)return{band:currentBand,turnNow:true,deadline:null,progress:100,remaining:0,elapsed:0,satisfiedStages:{}};
-
   const cycles=buildCycles(sorted);
   const currentCycle=cycles[cycles.length-1];
+  const satisfiedStages=computeSatisfiedStages(currentCycle.entries);
+  if(satisfiedStages[currentBand.label])
+    return{band:currentBand,elapsed:currentBand.hours,remaining:0,progress:100,complete:true,turnNow:false,deadline:null,satisfiedStages,stageDone:true};
   const cycleEntries=currentCycle.entries;
-  const satisfiedStages=computeSatisfiedStages(cycleEntries);
-
-  // If current band is already satisfied in this cycle — find next unsatisfied band
-  // that the pile could be heading toward
-  let activeBand=currentBand;
-  if(satisfiedStages[currentBand.label]){
-    // Stage done — show it as complete, next turn is needed
-    return{band:currentBand,elapsed:currentBand.hours,remaining:0,progress:100,
-      complete:true,turnNow:false,deadline:null,satisfiedStages,stageDone:true};
-  }
-
-  // Find streak start for current band in current cycle
-  let streakStart=null;
+  let streakStart=cycleEntries.length>0?new Date(cycleEntries[0].ts):new Date();
   for(let i=cycleEntries.length-1;i>=0;i--){
     const b=getBand(cycleEntries[i].core);
     if(!b||b.label!==currentBand.label){
-      streakStart=i+1<cycleEntries.length?new Date(cycleEntries[i+1].ts):null;
+      streakStart=i+1<cycleEntries.length?new Date(cycleEntries[i+1].ts):new Date(cycleEntries[cycleEntries.length-1].ts);
       break;
     }
     streakStart=new Date(cycleEntries[i].ts);
   }
-  if(!streakStart&&cycleEntries.length>0)streakStart=new Date(cycleEntries[0].ts);
-  if(!streakStart)return null;
-
   const elapsed=Math.max(0,(Date.now()-streakStart)/3600000);
-  const remaining=Math.max(0,activeBand.hours-elapsed);
-  const deadline=new Date(streakStart.getTime()+activeBand.hours*3600000);
-  return{band:activeBand,elapsed,remaining,progress:Math.min(100,elapsed/activeBand.hours*100),
-    complete:elapsed>=activeBand.hours,turnNow:false,deadline,satisfiedStages};
+  const remaining=Math.max(0,currentBand.hours-elapsed);
+  const deadline=new Date(streakStart.getTime()+currentBand.hours*3600000);
+  return{band:currentBand,elapsed,remaining,progress:Math.min(100,elapsed/currentBand.hours*100),
+    complete:elapsed>=currentBand.hours,turnNow:false,deadline,satisfiedStages};
 }
 
 function hoursSinceLastTurn(entries){
@@ -493,29 +501,32 @@ function hoursSinceLastTurn(entries){
   return Date.now()-new Date(t[0].ts);
 }
 
-// ── TURN HISTORY ──
 function buildTurnHistory(entries){
   if(!entries.length)return[];
   const sorted=[...entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
   const turns=sorted.filter(e=>e.turned);
   if(!turns.length)return[];
-  const result=[];
   const cycles=buildCycles(sorted);
-  for(let i=0;i<turns.length;i++){
-    const turn=turns[i];
-    const cycle=cycles[i]; // cycle i ends with this turn
-    if(!cycle)continue;
+  return turns.map((turn,i)=>{
+    const cycle=cycles[i];if(!cycle)return null;
     const prevTurnTime=i>0?new Date(turns[i-1].ts):null;
     const sinceMs=prevTurnTime?new Date(turn.ts)-prevTurnTime:null;
     const satisfiedStages=computeSatisfiedStages(cycle.entries);
+    const highestSatisfied=getHighestSatisfied(satisfiedStages);
+    const cycleStartTime=prevTurnTime||new Date(sorted[0].ts);
+    const cycleElapsedMs=new Date(turn.ts)-cycleStartTime;
+    // Warning: elapsed time exceeded required hours but stage not satisfied
     const activeBandAtTurn=getBand(turn.core);
-    result.push({num:i+1,date:turn.date,time:turn.time,ts:turn.ts,
-      sinceMs,activeBand:activeBandAtTurn,satisfiedStages,core:turn.core});
-  }
-  return result;
+    let isWarning=false;
+    if(!highestSatisfied&&activeBandAtTurn){
+      isWarning=cycleElapsedMs>activeBandAtTurn.hours*3600000;
+    }
+    return{num:i+1,date:turn.date,time:turn.time,ts:turn.ts,sinceMs,
+      satisfiedStages,highestSatisfied,core:turn.core,isWarning,activeBand:activeBandAtTurn};
+  }).filter(Boolean);
 }
 
-// N Ratio
+// N ratio
 function applyRatioChange(item,changedKey,newVal){
   newVal=Math.round(Math.min(100,Math.max(0,parseInt(newVal)||0))/5)*5;
   const keys=["fastN","slowN","brown"];
@@ -600,7 +611,7 @@ function renderHome(){
     return `<div class="card" style="cursor:pointer;border-left:3px solid ${isTurnNow?"#ff0000":band?band.color:"#222"};opacity:${isCompleted?0.6:1}" onclick="openPile('${p.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div style="flex:1;min-width:0">
-          <div class="hd" style="font-size:1.3rem;color:#fff">${p.name}${isTurnNow?'<span class="badge-turn">TURN NOW</span>':""}${statusPill}</div>
+          <div class="hd" style="font-size:1.3rem;color:#fff">${p.name}${isTurnNow?'<span style="background:#ff0000;color:#fff;font-size:0.58rem;padding:0.12rem 0.35rem;border-radius:2px;font-family:Share Tech Mono,monospace;margin-left:0.4rem;animation:pulse 1s infinite;display:inline-block;vertical-align:middle">TURN NOW</span>':""}${statusPill}</div>
           <div class="mono" style="font-size:0.62rem;color:#444;margin-top:0.15rem">DAY ${p.entries.length} · ${new Date(p.created).toLocaleDateString()}</div>
           ${sinceHtml}
         </div>
@@ -626,7 +637,6 @@ function renderSetup(){newMaterials=newMats();document.getElementById("new-pile-
 
 function renderCatEditors(mode){
   const prefix=mode==="edit"?"re":"cat";
-  const mats=getMats(mode);
   const containerId=mode==="edit"?"re-editors":"cat-editors";
   document.getElementById(containerId).innerHTML=CATS.map(cat=>`
     <div style="margin-bottom:1.5rem">
@@ -740,8 +750,8 @@ function pickSuggFor(catKey,itemId,val,prefix,mode){
   hideSugg(prefix+"-"+itemId);
 }
 function onIngRatioChange(itemId,key,val,prefix,mode){
-  let foundCat=null,foundItem=null;
-  CATS.forEach(cat=>{const it=getMats(mode)[cat.key]?.find(i=>i.id===itemId);if(it){foundCat=cat.key;foundItem=it;}});
+  let foundItem=null,foundCat=null;
+  CATS.forEach(cat=>{const it=getMats(mode)[cat.key]?.find(i=>i.id===itemId);if(it){foundItem=it;foundCat=cat.key;}});
   if(!foundItem)return;
   Object.assign(foundItem,applyRatioChange(foundItem,key,val));
   ["fastN","slowN","brown"].forEach(k=>{
@@ -762,7 +772,6 @@ function toggleIngLock(itemId,key,prefix,mode){
   const sl=document.getElementById(prefix+"-ratio-"+itemId+"-"+key);if(sl)sl.disabled=foundItem[key+"_locked"];
   const btn=sl?.closest(".ratio-row")?.querySelector(".lock-btn");if(btn)btn.textContent=foundItem[key+"_locked"]?"🔒":"🔓";
 }
-
 function renderRecipesPanel(){
   const panel=document.getElementById("recipes-panel");if(!recipes.length){panel.classList.add("hidden");return;}
   panel.classList.remove("hidden");
@@ -785,8 +794,6 @@ function createPile(){
     materials:JSON.parse(JSON.stringify(newMaterials)),entries:[]};
   piles.push(pile);activeId=pile.id;save();showView("dashboard");
 }
-
-// ── RECIPE EDIT ──
 function openRecipeEdit(){
   const pile=getActivePile();if(!pile)return;
   editMaterials=JSON.parse(JSON.stringify(pile.materials));
@@ -875,49 +882,76 @@ function autoAdvance(fromId,toId){
   if(val&&val.length>=2){const next=document.getElementById(toId);if(next)next.focus();}
 }
 
-// ── STATUS CARD ──
+// ── STATUS CARD (redesigned) ──
 function renderStatusCard(pile,sorted,lat,band){
-  const el=document.getElementById("status-rows");
+  const heroEl=document.getElementById("status-hero-area");
+  const detailEl=document.getElementById("status-details");
+  const card=document.getElementById("status-card");
   const sinceMs=hoursSinceLastTurn(pile.entries);
-  const sinceStr=sinceMs!==null?fmtHours(sinceMs):"No turn recorded yet";
-  const sinceColor=sinceMs!==null?"#fff":"#444";
+  const sinceStr=sinceMs!==null?fmtHours(sinceMs):"No turn yet";
+  const t=calcSmartTimer(pile.entries);
+  const isDone=t?.complete||t?.stageDone;
+
   if(lat&&lat.core>=175){
-    el.innerHTML=`<div class="stat-row"><span class="stat-label">CURRENT TEMP</span><span class="stat-value" style="color:#ff0000">${dispStr(lat.core)}</span></div>
-      <div class="stat-row"><span class="stat-label">STATUS</span><span class="stat-value" style="color:#ff0000">⚠ TURN IMMEDIATELY</span></div>
-      <div class="stat-row"><span class="stat-label">SINCE LAST TURN</span><span class="stat-value" style="color:${sinceColor}">${sinceStr}</span></div>`;
-    document.getElementById("status-card").style.borderLeftColor="#ff0000";return;
+    card.style.borderLeftColor="#ff0000";
+    heroEl.innerHTML=`<div style="padding:1rem 1.25rem;background:#1a0000;border-top:1px solid #3a0000;border-bottom:1px solid #3a0000;text-align:center">
+      <div class="hd" style="font-size:2rem;color:#ff0000;letter-spacing:0.1em">⚠ TURN NOW</div>
+      <div class="mono" style="font-size:3rem;color:#ff0000;font-weight:bold">${dispStr(lat.core)}</div>
+    </div>`;
+    detailEl.innerHTML=`<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">${sinceStr}</span></div>`;
+    return;
   }
   if(!lat||!band){
-    el.innerHTML=`<div class="stat-row"><span class="stat-label">CURRENT TEMP</span><span class="stat-value" style="color:#333">No data yet</span></div>
-      <div class="stat-row"><span class="stat-label">SINCE LAST TURN</span><span class="stat-value" style="color:${sinceColor}">${sinceStr}</span></div>`;
-    document.getElementById("status-card").style.borderLeftColor="#222";return;
+    card.style.borderLeftColor="#222";
+    heroEl.innerHTML=`<div style="padding:1.25rem;text-align:center"><div class="mono" style="color:#333;font-size:0.85rem">NO DATA YET — LOG YOUR FIRST ENTRY</div></div>`;
+    detailEl.innerHTML="";return;
   }
-  const t=calcSmartTimer(pile.entries);
-  const timeComp=t?fmtHours(t.elapsed*3600000):"–";
-  const nextDue=t&&t.deadline?fmtDate(t.deadline):"–";
-  const isDone=t?.complete||t?.stageDone;
-  const action=isDone?"CLEAR TO TURN — turn the pile now":t?`Wait ${fmtHours(t.remaining*3600000)} more`:"–";
-  document.getElementById("status-card").style.borderLeftColor=band.color;
 
-  // Satisfied stages badges
+  card.style.borderLeftColor=isDone?"#4ade80":band.color;
+  const timeLeft=isDone?"TURN NOW":t?Math.floor(t.remaining)+"h "+Math.round((t.remaining%1)*60)+"m":band.hours+"h";
+  const timeColor=isDone?"#4ade80":band.color;
   const satisfiedStages=t?.satisfiedStages||{};
-  const stageBadges=BANDS.filter(b=>b.hours>0).map(b=>{
+  const stageDots=BANDS.filter(b=>b.hours>0).map(b=>{
     const done=satisfiedStages[b.label];
-    return `<span style="display:inline-block;font-size:0.58rem;padding:0.1rem 0.35rem;border-radius:2px;margin-right:0.25rem;font-family:'Share Tech Mono',monospace;background:${done?"#0a1a0a":"#111"};color:${done?b.color:"#333"};border:1px solid ${done?b.color+"66":"#1a1a1a"}">${b.label.replace("Stage ","")} ${done?"✓":"○"}</span>`;
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem">
+      <div style="width:8px;height:8px;border-radius:50%;background:${done?"#4ade80":"#222"};border:1px solid ${done?"#4ade80":"#333"}"></div>
+      <span class="mono" style="font-size:0.5rem;color:${done?"#4ade80":"#333"}">${b.hours}H</span>
+    </div>`;
   }).join("");
 
-  el.innerHTML=`
-    <div class="stat-row"><span class="stat-label">CURRENT TEMP</span><span class="stat-value" style="color:${band.color}">${dispStr(lat.core)}</span></div>
-    <div class="stat-row"><span class="stat-label">STAGE</span><span class="stat-value" style="color:${band.color}">${band.label} · ${bandRange(band)}</span></div>
-    <div class="stat-row"><span class="stat-label">REQUIRED</span><span class="stat-value">${band.hours}h continuous</span></div>
-    <div class="stat-row"><span class="stat-label">COMPLETED</span><span class="stat-value" style="color:${isDone?"#4ade80":"#fff"}">${timeComp}</span></div>
-    <div class="stat-row"><span class="stat-label">NEXT TURN DUE</span><span class="stat-value" style="color:${isDone?"#4ade80":"#aaa"}">${nextDue}</span></div>
-    <div class="stat-row"><span class="stat-label">ACTION</span><span class="stat-value" style="color:${isDone?"#4ade80":"#fff"};font-size:0.75rem">${action}</span></div>
-    <div class="stat-row" style="border-bottom:none"><span class="stat-label">STAGES SATISFIED</span><span style="text-align:right">${stageBadges}</span></div>
-    <div class="stat-row"><span class="stat-label">SINCE LAST TURN</span><span class="stat-value" style="color:${sinceColor}">${sinceStr}</span></div>`;
+  heroEl.innerHTML=`<div style="padding:1rem 1.25rem;border-top:1px solid #111;border-bottom:1px solid #111">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:0.62rem;color:#444;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">CORE TEMP</div>
+        <div class="mono" style="font-size:2.8rem;color:${band.color};font-weight:bold;line-height:1">${dispStr(lat.core)}</div>
+        <div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">${band.label} · ${bandRange(band)}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:0.62rem;color:#444;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">${isDone?"ACTION":"TIME LEFT"}</div>
+        <div class="mono" style="font-size:${isDone?"1.4rem":"2rem"};color:${timeColor};font-weight:bold;line-height:1">${timeLeft}</div>
+        <div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">${band.hours}H REQUIRED</div>
+      </div>
+    </div>
+    <div style="margin-top:0.85rem">
+      <div class="pbar-wrap" style="height:6px">
+        <div class="pbar" style="width:${t?t.progress:0}%;background:${isDone?"#4ade80":band.color};height:6px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:0.35rem;align-items:center">
+        <div style="font-size:0.62rem;color:#444;font-family:Share Tech Mono,monospace">${t?Math.round(t.progress):0}% COMPLETE</div>
+        <div style="display:flex;gap:0.75rem;align-items:center">${stageDots}</div>
+      </div>
+    </div>
+  </div>`;
+
+  const nextDue=t&&t.deadline?fmtDate(t.deadline):"–";
+  const timeComp=t?fmtHours(t.elapsed*3600000):"–";
+  detailEl.innerHTML=`
+    <div class="status-detail"><span class="status-key">COMPLETED</span><span class="status-val" style="color:${isDone?"#4ade80":"#ccc"}">${timeComp}</span></div>
+    <div class="status-detail"><span class="status-key">NEXT TURN DUE</span><span class="status-val" style="color:${isDone?"#4ade80":"#888"}">${nextDue}</span></div>
+    <div class="status-detail" style="border-bottom:none"><span class="status-key">SINCE LAST TURN</span><span class="status-val">${sinceStr}</span></div>`;
 }
 
-// ── TIMER CARD ──
+// ── TIMER ──
 function renderTimer(pile){
   const t=calcSmartTimer(pile.entries);
   const card=document.getElementById("timer-card");const content=document.getElementById("timer-content");
@@ -926,8 +960,8 @@ function renderTimer(pile){
   const isDone=t.complete||t.stageDone;
   card.style.borderLeftColor=isDone?"#4ade80":t.band.color;
   const timeLeft=isDone?"CLEAR TO TURN ✓":Math.floor(t.remaining)+"h "+Math.round((t.remaining%1)*60)+"m";
-  const calBtn=t.deadline&&!isDone?`<button class="btn-sm" onclick="addToCalendar('${pile.name}',${t.deadline.getTime()})" style="margin-top:0.75rem;width:100%;padding:0.55rem">CALENDAR REMINDER — ${fmtDate(t.deadline)}</button>`:"";
   const satisfiedStages=t.satisfiedStages||{};
+  const calBtn=t.deadline&&!isDone?`<button class="btn-sm" onclick="addToCalendar('${pile.name}',${t.deadline.getTime()})" style="margin-top:0.75rem;width:100%;padding:0.55rem">CALENDAR REMINDER — ${fmtDate(t.deadline)}</button>`:"";
   content.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1rem">
       <div><span class="hd" style="color:${t.band.color};font-size:1.2rem">${t.band.label}</span>
@@ -937,12 +971,12 @@ function renderTimer(pile){
     ${BANDS.filter(b=>b.hours>0).map(band=>{
       const isCur=t.band.label===band.label;
       const done=satisfiedStages[band.label];
-      const pct=isCur?t.progress:done?100:0;
-      const barColor=done?"#4ade80":isCur?band.color:"#1a1a1a";
+      const pct=done?100:isCur?t.progress:0;
+      const barColor=done?"#4ade80":isCur?band.color:"#1e1e1e";
       return `<div style="margin-bottom:0.6rem">
         <div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">
-          <span class="mono" style="font-size:0.62rem;color:${done?"#4ade80":isCur?band.color:"#222"}">${band.label} · ${bandRange(band)} · ${band.hours}H${done?" ✓":""}</span>
-          <span class="mono" style="font-size:0.62rem;color:${done?"#4ade80":isCur?band.color:"#222"}">${Math.round(pct)}%</span>
+          <span class="mono" style="font-size:0.62rem;color:${done?"#4ade80":isCur?band.color:"#2a2a2a"}">${band.label} · ${bandRange(band)} · ${band.hours}H${done?" ✓":""}</span>
+          <span class="mono" style="font-size:0.62rem;color:${done?"#4ade80":isCur?band.color:"#2a2a2a"}">${Math.round(pct)}%</span>
         </div>
         <div class="pbar-wrap"><div class="pbar" style="width:${pct}%;background:${barColor}"></div></div>
       </div>`;
@@ -959,28 +993,21 @@ function renderChart(sorted){
   const labels=sorted.map((_,i)=>"D"+(i+1));
   const turnDays=sorted.map((e,i)=>e.turned?"D"+(i+1):null).filter(Boolean);
   if(tempChart){tempChart.destroy();tempChart=null;}
-
   const cMin=tempUnit==="C"?Math.round(toC(80)):80;
   const cMax=tempUnit==="C"?Math.round(toC(180)):180;
   function cr(f){return tempUnit==="C"?Math.round(toC(f)):f;}
-
   const turnAnnotations={};
   turnDays.forEach((d,i)=>{
     turnAnnotations["turn"+i]={type:"line",xMin:d,xMax:d,borderColor:"#f97316",borderWidth:2};
   });
-
-  const dangerAnnotation={danger:{type:"box",yMin:cr(175),yMax:cMax+5,
-    backgroundColor:"rgba(255,0,0,0.05)",borderColor:"rgba(255,0,0,0.2)",borderWidth:1,yScaleID:"y"}};
-
   const tempDatasets=tempMode==="three"?[
-    {label:"Core",data:sorted.map(e=>e.core!=null?disp(e.core):null),borderColor:"#ff3333",backgroundColor:"#ff333308",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff3333",spanGaps:true,yAxisID:"y",order:1},
+    {label:"Core",data:sorted.map(e=>e.core!=null?disp(e.core):null),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
     {label:"Top",data:sorted.map(e=>e.top!=null?disp(e.top):null),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#4ade80",spanGaps:true,yAxisID:"y",order:2},
     {label:"Bottom",data:sorted.map(e=>e.bottom!=null?disp(e.bottom):null),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#a855f7",spanGaps:true,yAxisID:"y",order:3},
   ]:[
     {label:"Average",data:sorted.map(e=>e.core&&e.top&&e.bottom?+((disp(e.core)+disp(e.top)+disp(e.bottom))/3).toFixed(1):null),
       borderColor:"#fff",backgroundColor:"#ffffff08",tension:0.3,pointRadius:4,pointBackgroundColor:"#fff",spanGaps:true,yAxisID:"y",order:1},
   ];
-
   tempChart=new Chart(document.getElementById("temp-chart"),{
     type:"line",
     data:{labels,datasets:[...tempDatasets,
@@ -994,23 +1021,22 @@ function renderChart(sorted){
       plugins:{
         legend:{display:false},
         annotation:{annotations:{
-          // Only 131°F dotted line kept
-          r131:{type:"line",yMin:cr(131),yMax:cr(131),borderColor:"#f59e0b88",borderWidth:1,borderDash:[4,4],yScaleID:"y"},
-          r175:{type:"line",yMin:cr(175),yMax:cr(175),borderColor:"#ff000066",borderWidth:1,borderDash:[3,3],yScaleID:"y"},
-          ...dangerAnnotation,...turnAnnotations
+          r131:{type:"line",yMin:cr(131),yMax:cr(131),borderColor:"#f59e0b77",borderWidth:1,borderDash:[5,4],yScaleID:"y"},
+          r175:{type:"line",yMin:cr(175),yMax:cr(175),borderColor:"#ff000055",borderWidth:1,borderDash:[3,3],yScaleID:"y"},
+          danger:{type:"box",yMin:cr(175),yMax:cMax+5,backgroundColor:"rgba(255,0,0,0.04)",borderColor:"rgba(255,0,0,0.15)",borderWidth:1,yScaleID:"y"},
+          ...turnAnnotations
         }}
       },
       scales:{
-        x:{ticks:{color:"#444",font:{size:10}},grid:{color:"#111"}},
-        y:{min:cMin,max:cMax,position:"left",ticks:{color:"#888",font:{size:10}},grid:{color:"#111"},
-          title:{display:true,text:"°"+tempUnit,color:"#555",font:{size:10}}},
-        y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:10},callback:v=>v+"%"},
-          grid:{drawOnChartArea:false},title:{display:true,text:"Moist",color:"#1e88e5",font:{size:10}}}
+        x:{ticks:{color:"#555",font:{size:11}},grid:{color:"#111"}},
+        y:{min:cMin,max:cMax,position:"left",ticks:{color:"#888",font:{size:11}},grid:{color:"#111"},
+          title:{display:true,text:"°"+tempUnit,color:"#555",font:{size:11}}},
+        y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:11},callback:v=>v+"%"},
+          grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:11}}}
       }
     }
   });
 }
-
 function toggleChart(){
   tempMode=tempMode==="three"?"average":"three";
   document.getElementById("btn-toggle-chart").textContent=tempMode==="three"?"SHOW AVG":"SHOW 3 LINES";
@@ -1025,25 +1051,37 @@ function renderTurnHistory(pile){
   const content=document.getElementById("turn-history-content");
   if(!history.length){card.style.display="none";return;}
   card.style.display="block";
-  content.innerHTML=history.map(t=>{
-    const stageBadges=BANDS.filter(b=>b.hours>0).map(b=>{
-      const done=t.satisfiedStages[b.label];
-      return `<span class="stage-badge" style="background:${done?"#0a1a0a":"#0a0a0a"};color:${done?b.color:"#333"};border:1px solid ${done?b.color+"55":"#111"}">${b.label.replace("Stage ","")} ${done?"✓":"○"}</span>`;
-    }).join("");
-    const activeBandColor=t.activeBand?t.activeBand.color:"#555";
-    return `<div class="turn-row">
-      <div class="turn-num">${t.num}</div>
-      <div>
-        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
-          <span class="mono" style="font-size:0.78rem;color:#fff">${t.date} ${t.time}</span>
-          ${t.activeBand?`<span style="font-size:0.6rem;color:${activeBandColor};font-family:'Share Tech Mono',monospace">${t.activeBand.label}</span>`:""}
-          ${t.core?`<span class="mono" style="font-size:0.7rem;color:${activeBandColor}">${dispStr(t.core)}</span>`:""}
+  content.innerHTML=`<div style="display:flex;flex-direction:column;gap:0.75rem">
+  ${history.map(t=>{
+    // Determine icon content
+    let iconHtml,iconClass="turn-icon";
+    if(t.isWarning){
+      iconHtml=`<span style="font-size:1rem">⚠</span>`;
+      iconClass="turn-icon warn";
+    } else if(t.highestSatisfied){
+      const band=BANDS.find(b=>b.label===t.highestSatisfied);
+      iconHtml=`<span style="font-size:0.7rem;font-weight:bold">${band?band.hours+"h":""}</span>`;
+    } else {
+      iconHtml=`<span style="font-size:0.62rem;color:#555">${t.num}</span>`;
+      iconClass="turn-icon";
+    }
+    const activeColor=t.activeBand?t.activeBand.color:"#555";
+    return `<div style="display:flex;gap:0.85rem;align-items:flex-start;padding:0.75rem;background:#050505;border:1px solid #111;border-radius:3px">
+      <div class="${iconClass}" style="margin-top:0.1rem">${iconHtml}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;margin-bottom:0.3rem">
+          <span class="mono" style="font-size:0.82rem;color:#ccc">${t.date} ${t.time}</span>
+          ${t.core?`<span class="mono" style="font-size:0.78rem;color:${activeColor}">${dispStr(t.core)}</span>`:""}
+          ${t.activeBand?`<span class="mono" style="font-size:0.65rem;color:${activeColor}">${t.activeBand.label}</span>`:""}
         </div>
-        ${t.sinceMs!=null?`<div class="mono" style="font-size:0.65rem;color:#444;margin-top:0.2rem">SINCE PREV TURN: ${fmtHours(t.sinceMs)}</div>`:`<div class="mono" style="font-size:0.65rem;color:#333;margin-top:0.2rem">FIRST TURN</div>`}
-        <div style="margin-top:0.35rem">${stageBadges}</div>
+        ${t.sinceMs!=null
+          ?`<div class="mono" style="font-size:0.65rem;color:#444">SINCE PREV TURN: ${fmtHours(t.sinceMs)}</div>`
+          :`<div class="mono" style="font-size:0.65rem;color:#333">FIRST TURN</div>`}
+        ${t.highestSatisfied?`<div class="mono" style="font-size:0.65rem;color:#4ade80;margin-top:0.2rem">✓ SATISFIED: ${t.highestSatisfied} (${BANDS.find(b=>b.label===t.highestSatisfied)?.hours}H)</div>`:""}
+        ${t.isWarning?`<div class="mono" style="font-size:0.65rem;color:#ef4444;margin-top:0.2rem">⚠ TURNED WITHOUT SATISFYING STAGE REQUIREMENT</div>`:""}
       </div>
     </div>`;
-  }).join("");
+  }).join("")}</div>`;
 }
 
 // ── RECIPE SUMMARY ──
@@ -1055,13 +1093,10 @@ function renderRecipeSummary(pile){
     <div style="flex:${ratio.fastN||1};background:#ef4444;height:100%"></div>
     <div style="flex:${ratio.slowN||1};background:#4ade80;height:100%"></div>
     <div style="flex:${ratio.brown||1};background:#d97706;height:100%"></div>`;
-
-  // Total volume header
-  const volHeader=`<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0.75rem;background:#050505;border:1px solid #111;border-radius:3px;margin-bottom:0.75rem">
+  const volHeader=`<div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0.75rem;background:#050505;border:1px solid #111;border-radius:3px;margin-bottom:0.75rem">
     <span class="mono" style="font-size:0.72rem;color:#555">TOTAL RECIPE VOLUME</span>
-    <span class="mono" style="font-size:0.9rem;color:#f59e0b;font-weight:bold">${tot.toFixed(1)} GAL</span>
+    <span class="mono" style="font-size:1rem;color:#f59e0b;font-weight:bold">${tot.toFixed(1)} GAL</span>
   </div>`;
-
   const catHtml=CATS.map(cat=>{
     const items=pile.materials[cat.key]||[];
     const cv=catVol(items);const pct=tot>0?cv/tot*100:0;
@@ -1073,18 +1108,18 @@ function renderRecipeSummary(pile){
       const hasBadge=fn+sn+br>0;
       return `<div style="padding:0.5rem 0.75rem;border-top:1px solid #0a0a0a">
         <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <span style="font-size:0.85rem;color:#ccc">${i.name||"<em style='color:#444'>Unnamed</em>"}</span>
+          <span style="font-size:0.88rem;color:#ddd">${i.name||""}</span>
           <span class="mono" style="font-size:0.72rem;color:#555">${i.volume?i.volume+" gal":""}</span>
         </div>
-        ${i.notes?`<div style="font-size:0.72rem;color:#444;margin-top:0.15rem">${i.notes}</div>`:""}
+        ${i.notes?`<div style="font-size:0.72rem;color:#555;margin-top:0.15rem">${i.notes}</div>`:""}
         ${hasBadge?`<div style="display:flex;gap:0.4rem;margin-top:0.3rem">
-          <span class="mono" style="font-size:0.6rem;color:#ef4444;background:#1a0808;padding:0.1rem 0.3rem;border-radius:2px">F ${fn}%</span>
-          <span class="mono" style="font-size:0.6rem;color:#4ade80;background:#081a08;padding:0.1rem 0.3rem;border-radius:2px">S ${sn}%</span>
-          <span class="mono" style="font-size:0.6rem;color:#d97706;background:#1a1008;padding:0.1rem 0.3rem;border-radius:2px">B ${br}%</span>
+          <span class="mono" style="font-size:0.62rem;color:#ef4444;background:#1a0808;padding:0.1rem 0.35rem;border-radius:2px">F ${fn}%</span>
+          <span class="mono" style="font-size:0.62rem;color:#4ade80;background:#081a08;padding:0.1rem 0.35rem;border-radius:2px">S ${sn}%</span>
+          <span class="mono" style="font-size:0.62rem;color:#d97706;background:#1a1008;padding:0.1rem 0.35rem;border-radius:2px">B ${br}%</span>
         </div>`:""}
       </div>`;
     }).join("");
-    return `<div style="margin-bottom:0.75rem;background:#050505;border:1px solid #111;border-radius:3px;overflow:hidden">
+    return `<div style="margin-bottom:0.65rem;background:#050505;border:1px solid #111;border-radius:3px;overflow:hidden">
       <div onclick="toggleCat('${cat.key}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.65rem 0.75rem;cursor:pointer">
         <div style="display:flex;align-items:center;gap:0.5rem">
           <span class="hd" style="font-size:0.95rem;color:${cat.color}">${cat.label}</span>
@@ -1101,25 +1136,21 @@ function renderRecipeSummary(pile){
       ${isExpanded&&visItems.length?`<div>${itemDetails}</div>`:""}
     </div>`;
   }).join("");
-
-  // C:N Ratio at bottom
-  const ratioHtml=`<div style="margin-top:0.75rem;padding:0.6rem 0.75rem;background:#050505;border:1px solid #111;border-radius:3px">
-    <div style="font-size:0.62rem;color:#555;letter-spacing:0.08em;margin-bottom:0.4rem">C:N RATIO</div>
-    <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;gap:1px;margin-bottom:0.4rem">
+  const ratioHtml=`<div style="padding:0.6rem 0.75rem;background:#050505;border:1px solid #111;border-radius:3px">
+    <div class="mono" style="font-size:0.62rem;color:#555;margin-bottom:0.4rem">C:N RATIO</div>
+    <div style="display:flex;height:7px;border-radius:3px;overflow:hidden;gap:1px;margin-bottom:0.4rem">
       <div style="flex:${ratio.fastN||1};background:#ef4444"></div>
       <div style="flex:${ratio.slowN||1};background:#4ade80"></div>
       <div style="flex:${ratio.brown||1};background:#d97706"></div>
     </div>
     <div style="display:flex;justify-content:space-between">
-      <span class="mono" style="font-size:0.62rem;color:#ef4444">FAST N ${ratio.fastN}%</span>
-      <span class="mono" style="font-size:0.62rem;color:#4ade80">SLOW N ${ratio.slowN}%</span>
-      <span class="mono" style="font-size:0.62rem;color:#d97706">BROWN ${ratio.brown}%</span>
+      <span class="mono" style="font-size:0.65rem;color:#ef4444">FAST N ${ratio.fastN}%</span>
+      <span class="mono" style="font-size:0.65rem;color:#4ade80">SLOW N ${ratio.slowN}%</span>
+      <span class="mono" style="font-size:0.65rem;color:#d97706">BROWN ${ratio.brown}%</span>
     </div>
   </div>`;
-
   document.getElementById("dash-recipe").innerHTML=volHeader+catHtml+ratioHtml;
 }
-
 function toggleCat(key){
   if(expandedCats.has(key))expandedCats.delete(key);else expandedCats.add(key);
   const pile=getActivePile();if(pile)renderRecipeSummary(pile);
@@ -1127,12 +1158,12 @@ function toggleCat(key){
 
 function renderTempRef(){
   document.getElementById("temp-ref").innerHTML=BANDS.map(b=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.38rem 0;border-bottom:1px solid #0a0a0a">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid #0a0a0a">
       <div style="display:flex;align-items:center;gap:0.45rem">
-        <div style="width:6px;height:6px;border-radius:50%;background:${b.color}"></div>
-        <span class="mono" style="color:${b.color};font-size:0.75rem">${bandRange(b)}</span>
+        <div style="width:7px;height:7px;border-radius:50%;background:${b.color}"></div>
+        <span class="mono" style="color:${b.color};font-size:0.78rem">${bandRange(b)}</span>
       </div>
-      <span class="mono" style="color:#333;font-size:0.75rem">${b.hours?b.hours+"H CONTINUOUS":"TURN NOW"}</span>
+      <span class="mono" style="color:#444;font-size:0.78rem">${b.hours?b.hours+"H CONTINUOUS":"TURN NOW"}</span>
     </div>`).join("");
 }
 
@@ -1140,16 +1171,16 @@ function renderLogTable(sorted){
   document.getElementById("log-count").textContent="ALL ENTRIES ("+sorted.length+")";
   const table=document.getElementById("log-table");
   if(!sorted.length){table.innerHTML="";return;}
-  table.innerHTML=`<thead><tr>${["DAY","DATE","CORE","TOP","BOT","MOIST","TURN",""].map(h=>`<th class="mono" style="text-align:left;padding:0.28rem 0.35rem;border-bottom:1px solid #111;font-weight:normal;color:#333;font-size:0.6rem;letter-spacing:0.05em">${h}</th>`).join("")}</tr></thead>
+  table.innerHTML=`<thead><tr>${["DAY","DATE","CORE","TOP","BOT","MOIST","TURN",""].map(h=>`<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#444;font-size:0.62rem;letter-spacing:0.05em">${h}</th>`).join("")}</tr></thead>
   <tbody>${sorted.map((en,i)=>`<tr style="border-bottom:1px solid #080808">
-    <td class="mono" style="padding:0.28rem 0.35rem;color:#333;font-size:0.68rem">${i+1}</td>
-    <td class="mono" style="padding:0.28rem 0.35rem;color:#444;font-size:0.68rem">${en.date}</td>
-    <td class="mono" style="padding:0.28rem 0.35rem;color:#ff3333;font-weight:bold;font-size:0.68rem">${en.core!=null?dispStr(en.core):"–"}</td>
-    <td class="mono" style="padding:0.28rem 0.35rem;color:#4ade80;font-size:0.68rem">${en.top!=null?dispStr(en.top):"–"}</td>
-    <td class="mono" style="padding:0.28rem 0.35rem;color:#a855f7;font-size:0.68rem">${en.bottom!=null?dispStr(en.bottom):"–"}</td>
-    <td style="padding:0.28rem 0.35rem">${en.moisture!=null?`<span style="background:${mColor(en.moisture)};color:#fff;padding:0.05rem 0.22rem;border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:0.62rem">${en.moisture}%</span>`:"–"}</td>
-    <td class="mono" style="padding:0.28rem 0.35rem;color:${en.turned?"#f97316":"#1a1a1a"};font-size:0.68rem">${en.turned?"YES":"–"}</td>
-    <td style="padding:0.28rem 0.25rem"><button onclick="openEdit('${en.id}')" class="btn-sm" style="padding:0.2rem 0.4rem;font-size:0.6rem">EDIT</button></td>
+    <td class="mono" style="padding:0.3rem 0.4rem;color:#444;font-size:0.7rem">${i+1}</td>
+    <td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">${en.date}</td>
+    <td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.7rem">${en.core!=null?dispStr(en.core):"–"}</td>
+    <td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.7rem">${en.top!=null?dispStr(en.top):"–"}</td>
+    <td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.7rem">${en.bottom!=null?dispStr(en.bottom):"–"}</td>
+    <td style="padding:0.3rem 0.4rem">${en.moisture!=null?`<span style="background:${mColor(en.moisture)};color:#fff;padding:0.05rem 0.25rem;border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:0.65rem">${en.moisture}%</span>`:"–"}</td>
+    <td class="mono" style="padding:0.3rem 0.4rem;color:${en.turned?"#f97316":"#1a1a1a"};font-size:0.7rem">${en.turned?"YES":"–"}</td>
+    <td style="padding:0.3rem 0.3rem"><button onclick="openEdit('${en.id}')" class="btn-sm" style="padding:0.2rem 0.4rem;font-size:0.6rem">EDIT</button></td>
   </tr>`).join("")}</tbody>`;
 }
 
@@ -1231,6 +1262,126 @@ function deleteEntry(){
   const pile=getActivePile();if(!pile)return;
   pile.entries=pile.entries.filter(e=>e.id!==editingEntryId);
   save();closeEdit();renderDashboard();
+}
+
+// ── EXPORT CSV ──
+function exportCSV(){
+  document.getElementById("export-menu").classList.add("hidden");
+  const pile=getActivePile();if(!pile)return;
+  const sorted=[...pile.entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
+  const rows=[["Day","Date","Time","Core °F","Top °F","Bottom °F","Core °C","Top °C","Bottom °C","Moisture %","Turned","Stage","Notes"]];
+  sorted.forEach((e,i)=>{
+    const band=getBand(e.core);
+    rows.push([i+1,e.date,e.time,
+      e.core||"",e.top||"",e.bottom||"",
+      e.core!=null?toC(e.core):"",e.top!=null?toC(e.top):"",e.bottom!=null?toC(e.bottom):"",
+      e.moisture||"",e.turned?"YES":"",band?band.label:"",
+      (e.notes||"").replace(/,/g,";")]);
+  });
+  const csv=rows.map(r=>r.join(",")).join("\n");
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+  a.download=pile.name.replace(/\s+/g,"-")+"-log.csv";
+  a.click();
+}
+
+// ── EXPORT PDF ──
+async function exportPDF(){
+  document.getElementById("export-menu").classList.add("hidden");
+  const pile=getActivePile();if(!pile)return;
+  if(!window.jspdf){alert("PDF library loading, please wait a moment and try again.");return;}
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+  const W=210,M=15,CW=W-M*2;
+  let y=M;
+  const lh=7;
+  function check(needed){if(y+needed>285){doc.addPage();y=M;}}
+  // Header
+  doc.setFillColor(0,0,0);doc.rect(0,0,W,30,"F");
+  doc.setFont("helvetica","bold");doc.setFontSize(18);doc.setTextColor(255,255,255);
+  doc.text("COMPOST ACADEMY — PILE REPORT",M,12);
+  doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(180,180,180);
+  doc.text(pile.name,M,20);
+  doc.text("Created: "+new Date(pile.created).toLocaleDateString()+" · Days: "+pile.entries.length+" · Turns: "+pile.entries.filter(e=>e.turned).length,M,26);
+  y=38;
+  // Recipe summary
+  doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
+  doc.text("MATERIAL RECIPE",M,y);y+=5;
+  doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
+  const tot=totVol(pile.materials);
+  const ratio=calcPileRatio(pile.materials);
+  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(80,80,80);
+  doc.text("Total Volume: "+tot.toFixed(1)+" gallons",M,y);y+=5;
+  doc.text("C:N Ratio — Fast N: "+ratio.fastN+"% | Slow N: "+ratio.slowN+"% | Brown: "+ratio.brown+"%",M,y);y+=6;
+  CATS.forEach(cat=>{
+    const items=(pile.materials[cat.key]||[]).filter(i=>i.name);
+    if(!items.length)return;
+    doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(60,60,60);
+    doc.text(cat.label,M,y);y+=4;
+    items.forEach(item=>{
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(100,100,100);
+      doc.text("  · "+item.name+(item.volume?" ("+item.volume+" gal)":"")+(item.notes?" — "+item.notes:""),M,y);y+=4;
+    });
+  });
+  y+=4;
+  // Turn history
+  const history=buildTurnHistory(pile.entries);
+  if(history.length){
+    check(20);
+    doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
+    doc.text("TURN HISTORY",M,y);y+=5;
+    doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
+    history.forEach(t=>{
+      check(14);
+      doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(60,60,60);
+      const icon=t.highestSatisfied?BANDS.find(b=>b.label===t.highestSatisfied)?.hours+"H ✓":t.isWarning?"⚠ WARNING":"TURN "+t.num;
+      doc.text("Turn "+t.num+" — "+icon,M,y);y+=4;
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(100,100,100);
+      doc.text("Date: "+t.date+" "+t.time+(t.core?" | Core: "+t.core+"°F":"")+(t.activeBand?" | "+t.activeBand.label:""),M+4,y);y+=4;
+      if(t.sinceMs!=null){doc.text("Since previous turn: "+fmtHours(t.sinceMs),M+4,y);y+=4;}
+      if(t.highestSatisfied){doc.text("Stage satisfied: "+t.highestSatisfied,M+4,y);y+=4;}
+      if(t.isWarning){doc.setTextColor(200,60,60);doc.text("Warning: turned without satisfying stage requirement",M+4,y);doc.setTextColor(100,100,100);y+=4;}
+      y+=1;
+    });
+  }
+  // Chart image
+  const chartCanvas=document.getElementById("temp-chart");
+  if(chartCanvas&&sorted.length){
+    check(90);
+    try{
+      const imgData=chartCanvas.toDataURL("image/png");
+      doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
+      doc.text("TEMPERATURE + MOISTURE CHART",M,y);y+=5;
+      doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=4;
+      const chartH=70;const chartW=CW;
+      doc.addImage(imgData,"PNG",M,y,chartW,chartH);y+=chartH+6;
+    }catch(e){console.log("Chart image failed",e);}
+  }
+  // Log table
+  check(20);
+  doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
+  doc.text("LOG ENTRIES",M,y);y+=5;
+  doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
+  // Table header
+  const cols=[12,26,14,14,14,14,14,16];const headers=["Day","Date","Core°F","Top°F","Bot°F","Moist","Turn","Stage"];
+  let x=M;
+  doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(80,80,80);
+  headers.forEach((h,i)=>{doc.text(h,x,y);x+=cols[i];});y+=1;
+  doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=3;
+  const sorted=[...pile.entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
+  sorted.forEach((e,i)=>{
+    check(6);
+    x=M;doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);
+    const band=getBand(e.core);
+    const row=[i+1,e.date,e.core||"",e.top||"",e.bottom||"",e.moisture?e.moisture+"%":"",e.turned?"YES":"",band?band.label:""];
+    row.forEach((v,j)=>{doc.text(String(v),x,y);x+=cols[j];});
+    y+=5;if(i%2===0){doc.setFillColor(248,248,248);doc.rect(M,y-4,CW,5,"F");}
+  });
+  doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(160,160,160);
+  doc.text("Generated by Compost Academy Logger · "+new Date().toLocaleDateString(),M,290);
+  doc.save(pile.name.replace(/\s+/g,"-")+"-report.pdf");
+
+  // Local var for sorted used above — redefine for clarity
 }
 
 // ── DRIVE ──

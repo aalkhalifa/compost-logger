@@ -1676,7 +1676,7 @@ function updateDriveUI(){
   // Connect button only when disconnected
   if(btnConnect)btnConnect.style.display=(driveStatus==="disconnected"||driveStatus==="error"||driveStatus==="offline")?"inline-block":"none";
   // Sync now button when pending save and connected
-  if(btnSync)btnSync.style.display=(pendingSave&&driveToken)?"inline-block":"none";
+  if(btnSync)btnSync.style.display=driveToken?"inline-block":"none";
 }
 
 function setStatus(s){driveStatus=s;updateDriveUI();}

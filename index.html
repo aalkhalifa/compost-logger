@@ -100,7 +100,7 @@ input[type=range]:disabled{opacity:0.3}
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:240px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#333;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.5 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#333;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.6 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -113,10 +113,15 @@ input[type=range]:disabled{opacity:0.3}
     </div>
   </div>
   <div class="wrap">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.5rem">
       <span class="hd" style="font-size:1.5rem;color:#fff">YOUR PILES</span>
-      <button onclick="showView('setup')" class="btn" style="width:auto;padding:0.5rem 1.1rem">+ NEW PILE</button>
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+        <button onclick="downloadCSVTemplate()" class="btn-sm" style="font-size:0.7rem;padding:0.5rem 0.75rem">CSV TEMPLATE</button>
+        <button onclick="document.getElementById('csv-import-input').click()" class="btn-sm" style="font-size:0.7rem;padding:0.5rem 0.75rem">IMPORT CSV</button>
+        <button onclick="showView('setup')" class="btn" style="width:auto;padding:0.5rem 1.1rem">+ NEW PILE</button>
+      </div>
     </div>
+    <input type="file" id="csv-import-input" accept=".csv,text/csv" style="display:none" onchange="handleCSVImport(event)"/>
     <div id="pile-list"></div>
   </div>
 </div>
@@ -1852,6 +1857,181 @@ window.addEventListener("beforeunload",function(e){
 // ============================================================
 // BOOT
 // ============================================================
+
+// ============================================================
+// CSV IMPORT + TEMPLATE
+// ============================================================
+
+function downloadCSVTemplate(){
+  var lines=[
+    "[PILE]",
+    "Name,My New Pile",
+    "Created,"+new Date().toISOString().split("T")[0],
+    "",
+    "[RECIPE]",
+    "Category,Ingredient,Volume,Notes",
+    "HIGH NITROGEN,Chicken manure,10,Optional notes about source",
+    "HIGH NITROGEN,Horse manure,5,",
+    "GREENS,Alfalfa,15,",
+    "GREENS,Grass clippings,10,",
+    "BROWNS,Wood chips,50,Municipal mulch",
+    "BROWNS,Dry leaves,10,",
+    "",
+    "[ENTRIES]",
+    "Date,Time,Core,Top,Bottom,Moisture,Turned,Notes",
+    "2026-01-15,09:00,135,130,128,50,NO,First reading",
+    "2026-01-16,10:00,142,135,132,55,NO,",
+    "2026-01-18,09:30,148,140,138,50,YES,Turned the pile",
+    "",
+    "# INSTRUCTIONS:",
+    "# - Categories must be exactly: HIGH NITROGEN, GREENS, BROWNS",
+    "# - Volume is in gallons",
+    "# - Date format: YYYY-MM-DD",
+    "# - Time format: HH:MM (24-hour)",
+    "# - Temperatures in Fahrenheit",
+    "# - Moisture is 0-100 percent",
+    "# - Turned: YES or NO",
+    "# - Lines starting with # are ignored"
+  ];
+  var csv=lines.join("\n");
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+  a.download="compost-logger-template.csv";
+  a.click();
+}
+
+function parseCSV(text){
+  // Returns {pile:{name,created},materials:{...},entries:[...]}
+  var lines=text.split(/\r?\n/);
+  var section=null;
+  var pile={name:"",created:""};
+  var materials={highN:[],greens:[],browns:[]};
+  var entries=[];
+  var catMap={"HIGH NITROGEN":"highN","GREENS":"greens","BROWNS":"browns"};
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i];
+    if(!line||line.trim()==="")continue;
+    if(line.trim().charAt(0)==="#")continue;
+    var trimmed=line.trim();
+    // Section header
+    if(trimmed.charAt(0)==="["&&trimmed.charAt(trimmed.length-1)==="]"){
+      section=trimmed.slice(1,-1).toUpperCase();
+      continue;
+    }
+    // Parse CSV row (simple split, no quote handling for now)
+    var parts=line.split(",").map(function(p){return p.trim();});
+    if(section==="PILE"){
+      var key=parts[0].toLowerCase();
+      if(key==="name"&&parts[1])pile.name=parts[1];
+      if(key==="created"&&parts[1])pile.created=parts[1];
+    } else if(section==="RECIPE"){
+      // Skip header row
+      if(parts[0]==="Category"||parts[0]==="category")continue;
+      var catKey=catMap[parts[0].toUpperCase()];
+      if(!catKey)continue;
+      if(!parts[1])continue;
+      var vol=parseFloat(parts[2])||0;
+      var preset=getPreset(parts[1])||{fastN:33,slowN:34,brown:33};
+      materials[catKey].push({
+        id:uid(),
+        name:parts[1],
+        volume:vol?String(vol):"",
+        notes:parts[3]||"",
+        fastN:preset.fastN,
+        slowN:preset.slowN,
+        brown:preset.brown,
+        fastN_locked:false,
+        slowN_locked:false,
+        brown_locked:false
+      });
+    } else if(section==="ENTRIES"){
+      if(parts[0]==="Date"||parts[0]==="date")continue;
+      if(!parts[0]||!parts[1])continue;
+      var date=parts[0];
+      var time=parts[1];
+      var core=parts[2]?parseFloat(parts[2]):null;
+      var top=parts[3]?parseFloat(parts[3]):null;
+      var bottom=parts[4]?parseFloat(parts[4]):null;
+      var moist=parts[5]?parseInt(parts[5]):50;
+      var turned=parts[6]&&parts[6].toUpperCase()==="YES";
+      var notes=parts[7]||"";
+      var ts;
+      try{ts=new Date(date+"T"+time).toISOString();}
+      catch(e){continue;}
+      entries.push({
+        id:uid(),
+        ts:ts,
+        date:date,
+        time:time,
+        core:isNaN(core)?null:core,
+        top:isNaN(top)?null:top,
+        bottom:isNaN(bottom)?null:bottom,
+        moisture:isNaN(moist)?50:moist,
+        turned:turned,
+        notes:notes
+      });
+    }
+  }
+  return {pile:pile,materials:materials,entries:entries};
+}
+
+function handleCSVImport(event){
+  var file=event.target.files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var text=e.target.result;
+      var parsed=parseCSV(text);
+      if(!parsed.pile.name){
+        alert("CSV is missing a pile name. Use the template format.");
+        event.target.value="";
+        return;
+      }
+      var totalEntries=parsed.entries.length;
+      var totalIngredients=parsed.materials.highN.length+parsed.materials.greens.length+parsed.materials.browns.length;
+      if(!confirm("Import pile \""+parsed.pile.name+"\" with "+totalIngredients+" ingredients and "+totalEntries+" entries?\n\nThis will create a new pile."))
+      {event.target.value="";return;}
+      // Ensure all 3 categories exist with at least one item (even if empty)
+      var mats={
+        highN:parsed.materials.highN.length?parsed.materials.highN:[newItem()],
+        greens:parsed.materials.greens.length?parsed.materials.greens:[newItem()],
+        browns:parsed.materials.browns.length?parsed.materials.browns:[newItem()]
+      };
+      var createdDate;
+      try{createdDate=parsed.pile.created?new Date(parsed.pile.created).toISOString():new Date().toISOString();}
+      catch(e){createdDate=new Date().toISOString();}
+      var pile={
+        id:uid(),
+        name:parsed.pile.name,
+        created:createdDate,
+        status:"active",
+        materials:mats,
+        entries:parsed.entries
+      };
+      piles.push(pile);
+      // Add ingredient names to history
+      CATS.forEach(function(cat){
+        (mats[cat.key]||[]).forEach(function(i){if(i.name)addToHist(cat.key,i.name);});
+      });
+      save();
+      alert("Imported \""+pile.name+"\" successfully!\n"+totalIngredients+" ingredients, "+totalEntries+" entries.");
+      event.target.value="";
+      renderHome();
+    } catch(err){
+      console.error("CSV import error",err);
+      alert("Failed to import CSV: "+err.message);
+      event.target.value="";
+    }
+  };
+  reader.onerror=function(){
+    alert("Failed to read file");
+    event.target.value="";
+  };
+  reader.readAsText(file);
+}
+
+
 if("Notification" in window && Notification.permission==="default"){
   try{Notification.requestPermission();}catch(e){}
 }

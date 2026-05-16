@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -28,35 +29,39 @@ input:focus,textarea:focus{border-color:#444;outline:none}
 input[type=checkbox]{width:18px;height:18px;accent-color:#f97316}
 input[type=date]::-webkit-calendar-picker-indicator,
 input[type=time]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:0.5}
-input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;
-  background:linear-gradient(to right,var(--rc,#888) 0%,var(--rc,#888) var(--pct,50%),#1a1a1a var(--pct,50%));
+input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:3px;
+  background:linear-gradient(to right,var(--rc,#888) 0%,var(--rc,#888) var(--pct,50%),#222 var(--pct,50%));
   outline:none;border:none;padding:0;margin:0.3rem 0}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
   border-radius:50%;background:var(--rc,#888);cursor:pointer;border:2px solid #000}
 input[type=range]:disabled{opacity:0.3}
-.btn{display:block;width:100%;padding:0.9rem;background:#fff;color:#000;border:none;
-  border-radius:3px;font-size:1rem;font-weight:700;letter-spacing:0.05em;
+.btn{display:block;width:100%;padding:0.85rem;background:#fff;color:#000;border:none;
+  border-radius:3px;font-size:0.9rem;font-weight:600;letter-spacing:0.05em;
   cursor:pointer;font-family:Inter,sans-serif;text-align:center}
 .btn-sm{background:#0a0a0a;border:1px solid #222;color:#666;border-radius:3px;
   padding:0.35rem 0.75rem;cursor:pointer;font-size:0.72rem;font-family:Inter,sans-serif;white-space:nowrap}
-.btn-now{background:#111;border:1px solid #444;color:#aaa;border-radius:3px;
-  padding:0 1rem;cursor:pointer;font-size:0.8rem;font-family:"Share Tech Mono",monospace;
-  letter-spacing:0.05em;white-space:nowrap;height:42px;display:flex;align-items:center}
+.btn-now{background:#111;border:1px solid #333;color:#888;border-radius:3px;
+  padding:0 0.85rem;cursor:pointer;font-size:0.72rem;font-family:"Share Tech Mono",monospace;
+  letter-spacing:0.05em;white-space:nowrap;min-height:38px;height:100%}
 .temp-input{background:#050505;border:1px solid #222;border-radius:3px;color:#fff;
-  padding:0.9rem;font-size:1.8rem;font-family:"Share Tech Mono",monospace;
+  padding:0.9rem;font-size:1.6rem;font-family:"Share Tech Mono",monospace;
   width:100%;box-sizing:border-box;text-align:center}
 .temp-input:focus{border-color:#444;outline:none}
+.pbar-wrap{height:5px;background:#1a1a1a;border-radius:2px;margin-top:0.25rem}
+.pbar{height:100%;border-radius:2px;transition:width 0.5s}
 .sticky{position:sticky;top:0;background:#000;z-index:100;padding:0.75rem 1rem;
   border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center}
 .dropdown-list{position:absolute;top:100%;left:0;right:0;background:#0a0a0a;
-  border:1px solid #2a2a2a;border-radius:3px;z-index:999;max-height:160px;overflow-y:auto;display:none}
+  border:1px solid #2a2a2a;border-radius:3px;z-index:999;max-height:160px;
+  overflow-y:auto;display:none}
 .dropdown-list.open{display:block}
 .dropdown-item{padding:0.5rem 0.75rem;cursor:pointer;border-bottom:1px solid #111;color:#bbb;font-size:0.85rem}
 .dropdown-item:hover{background:#111}
 .wrap{padding:1rem;max-width:700px;margin:0 auto}
 .hidden{display:none}
-.warn-banner{background:#ff0000;color:#fff;padding:1rem;text-align:center;font-weight:bold;
-  font-size:1rem;letter-spacing:0.05em;margin-bottom:1rem;border-radius:4px;animation:pulse 1s infinite}
+.warn-banner{background:#ff0000;color:#fff;padding:1rem;text-align:center;
+  font-weight:bold;font-size:1rem;letter-spacing:0.05em;margin-bottom:1rem;
+  border-radius:4px;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.7}}
 .overlay{position:fixed;inset:0;background:#000;z-index:500;overflow-y:auto;padding:1rem}
 .drive-bar{display:flex;align-items:center;justify-content:space-between;
@@ -68,27 +73,26 @@ input[type=range]:disabled{opacity:0.3}
 .ratio-lbl{font-size:0.6rem;font-family:"Share Tech Mono",monospace;width:46px;flex-shrink:0}
 .ratio-val{font-size:0.65rem;font-family:"Share Tech Mono",monospace;width:30px;text-align:right;flex-shrink:0}
 .lock-btn{background:none;border:none;cursor:pointer;font-size:0.75rem;padding:0 0.15rem;flex-shrink:0}
+/* Status card redesign */
+.status-hero{background:#0a0a0a;border-radius:4px;padding:1.25rem;margin-bottom:0.75rem;
+  display:flex;justify-content:space-between;align-items:center}
+.status-temp{font-family:"Share Tech Mono",monospace;font-size:3rem;font-weight:bold;line-height:1}
+.status-time{font-family:"Share Tech Mono",monospace;font-size:2rem;font-weight:bold;line-height:1;text-align:right}
+.status-detail{display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid #0f0f0f;font-size:0.78rem}
+.status-key{color:#444;font-size:0.65rem;letter-spacing:0.08em;font-weight:600;font-family:Inter,sans-serif}
+.status-val{font-family:"Share Tech Mono",monospace;color:#ccc;text-align:right}
+/* Turn icon */
+.turn-icon{width:44px;height:44px;border-radius:50%;border:2px solid #ccc;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-family:"Share Tech Mono",monospace;font-size:0.6rem;color:#ccc;
+  line-height:1.1;text-align:center;flex-direction:column}
+.turn-icon.warn{border-color:#ef4444;color:#ef4444}
+/* Export menu */
 .export-menu{position:absolute;right:0;top:100%;background:#0a0a0a;border:1px solid #222;
-  border-radius:3px;z-index:200;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,0.8)}
+  border-radius:3px;z-index:200;min-width:140px;box-shadow:0 4px 16px rgba(0,0,0,0.8)}
 .export-item{padding:0.65rem 1rem;cursor:pointer;font-size:0.8rem;font-family:"Share Tech Mono",monospace;
   color:#888;border-bottom:1px solid #111;letter-spacing:0.05em}
 .export-item:hover{background:#111;color:#fff}
-.turn-icon{width:42px;height:42px;border-radius:50%;border:2px solid #f97316;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  font-family:"Share Tech Mono",monospace;font-size:0.62rem;color:#f97316;
-  text-align:center;flex-direction:column;background:#0a0a0a}
-.turn-icon.warn{border-color:#ef4444;color:#ef4444}
-.turn-icon.empty{border-color:#2a2a2a;color:#333}
-.turn-icon.done{border-color:#4ade80;color:#4ade80}
-.cycle-bar{height:8px;border-radius:4px;background:#1a1a1a;overflow:hidden;flex:1}
-.cycle-bar-fill{height:100%;border-radius:4px;transition:width 0.6s ease}
-.cycle-row{padding:0.75rem;background:#050505;border:1px solid #111;border-radius:3px;
-  margin-bottom:0.5rem;cursor:pointer}
-.cycle-row:hover{border-color:#2a2a2a}
-.cycle-readings{display:none;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #111}
-.cycle-readings.open{display:block}
-.stage-minibar{height:5px;border-radius:2px;background:#1a1a1a;overflow:hidden;margin-top:0.2rem}
-.stage-minibar-fill{height:100%;border-radius:2px}
 </style>
 </head>
 <body>
@@ -97,9 +101,9 @@ input[type=range]:disabled{opacity:0.3}
 
 <div id="view-home">
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
-    <img id="logo-img" src="icon-512.png" style="width:100%;max-width:240px;display:block;margin:0 auto;border-radius:8px"/>
+    <img id="logo-img" style="width:100%;max-width:240px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#333;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.5 · COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#333;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.3 · COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -169,12 +173,11 @@ input[type=range]:disabled{opacity:0.3}
       <div id="dash-core" class="mono" style="font-size:1.4rem;color:#333;font-weight:bold">–</div>
     </div>
   </div>
-
-  <div class="wrap" id="dash-wrap">
+  <div class="wrap">
     <div id="warn-banner" class="warn-banner hidden">⚠ TURN NOW — CORE TEMP TOO HIGH</div>
 
 ```
-<!-- 1. TEMPERATURE STATUS -->
+<!-- STATUS CARD (redesigned) -->
 <div class="card" id="status-card" style="border-left:3px solid #222;padding:0">
   <div style="padding:0.75rem 1rem 0.5rem">
     <div class="hd" style="font-size:0.75rem;color:#444;letter-spacing:0.15em">TEMPERATURE STATUS</div>
@@ -183,13 +186,19 @@ input[type=range]:disabled{opacity:0.3}
   <div id="status-details" style="padding:0 1rem 0.75rem"></div>
 </div>
 
-<!-- 2. LOG ENTRY -->
+<!-- TURN TIMER -->
+<div id="timer-card" class="card" style="border-left:3px solid #222">
+  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">TURN TIMER</div>
+  <div id="timer-content"></div>
+</div>
+
+<!-- LOG ENTRY -->
 <div class="card">
   <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.9rem">LOG ENTRY</div>
   <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0.5rem;margin-bottom:0.75rem;align-items:end">
-    <div><label class="lbl">DATE</label><input type="date" id="f-date" style="height:42px"/></div>
-    <div><label class="lbl">TIME</label><input type="time" id="f-time" style="height:42px"/></div>
-    <div style="display:flex;align-items:flex-end"><button onclick="quickLog()" class="btn-now">NOW</button></div>
+    <div><label class="lbl">DATE</label><input type="date" id="f-date"/></div>
+    <div><label class="lbl">TIME</label><input type="time" id="f-time"/></div>
+    <button onclick="quickLog()" class="btn-now">NOW</button>
   </div>
   <div style="margin-bottom:0.6rem">
     <label class="lbl" style="color:#ff4444">CORE <span id="unit-lbl-core"></span></label>
@@ -210,11 +219,11 @@ input[type=range]:disabled{opacity:0.3}
     <input type="range" id="f-moisture-slider" min="0" max="100" step="5" value="50"
       style="--rc:#1e88e5;--pct:50%" oninput="updateSlider(this)"/>
     <div style="display:flex;justify-content:space-between;margin-top:0.15rem">
-      <span class="mono" style="font-size:0.6rem;color:#333">0%</span>
-      <span class="mono" style="font-size:0.6rem;color:#90caf9">40 DRY</span>
-      <span class="mono" style="font-size:0.6rem;color:#1e88e5">50 IDEAL</span>
-      <span class="mono" style="font-size:0.6rem;color:#1565c0">60 WET</span>
-      <span class="mono" style="font-size:0.6rem;color:#333">100%</span>
+      <span class="mono" style="font-size:0.58rem;color:#333">0%</span>
+      <span class="mono" style="font-size:0.58rem;color:#90caf9">40 DRY</span>
+      <span class="mono" style="font-size:0.58rem;color:#1e88e5">50 IDEAL</span>
+      <span class="mono" style="font-size:0.58rem;color:#1565c0">60 WET</span>
+      <span class="mono" style="font-size:0.58rem;color:#333">100%</span>
     </div>
   </div>
   <div style="margin-bottom:0.75rem;padding:0.75rem;background:#050505;border:1px solid #1a1a1a;border-radius:3px">
@@ -233,13 +242,7 @@ input[type=range]:disabled{opacity:0.3}
   <button class="btn" onclick="addEntry()">+ LOG ENTRY</button>
 </div>
 
-<!-- 3. TURN CYCLES -->
-<div class="card" id="cycles-card" style="display:none">
-  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.85rem">TURN CYCLES</div>
-  <div id="cycles-content"></div>
-</div>
-
-<!-- 4. CHART -->
+<!-- CHART -->
 <div id="chart-section" class="hidden">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem">
@@ -247,23 +250,29 @@ input[type=range]:disabled{opacity:0.3}
       <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
     </div>
     <canvas id="temp-chart"></canvas>
-    <div style="display:flex;gap:1rem;margin-top:0.85rem;flex-wrap:wrap;align-items:center">
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#ff4444;border-radius:1px"></div><span class="mono" style="font-size:0.68rem;color:#777">CORE</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#4ade80;border-radius:1px"></div><span class="mono" style="font-size:0.68rem;color:#777">TOP</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#a855f7;border-radius:1px"></div><span class="mono" style="font-size:0.68rem;color:#777">BOTTOM</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:6px;background:#1e88e533;border:1px solid #1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.68rem;color:#777">MOISTURE</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.68rem;color:#777">TURN</span></div>
+    <div style="display:flex;gap:1rem;margin-top:0.75rem;flex-wrap:wrap;align-items:center">
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#ff4444;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">CORE</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#4ade80;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">TOP</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#a855f7;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">BOTTOM</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:6px;background:#1e88e533;border:1px solid #1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">MOISTURE</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">TURN</span></div>
     </div>
   </div>
 </div>
 
-<!-- 5. ALL ENTRIES -->
+<!-- LOG TABLE -->
 <div class="card">
   <div id="log-count" class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">ENTRIES</div>
   <div style="overflow-x:auto"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
 </div>
 
-<!-- 6. RECIPE -->
+<!-- TURN HISTORY -->
+<div class="card" id="turn-history-card" style="display:none">
+  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:1rem">TURN HISTORY</div>
+  <div id="turn-history-content"></div>
+</div>
+
+<!-- RECIPE -->
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
     <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">RECIPE</div>
@@ -279,13 +288,10 @@ input[type=range]:disabled{opacity:0.3}
   </div>
 </div>
 
-<!-- 7. TEMPERATURE REFERENCE (collapsible) -->
+<!-- TEMP REFERENCE -->
 <div class="card">
-  <div onclick="toggleTempRef()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-bottom:0">
-    <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMPERATURE REFERENCE</div>
-    <span id="tempref-arrow" style="color:#444;font-size:0.9rem">▸</span>
-  </div>
-  <div id="temp-ref" class="hidden" style="margin-top:0.75rem"></div>
+  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">TEMPERATURE REFERENCE</div>
+  <div id="temp-ref"></div>
 </div>
 ```
 
@@ -373,27 +379,26 @@ const N_PRESETS={
 };
 
 let piles=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
-let activeId=null,tempMode="three",tempUnit="F",tempRefOpen=false;
+let activeId=null,tempMode="three",tempUnit="F";
 let tempChart=null;
 let driveToken=null,driveFileId=null,driveStatus="disconnected";
 let tokenClient=null,saveTimer=null,timerInterval=null;
 let newMaterials={},editMaterials={};
 let editingEntryId=null;
 let expandedCats=new Set(["highN","greens","browns"]);
-let expandedCycles=new Set();
 
-// -- UTILS --
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const newItem=()=>({id:uid(),name:"",volume:"",notes:"",fastN:33,slowN:34,brown:33,fastN_locked:false,slowN_locked:false,brown_locked:false});
 const newMats=()=>({highN:[newItem()],greens:[newItem()],browns:[newItem()]});
 const totVol=m=>Object.values(m).flat().reduce((s,i)=>s+(parseFloat(i.volume)||0),0);
 const catVol=items=>items.reduce((s,i)=>s+(parseFloat(i.volume)||0),0);
 function getBand(f){if(!f||f<131)return null;return BANDS.find(b=>f>=b.min&&f<=b.max)||null;}
-function mColor(p){if(p==null)return"#222";if(p>=60)return"#1565c0";if(p>=50)return"#1e88e5";if(p>=40)return"#4a90d9";return"#7ab3e0";}
-function fmtH(ms){if(ms<0)return"0h 0m";const h=Math.floor(ms/3600000);const m=Math.round((ms%3600000)/60000);return h+"h "+m+"m";}
-function fmtHr(hrs){return fmtH(hrs*3600000);}
+function mColor(p){if(!p)return"#222";if(p>=60)return"#1565c0";if(p>=50)return"#1e88e5";if(p>=40)return"#4a90d9";return"#7ab3e0";}
+function fmtHours(ms){if(ms<0)return"0h 0m";const h=Math.floor(ms/3600000);const m=Math.round((ms%3600000)/60000);return h+"h "+m+"m";}
 function fmtDate(d){return d.toLocaleDateString()+" "+d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
 function getPreset(name){if(!name)return null;return N_PRESETS[name.toLowerCase().trim()]||null;}
+
+// Temp conversion
 function toC(f){return +((f-32)*5/9).toFixed(1);}
 function toF(c){return +(c*9/5+32).toFixed(1);}
 function disp(f){if(f==null)return null;return tempUnit==="C"?toC(f):f;}
@@ -410,100 +415,84 @@ function toggleUnit(){
   document.getElementById("unit-toggle").style.color=tempUnit==="C"?"#38bdf8":"#888";
   renderDashboard();
 }
+
+// Close export menu when clicking outside
 document.addEventListener("click",function(e){
   const menu=document.getElementById("export-menu");
-  if(menu&&!menu.classList.contains("hidden")&&!e.target.closest("[onclick*='toggleExportMenu']")&&!e.target.closest(".export-menu"))
+  if(menu&&!menu.classList.contains("hidden")&&!e.target.closest(".export-menu")&&!e.target.textContent.includes("EXPORT"))
     menu.classList.add("hidden");
 });
-function toggleExportMenu(){(function(){var _e=document.getElementById("export-menu");if(_e)_e.classList.toggle("hidden");})();}
-function toggleTempRef(){
-  tempRefOpen=!tempRefOpen;
-  const el=document.getElementById("temp-ref");
-  const arr=document.getElementById("tempref-arrow");
-  if(el){if(tempRefOpen){el.classList.remove("hidden");if(arr)arr.textContent="▾";}
-    else{el.classList.add("hidden");if(arr)arr.textContent="▸";}}
+function toggleExportMenu(){
+  const menu=document.getElementById("export-menu");
+  if(menu)menu.classList.toggle("hidden");
 }
 
-// -- INDEPENDENT STAGE TRACKING --
-// Each stage runs independently. A stage's streak resets ONLY when temp
-// drops BELOW that stage's minimum floor. Going higher does NOT affect it.
-function computeStageProgress(cycleEntries){
-  const result={};
-  const rel=cycleEntries.filter(e=>e.core!=null).sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-  for(const band of BANDS){
-    if(band.hours===0){result[band.label]={elapsed:0,progress:0,satisfied:false,everReached:false,streakStart:null};continue;}
-    let bestStreak=0;
-    let curStreakStart=null;
-    let everReached=false;
-    for(let i=0;i<rel.length;i++){
-      const aboveFloor=rel[i].core>=band.min;
-      if(aboveFloor){
-        everReached=true;
-        if(!curStreakStart)curStreakStart=new Date(rel[i].ts);
-        const end=i<rel.length-1?new Date(rel[i+1].ts):new Date();
-        const len=(end-curStreakStart)/3600000;
-        if(len>bestStreak)bestStreak=len;
-      } else {
-        // Dropped below floor — reset this stage's streak
-        curStreakStart=null;
-      }
-    }
-    // Check current live streak
-    const lastE=rel[rel.length-1];
-    const liveStreakStart=lastE&&lastE.core>=band.min?curStreakStart:null;
-    const liveElapsed=liveStreakStart?(new Date()-liveStreakStart)/3600000:0;
-    if(liveElapsed>bestStreak)bestStreak=liveElapsed;
-    const satisfied=bestStreak>=band.hours;
-    const progress=Math.min(100,bestStreak/band.hours*100);
-    result[band.label]={elapsed:bestStreak,progress,satisfied,everReached,streakStart:liveStreakStart,liveElapsed};
-  }
-  return result;
-}
-
+// ── STAGE ENGINE ──
 function buildCycles(entries){
   if(!entries.length)return[];
   const sorted=[...entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
   const cycles=[];let current=[];
   for(const e of sorted){
     current.push(e);
-    if(e.turned){cycles.push({entries:[...current],turnEntry:e,completed:true});current=[];}
+    if(e.turned){cycles.push({entries:[...current],turnEntry:e});current=[];}
   }
-  if(current.length)cycles.push({entries:current,turnEntry:null,completed:false});
+  if(current.length)cycles.push({entries:current,turnEntry:null});
   return cycles;
 }
 
-// Find the closest stage to completion (most urgent)
-function getClosestStage(sp){
-  // Among stages that are not yet satisfied and have been reached
-  const active=BANDS.filter(b=>b.hours>0&&(sp[b.label]&&sp[b.label].everReached)&&!(sp[b.label]&&sp[b.label].satisfied));
-  if(!active.length){
-    // All reached stages satisfied — find any unsatisfied
-    const unsatisfied=BANDS.filter(b=>b.hours>0&&!(sp[b.label]&&sp[b.label].satisfied));
-    if(!unsatisfied.length)return null; // all done
-    return unsatisfied[0];
+function computeSatisfiedStages(cycleEntries){
+  const satisfied={};
+  for(const band of BANDS){
+    if(band.hours===0)continue;
+    let maxStreak=0;let streakStart=null;
+    const rel=cycleEntries.filter(e=>e.core!=null);
+    for(let i=0;i<rel.length;i++){
+      const inBand=getBand(rel[i].core)?.label===band.label;
+      if(inBand){
+        if(streakStart===null)streakStart=new Date(rel[i].ts);
+        const streakEnd=i<rel.length-1?new Date(rel[i+1].ts):new Date();
+        const len=(streakEnd-streakStart)/3600000;
+        if(len>maxStreak)maxStreak=len;
+      } else {streakStart=null;}
+    }
+    satisfied[band.label]=maxStreak>=band.hours;
   }
-  // Find the one closest to finish (highest progress)
-  return active.reduce((best,b)=>{
-    if(!best)return b;
-    return sp[b.label].progress>sp[best.label].progress?b:best;
-  },null);
+  return satisfied;
 }
 
-function calcCurrentStatus(entries){
+function getHighestSatisfied(satisfiedStages){
+  const order=["Stage 4","Stage 3","Stage 2","Stage 1"];
+  for(const s of order){if(satisfiedStages[s])return s;}
+  return null;
+}
+
+function calcSmartTimer(entries){
   if(!entries.length)return null;
   const sorted=[...entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
   const lat=sorted[sorted.length-1];
   const currentBand=getBand(lat.core);
+  if(!currentBand)return null;
+  if(currentBand.hours===0)return{band:currentBand,turnNow:true,deadline:null,progress:100,remaining:0,elapsed:0,satisfiedStages:{}};
   const cycles=buildCycles(sorted);
   const currentCycle=cycles[cycles.length-1];
-  const sp=computeStageProgress(currentCycle.entries);
-  const allDone=BANDS.filter(b=>b.hours>0).every(b=>(sp[b.label]&&sp[b.label].satisfied));
-  const closestBand=getClosestStage(sp);
-  const closestSP=closestBand?sp[closestBand.label]:null;
-  const remaining=closestBand&&closestSP?Math.max(0,closestBand.hours-closestSP.elapsed):0;
-  const deadline=closestBand&&(closestSP&&closestSP.streakStart)?new Date(closestSP.streakStart.getTime()+closestBand.hours*3600000):null;
-  return{lat,currentBand,sp,allDone,closestBand,closestSP,remaining,deadline,
-    turnNow:lat.core>=175,cycles};
+  const satisfiedStages=computeSatisfiedStages(currentCycle.entries);
+  if(satisfiedStages[currentBand.label])
+    return{band:currentBand,elapsed:currentBand.hours,remaining:0,progress:100,complete:true,turnNow:false,deadline:null,satisfiedStages,stageDone:true};
+  const cycleEntries=currentCycle.entries;
+  let streakStart=cycleEntries.length>0?new Date(cycleEntries[0].ts):new Date();
+  for(let i=cycleEntries.length-1;i>=0;i--){
+    const b=getBand(cycleEntries[i].core);
+    if(!b||b.label!==currentBand.label){
+      streakStart=i+1<cycleEntries.length?new Date(cycleEntries[i+1].ts):new Date(cycleEntries[cycleEntries.length-1].ts);
+      break;
+    }
+    streakStart=new Date(cycleEntries[i].ts);
+  }
+  const elapsed=Math.max(0,(Date.now()-streakStart)/3600000);
+  const remaining=Math.max(0,currentBand.hours-elapsed);
+  const deadline=new Date(streakStart.getTime()+currentBand.hours*3600000);
+  return{band:currentBand,elapsed,remaining,progress:Math.min(100,elapsed/currentBand.hours*100),
+    complete:elapsed>=currentBand.hours,turnNow:false,deadline,satisfiedStages};
 }
 
 function hoursSinceLastTurn(entries){
@@ -512,22 +501,29 @@ function hoursSinceLastTurn(entries){
   return Date.now()-new Date(t[0].ts);
 }
 
-function cycleStats(cycle){
-  const rel=cycle.entries.filter(e=>e.core!=null);
-  const cores=rel.map(e=>e.core).filter(Boolean);
-  const moistures=rel.map(e=>e.moisture).filter(v=>v!=null);
-  const peakCore=cores.length?Math.max(...cores):null;
-  const avgCore=cores.length?+(cores.reduce((s,v)=>s+v,0)/cores.length).toFixed(1):null;
-  const avgMoisture=moistures.length?Math.round(moistures.reduce((s,v)=>s+v,0)/moistures.length):null;
-  const startDate=(cycle.entries[0]&&cycle.entries[0].date)||"";
-  const endDate=(cycle.turnEntry&&cycle.turnEntry.date)||"";
-  const startTs=new Date((cycle.entries[0]&&cycle.entries[0].ts)||Date.now());
-  const endTs=cycle.turnEntry?new Date(cycle.turnEntry.ts):new Date();
-  const durationMs=endTs-startTs;
-  const sp=computeStageProgress(cycle.entries);
-  const highestSatisfied=["Stage 4","Stage 3","Stage 2","Stage 1"].find(s=>(sp[s]&&sp[s].satisfied))||null;
-  const closestBand=getClosestStage(sp);
-  return{peakCore,avgCore,avgMoisture,startDate,endDate,durationMs,sp,highestSatisfied,closestBand,readingCount:rel.length};
+function buildTurnHistory(entries){
+  if(!entries.length)return[];
+  const sorted=[...entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
+  const turns=sorted.filter(e=>e.turned);
+  if(!turns.length)return[];
+  const cycles=buildCycles(sorted);
+  return turns.map((turn,i)=>{
+    const cycle=cycles[i];if(!cycle)return null;
+    const prevTurnTime=i>0?new Date(turns[i-1].ts):null;
+    const sinceMs=prevTurnTime?new Date(turn.ts)-prevTurnTime:null;
+    const satisfiedStages=computeSatisfiedStages(cycle.entries);
+    const highestSatisfied=getHighestSatisfied(satisfiedStages);
+    const cycleStartTime=prevTurnTime||new Date(sorted[0].ts);
+    const cycleElapsedMs=new Date(turn.ts)-cycleStartTime;
+    // Warning: elapsed time exceeded required hours but stage not satisfied
+    const activeBandAtTurn=getBand(turn.core);
+    let isWarning=false;
+    if(!highestSatisfied&&activeBandAtTurn){
+      isWarning=cycleElapsedMs>activeBandAtTurn.hours*3600000;
+    }
+    return{num:i+1,date:turn.date,time:turn.time,ts:turn.ts,sinceMs,
+      satisfiedStages,highestSatisfied,core:turn.core,isWarning,activeBand:activeBandAtTurn};
+  }).filter(Boolean);
 }
 
 // N ratio
@@ -546,6 +542,7 @@ function applyRatioChange(item,changedKey,newVal){
   keys.forEach(k=>{if(result[k]<0)result[k]=0;});
   return result;
 }
+
 function calcPileRatio(materials){
   let fN=0,sN=0,br=0,tot=0;
   Object.values(materials).flat().forEach(item=>{
@@ -558,6 +555,7 @@ function calcPileRatio(materials){
   return{fastN:Math.round(fN/tot*100),slowN:Math.round(sN/tot*100),brown:Math.round(br/tot*100)};
 }
 
+// Persist
 function save(){localStorage.setItem("ca_v5",JSON.stringify({piles,recipes,ingHist,tempUnit}));scheduleDriveSave();}
 function load(){
   const s=localStorage.getItem("ca_v5")||localStorage.getItem("ca_v4");
@@ -572,7 +570,7 @@ function showView(v){
   if(v==="dashboard")renderDashboard();
 }
 
-// -- HOME --
+// ── HOME ──
 function renderHome(){
   updateDriveUI();
   const el=document.getElementById("pile-list");
@@ -581,31 +579,31 @@ function renderHome(){
     return;
   }
   el.innerHTML=piles.map(p=>{
-    const status=calcCurrentStatus(p.entries);
-    const lat=(status&&status.lat);const band=lat?getBand(lat.core):null;
+    const sorted=[...p.entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
+    const lat=sorted[sorted.length-1];
+    const t=calcSmartTimer(p.entries);
+    const band=lat?getBand(lat.core):null;
     const sinceMs=hoursSinceLastTurn(p.entries);
     const turnCount=p.entries.filter(e=>e.turned).length;
-    const isTurnNow=lat&&lat.core>=175;const isCompleted=p.status==="completed";
-    const sp=(status&&status.sp)||{};const closestBand=(status&&status.closestBand);
-    const closestSP=closestBand?sp[closestBand.label]:null;
-    const prog=(closestSP&&closestSP.progress)||0;
-    const rem=closestBand&&closestSP?Math.max(0,closestBand.hours-closestSP.elapsed):0;
+    const isTurnNow=lat&&lat.core>=175;
+    const isCompleted=p.status==="completed";
+    const nextDue=t&&t.deadline&&!t.complete?fmtDate(t.deadline):"";
     let timerHtml="";
     if(isTurnNow)timerHtml=`<div class="mono" style="margin-top:0.5rem;color:#ff0000;font-size:0.85rem">⚠ TURN NOW</div>`;
-    else if((status&&status.allDone))timerHtml=`<div class="mono" style="margin-top:0.5rem;color:#4ade80;font-size:0.78rem">✓ CLEAR TO TURN</div>`;
-    else if(closestBand){
+    else if(t&&(t.complete||t.stageDone))timerHtml=`<div class="mono" style="margin-top:0.5rem;color:#4ade80;font-size:0.78rem">✓ CLEAR TO TURN</div>`;
+    else if(t&&!t.turnNow){
+      const label=Math.floor(t.remaining)+"h "+Math.round((t.remaining%1)*60)+"m LEFT";
       timerHtml=`<div style="margin-top:0.75rem">
         <div style="display:flex;justify-content:space-between;margin-bottom:0.3rem">
-          <span class="mono" style="font-size:0.65rem;color:#f97316">${closestBand.label} — ${fmtHr(rem)} LEFT</span>
-          <span class="mono" style="font-size:0.65rem;color:#666">${Math.round(prog)}%</span>
+          <span class="mono" style="font-size:0.65rem;color:${t.band.color}">${t.band.label}</span>
+          <span class="mono" style="font-size:0.65rem;color:#666">${label}</span>
         </div>
-        <div style="height:5px;background:#1a1a1a;border-radius:2px">
-          <div style="height:100%;width:${prog}%;background:#f97316;border-radius:2px;transition:width 0.5s"></div>
-        </div>
+        <div class="pbar-wrap"><div class="pbar" style="width:${t.progress}%;background:${t.band.color}"></div></div>
+        ${nextDue?`<div class="mono" style="font-size:0.6rem;color:#444;margin-top:0.3rem">NEXT TURN: ${nextDue}</div>`:""}
       </div>`;
     }
     const sinceHtml=sinceMs!==null
-      ?`<div class="mono" style="font-size:0.6rem;color:#444;margin-top:0.2rem">LAST TURN: ${fmtH(sinceMs)} AGO · ${turnCount} TURN${turnCount!==1?"S":""}</div>`
+      ?`<div class="mono" style="font-size:0.6rem;color:#444;margin-top:0.2rem">LAST TURN: ${fmtHours(sinceMs)} AGO · TURNS: ${turnCount}</div>`
       :`<div class="mono" style="font-size:0.6rem;color:#333;margin-top:0.2rem">NO TURN RECORDED</div>`;
     const statusPill=isCompleted
       ?`<span class="pill-status" style="background:#1a2a1a;color:#4ade80;border:1px solid #2a4a2a">DONE</span>`
@@ -613,7 +611,7 @@ function renderHome(){
     return `<div class="card" style="cursor:pointer;border-left:3px solid ${isTurnNow?"#ff0000":band?band.color:"#222"};opacity:${isCompleted?0.6:1}" onclick="openPile('${p.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div style="flex:1;min-width:0">
-          <div class="hd" style="font-size:1.3rem;color:#fff">${p.name}${isTurnNow?'<span style="background:#ff0000;color:#fff;font-size:0.58rem;padding:0.12rem 0.35rem;border-radius:2px;font-family:Share Tech Mono,monospace;margin-left:0.4rem;display:inline-block;vertical-align:middle;animation:pulse 1s infinite">TURN NOW</span>':""}${statusPill}</div>
+          <div class="hd" style="font-size:1.3rem;color:#fff">${p.name}${isTurnNow?'<span style="background:#ff0000;color:#fff;font-size:0.58rem;padding:0.12rem 0.35rem;border-radius:2px;font-family:Share Tech Mono,monospace;margin-left:0.4rem;animation:pulse 1s infinite;display:inline-block;vertical-align:middle">TURN NOW</span>':""}${statusPill}</div>
           <div class="mono" style="font-size:0.62rem;color:#444;margin-top:0.15rem">DAY ${p.entries.length} · ${new Date(p.created).toLocaleDateString()}</div>
           ${sinceHtml}
         </div>
@@ -634,8 +632,9 @@ function openPile(id){activeId=id;showView("dashboard");}
 function togglePileStatus(id){const p=piles.find(x=>x.id===id);if(!p)return;p.status=p.status==="completed"?"active":"completed";save();renderHome();}
 function deletePile(id){const p=piles.find(x=>x.id===id);if(!p)return;if(!confirm(`Delete "${p.name}"?`))return;piles=piles.filter(x=>x.id!==id);save();renderHome();}
 
-// -- SETUP --
+// ── SETUP ──
 function renderSetup(){newMaterials=newMats();document.getElementById("new-pile-name").value="";updateTotalVol();renderCatEditors("new");renderRecipesPanel();}
+
 function renderCatEditors(mode){
   const prefix=mode==="edit"?"re":"cat";
   const containerId=mode==="edit"?"re-editors":"cat-editors";
@@ -654,6 +653,7 @@ function renderCatEditors(mode){
     </div>`).join("");
   CATS.forEach(cat=>renderCatItems(cat,mode));
 }
+
 function renderCatItems(cat,mode){
   const prefix=mode==="edit"?"re":"cat";
   const el=document.getElementById(prefix+"-items-"+cat.key);if(!el)return;
@@ -697,6 +697,7 @@ function renderCatItems(cat,mode){
     </div>`).join("");
   updateCatVolDisplay(cat.key,mode);
 }
+
 function renderRatioSliders(item,prefix,mode){
   const defs=[{key:"fastN",label:"FAST N",color:"#ef4444"},{key:"slowN",label:"SLOW N",color:"#4ade80"},{key:"brown",label:"BROWN",color:"#d97706"}];
   return defs.map(d=>`
@@ -711,9 +712,10 @@ function renderRatioSliders(item,prefix,mode){
       <span class="ratio-val" style="color:${d.color}" id="${prefix}-rval-${item.id}-${d.key}">${item[d.key]||0}%</span>
     </div>`).join("");
 }
+
 function getMats(mode){return mode==="edit"?editMaterials:newMaterials;}
 function updateIngItem(catKey,itemId,field,val,mode){
-  const item=(getMats(mode)[catKey]&&getMats(mode)[catKey].find(i=>i.id===itemId));
+  const item=getMats(mode)[catKey]?.find(i=>i.id===itemId);
   if(item){item[field]=val;if(field==="volume")updateCatVolDisplay(catKey,mode);}
   if(mode==="new")updateTotalVol();
 }
@@ -729,8 +731,9 @@ function updateTotalVol(){
 }
 function addCatItem(k,mode){getMats(mode)[k].push(newItem());renderCatItems(CATS.find(c=>c.key===k),mode);}
 function removeCatItem(k,id,mode){getMats(mode)[k]=getMats(mode)[k].filter(i=>i.id!==id);renderCatItems(CATS.find(c=>c.key===k),mode);}
+
 function showSuggFor(catKey,itemId,prefix,mode){
-  const q=(document.getElementById(prefix+"-iname-"+itemId)||{value:""}).value||"";
+  const q=document.getElementById(prefix+"-iname-"+itemId)?.value||"";
   const h=ingHist[catKey]||[];
   const sugg=q?h.filter(x=>x.toLowerCase().includes(q.toLowerCase())&&x.toLowerCase()!==q.toLowerCase()).slice(0,8):h.slice(0,8);
   const el=document.getElementById("sugg-"+prefix+"-"+itemId);if(!el)return;
@@ -743,12 +746,12 @@ function pickSuggFor(catKey,itemId,val,prefix,mode){
   updateIngItem(catKey,itemId,"name",val,mode);
   const inp=document.getElementById(prefix+"-iname-"+itemId);if(inp)inp.value=val;
   const preset=getPreset(val);
-  if(preset){const item=(getMats(mode)[catKey]&&getMats(mode)[catKey].find(i=>i.id===itemId));if(item){Object.assign(item,preset);renderCatItems(CATS.find(c=>c.key===catKey),mode);}}
+  if(preset){const item=getMats(mode)[catKey]?.find(i=>i.id===itemId);if(item){Object.assign(item,preset);renderCatItems(CATS.find(c=>c.key===catKey),mode);}}
   hideSugg(prefix+"-"+itemId);
 }
 function onIngRatioChange(itemId,key,val,prefix,mode){
-  let foundItem=null;
-  CATS.forEach(cat=>{const it=(getMats(mode)[cat.key]&&getMats(mode)[cat.key].find(i=>i.id===itemId));if(it)foundItem=it;});
+  let foundItem=null,foundCat=null;
+  CATS.forEach(cat=>{const it=getMats(mode)[cat.key]?.find(i=>i.id===itemId);if(it){foundItem=it;foundCat=cat.key;}});
   if(!foundItem)return;
   Object.assign(foundItem,applyRatioChange(foundItem,key,val));
   ["fastN","slowN","brown"].forEach(k=>{
@@ -763,11 +766,11 @@ function onIngRatioChange(itemId,key,val,prefix,mode){
 }
 function toggleIngLock(itemId,key,prefix,mode){
   let foundItem=null;
-  CATS.forEach(cat=>{const it=(getMats(mode)[cat.key]&&getMats(mode)[cat.key].find(i=>i.id===itemId));if(it)foundItem=it;});
+  CATS.forEach(cat=>{const it=getMats(mode)[cat.key]?.find(i=>i.id===itemId);if(it)foundItem=it;});
   if(!foundItem)return;
   foundItem[key+"_locked"]=!foundItem[key+"_locked"];
   const sl=document.getElementById(prefix+"-ratio-"+itemId+"-"+key);if(sl)sl.disabled=foundItem[key+"_locked"];
-  var _row=sl&&sl.closest(".ratio-row");var btn=_row&&_row.querySelector(".lock-btn");if(btn)btn.textContent=foundItem[key+"_locked"]?"🔒":"🔓";
+  const btn=sl?.closest(".ratio-row")?.querySelector(".lock-btn");if(btn)btn.textContent=foundItem[key+"_locked"]?"🔒":"🔓";
 }
 function renderRecipesPanel(){
   const panel=document.getElementById("recipes-panel");if(!recipes.length){panel.classList.add("hidden");return;}
@@ -803,7 +806,8 @@ function openRecipeEdit(){
       return item;
     });
   });
-  renderCatEditors("edit");document.getElementById("re-overlay").classList.remove("hidden");
+  renderCatEditors("edit");
+  document.getElementById("re-overlay").classList.remove("hidden");
 }
 function closeRecipeEdit(){document.getElementById("re-overlay").classList.add("hidden");}
 function saveRecipeEdit(){
@@ -813,13 +817,14 @@ function saveRecipeEdit(){
   save();closeRecipeEdit();renderDashboard();
 }
 
-// -- DASHBOARD --
+// ── DASHBOARD ──
 function getActivePile(){return piles.find(p=>p.id===activeId)||null;}
+
 function renderDashboard(){
   const pile=getActivePile();if(!pile)return showView("home");
   const sorted=[...pile.entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-  const status=calcCurrentStatus(pile.entries);
-  const lat=(status&&status.lat);const band=lat?getBand(lat.core):null;
+  const lat=sorted[sorted.length-1];const band=lat?getBand(lat.core):null;
+
   document.getElementById("dash-name").textContent=pile.name;
   document.getElementById("dash-sub").textContent="DAY "+pile.entries.length+" · "+driveLabelShort();
   document.getElementById("dash-core").textContent=lat&&lat.core?dispStr(lat.core):"–";
@@ -830,25 +835,32 @@ function renderDashboard(){
     const el=document.getElementById("unit-lbl-"+k);if(el)el.textContent=unitLbl();
     const el2=document.getElementById("e-unit-"+k);if(el2)el2.textContent=unitLbl();
   });
+
   const now=new Date();
   document.getElementById("f-date").value=now.toISOString().split("T")[0];
   document.getElementById("f-time").value=now.toTimeString().slice(0,5);
   updateSlider(document.getElementById("f-moisture-slider"));
+
   const warn=document.getElementById("warn-banner");
   if(lat&&lat.core>=175)warn.classList.remove("hidden");else warn.classList.add("hidden");
-  renderStatusCard(pile,status);
+
+  renderStatusCard(pile,sorted,lat,band);
+  renderTimer(pile);
   renderChart(sorted);
   renderLogTable(sorted);
-  renderCycles(pile);
+  renderTurnHistory(pile);
   renderRecipeSummary(pile);
-  renderTempRefContent();
+  renderTempRef();
+
   clearInterval(timerInterval);
   timerInterval=setInterval(()=>{
     const p=getActivePile();if(!p)return;
-    const s=calcCurrentStatus(p.entries);
-    renderStatusCard(p,s);
+    const s=[...p.entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
+    const l=s[s.length-1];const b=l?getBand(l.core):null;
+    renderStatusCard(p,s,l,b);renderTimer(p);
   },60000);
 }
+
 function updateSlider(el){
   const v=parseInt(el.value);el.style.setProperty("--pct",v+"%");
   const lbl=document.getElementById("moisture-val");
@@ -866,219 +878,114 @@ function quickLog(){
   document.getElementById("f-core").focus();
 }
 function autoAdvance(fromId,toId){
-  const val=(document.getElementById(fromId)||{value:""}).value;
+  const val=document.getElementById(fromId)?.value;
   if(val&&val.length>=2){const next=document.getElementById(toId);if(next)next.focus();}
 }
 
-// -- STATUS CARD --
-function renderStatusCard(pile,status){
+// ── STATUS CARD (redesigned) ──
+function renderStatusCard(pile,sorted,lat,band){
   const heroEl=document.getElementById("status-hero-area");
   const detailEl=document.getElementById("status-details");
   const card=document.getElementById("status-card");
-  if(!status||!status.lat){
+  const sinceMs=hoursSinceLastTurn(pile.entries);
+  const sinceStr=sinceMs!==null?fmtHours(sinceMs):"No turn yet";
+  const t=calcSmartTimer(pile.entries);
+  const isDone=t?.complete||t?.stageDone;
+
+  if(lat&&lat.core>=175){
+    card.style.borderLeftColor="#ff0000";
+    heroEl.innerHTML=`<div style="padding:1rem 1.25rem;background:#1a0000;border-top:1px solid #3a0000;border-bottom:1px solid #3a0000;text-align:center">
+      <div class="hd" style="font-size:2rem;color:#ff0000;letter-spacing:0.1em">⚠ TURN NOW</div>
+      <div class="mono" style="font-size:3rem;color:#ff0000;font-weight:bold">${dispStr(lat.core)}</div>
+    </div>`;
+    detailEl.innerHTML=`<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">${sinceStr}</span></div>`;
+    return;
+  }
+  if(!lat||!band){
     card.style.borderLeftColor="#222";
     heroEl.innerHTML=`<div style="padding:1.25rem;text-align:center"><div class="mono" style="color:#333;font-size:0.85rem">NO DATA YET — LOG YOUR FIRST ENTRY</div></div>`;
     detailEl.innerHTML="";return;
   }
-  const{lat,currentBand,sp,allDone,closestBand,closestSP,remaining,deadline,turnNow}=status;
-  const sinceMs=hoursSinceLastTurn(pile.entries);
-  const sinceStr=sinceMs!==null?fmtH(sinceMs):"No turn yet";
-  const turnCount=pile.entries.filter(e=>e.turned).length;
-  if(turnNow){
-    card.style.borderLeftColor="#ff0000";
-    heroEl.innerHTML=`<div style="padding:1rem 1.25rem;background:#1a0000;border-top:1px solid #3a0000;border-bottom:1px solid #3a0000;text-align:center">
-      <div class="hd" style="font-size:2rem;color:#ff0000">⚠ TURN NOW</div>
-      <div class="mono" style="font-size:3rem;color:#ff0000;font-weight:bold">${dispStr(lat.core)}</div>
-    </div>`;
-    detailEl.innerHTML=`<div style="display:flex;justify-content:space-between;padding:0.4rem 0">
-      <span style="font-size:0.65rem;color:#555;font-weight:600;letter-spacing:0.08em">SINCE LAST TURN</span>
-      <span class="mono" style="font-size:0.82rem;color:#ccc">${sinceStr}</span>
-    </div>`;
-    return;
-  }
-  card.style.borderLeftColor=allDone?"#4ade80":currentBand?currentBand.color:"#222";
 
-  // Stage progress bars — independent, all visible
-  const stageBarsHtml=BANDS.filter(b=>b.hours>0).map(b=>{
-    const bsp=sp[b.label];
-    const pct=(bsp&&bsp.progress)||0;
-    const satisfied=(bsp&&bsp.satisfied);
-    const everReached=(bsp&&bsp.everReached);
-    const barColor=satisfied?"#4ade80":everReached?"#f97316":"#1e1e1e";
-    const textColor=satisfied?"#4ade80":everReached?"#f97316":"#2a2a2a";
-    const rem=bsp?Math.max(0,b.hours-bsp.elapsed):b.hours;
-    return `<div style="margin-bottom:0.5rem">
-      <div style="display:flex;justify-content:space-between;margin-bottom:0.2rem;align-items:center">
-        <span class="mono" style="font-size:0.62rem;color:${textColor}">${b.label} · ${bandRange(b)} · ${b.hours}H${satisfied?" ✓":""}</span>
-        <span class="mono" style="font-size:0.6rem;color:${textColor}">${everReached&&!satisfied?fmtHr(rem)+" left":satisfied?"done":"–"}</span>
-      </div>
-      <div style="height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px;transition:width 0.6s ease"></div>
-      </div>
+  card.style.borderLeftColor=isDone?"#4ade80":band.color;
+  const timeLeft=isDone?"TURN NOW":t?Math.floor(t.remaining)+"h "+Math.round((t.remaining%1)*60)+"m":band.hours+"h";
+  const timeColor=isDone?"#4ade80":band.color;
+  const satisfiedStages=t?.satisfiedStages||{};
+  const stageDots=BANDS.filter(b=>b.hours>0).map(b=>{
+    const done=satisfiedStages[b.label];
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem">
+      <div style="width:8px;height:8px;border-radius:50%;background:${done?"#4ade80":"#222"};border:1px solid ${done?"#4ade80":"#333"}"></div>
+      <span class="mono" style="font-size:0.5rem;color:${done?"#4ade80":"#333"}">${b.hours}H</span>
     </div>`;
   }).join("");
 
-  // Turn icons (one per completed turn)
-  const cycles=buildCycles(pile.entries);
-  const completedCycles=cycles.filter(c=>c.completed);
-  let turnIconsHtml="";
-  if(turnCount===0){
-    turnIconsHtml=`<span class="mono" style="font-size:0.6rem;color:#333">NO TURNS YET</span>`;
-  } else {
-    const icons=completedCycles.map((cyc,i)=>{
-      const csp=computeStageProgress(cyc.entries);
-      const highest=["Stage 4","Stage 3","Stage 2","Stage 1"].find(s=>c(sp[s]&&sp[s].satisfied))||null;
-      const band=highest?BANDS.find(b=>b.label===highest):null;
-      const cls=highest?"turn-icon done":cyc.entries.some(e=>e.turned&&!highest)?"turn-icon warn":"turn-icon empty";
-      const lbl=band?band.hours+"h":"⚠";
-      return `<div class="${cls}" title="Turn ${i+1}">${lbl}</div>`;
-    }).join("");
-    turnIconsHtml=`<div style="display:flex;flex-wrap:wrap;gap:0.4rem">${icons}</div>`;
-  }
-
-  const closestRemStr=closestBand&&closestSP?fmtHr(remaining):"–";
   heroEl.innerHTML=`<div style="padding:1rem 1.25rem;border-top:1px solid #111;border-bottom:1px solid #111">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">
+    <div style="display:flex;justify-content:space-between;align-items:center">
       <div>
-        <div style="font-size:0.6rem;color:#444;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">CORE TEMP</div>
-        <div class="mono" style="font-size:2.8rem;color:${currentBand?currentBand.color:"#333"};font-weight:bold;line-height:1">${dispStr(lat.core)}</div>
-        <div style="font-size:0.7rem;color:#555;margin-top:0.2rem;font-family:Share Tech Mono,monospace">${currentBand?currentBand.label+" · "+bandRange(currentBand):"Below thermophilic range"}</div>
+        <div style="font-size:0.62rem;color:#444;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">CORE TEMP</div>
+        <div class="mono" style="font-size:2.8rem;color:${band.color};font-weight:bold;line-height:1">${dispStr(lat.core)}</div>
+        <div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">${band.label} · ${bandRange(band)}</div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:0.6rem;color:#444;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">${allDone?"STATUS":"CLOSEST STAGE"}</div>
-        <div class="mono" style="font-size:${allDone?"1.3rem":"1.9rem"};color:${allDone?"#4ade80":"#f97316"};font-weight:bold;line-height:1">${allDone?"TURN NOW ✓":closestRemStr}</div>
-        <div style="font-size:0.65rem;color:#555;margin-top:0.2rem;font-family:Share Tech Mono,monospace">${allDone?"ALL STAGES DONE":closestBand?closestBand.label+" · "+closestBand.hours+"H REQ":"–"}</div>
+        <div style="font-size:0.62rem;color:#444;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">${isDone?"ACTION":"TIME LEFT"}</div>
+        <div class="mono" style="font-size:${isDone?"1.4rem":"2rem"};color:${timeColor};font-weight:bold;line-height:1">${timeLeft}</div>
+        <div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">${band.hours}H REQUIRED</div>
       </div>
     </div>
-    ${stageBarsHtml}
-    <div style="margin-top:0.75rem;padding-top:0.65rem;border-top:1px solid #111">
-      <div style="font-size:0.6rem;color:#444;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.45rem">TURNS (${turnCount})</div>
-      ${turnIconsHtml}
+    <div style="margin-top:0.85rem">
+      <div class="pbar-wrap" style="height:6px">
+        <div class="pbar" style="width:${t?t.progress:0}%;background:${isDone?"#4ade80":band.color};height:6px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:0.35rem;align-items:center">
+        <div style="font-size:0.62rem;color:#444;font-family:Share Tech Mono,monospace">${t?Math.round(t.progress):0}% COMPLETE</div>
+        <div style="display:flex;gap:0.75rem;align-items:center">${stageDots}</div>
+      </div>
     </div>
   </div>`;
 
+  const nextDue=t&&t.deadline?fmtDate(t.deadline):"–";
+  const timeComp=t?fmtHours(t.elapsed*3600000):"–";
   detailEl.innerHTML=`
-    <div style="display:flex;justify-content:space-between;gap:1.5rem;padding:0.5rem 0">
-      <div><div style="font-size:0.6rem;color:#444;font-weight:600;letter-spacing:0.08em;margin-bottom:0.1rem">SINCE LAST TURN</div>
-        <div class="mono" style="font-size:0.82rem;color:#ccc">${sinceStr}</div></div>
-      ${deadline?`<div style="text-align:right"><div style="font-size:0.6rem;color:#444;font-weight:600;letter-spacing:0.08em;margin-bottom:0.1rem">NEXT TURN DUE</div>
-        <div class="mono" style="font-size:0.75rem;color:#888">${fmtDate(deadline)}</div></div>`:""}
-    </div>`;
+    <div class="status-detail"><span class="status-key">COMPLETED</span><span class="status-val" style="color:${isDone?"#4ade80":"#ccc"}">${timeComp}</span></div>
+    <div class="status-detail"><span class="status-key">NEXT TURN DUE</span><span class="status-val" style="color:${isDone?"#4ade80":"#888"}">${nextDue}</span></div>
+    <div class="status-detail" style="border-bottom:none"><span class="status-key">SINCE LAST TURN</span><span class="status-val">${sinceStr}</span></div>`;
 }
 
-// -- TURN CYCLES BOX --
-function renderCycles(pile){
-  const card=document.getElementById("cycles-card");
-  const content=document.getElementById("cycles-content");
-  const cycles=buildCycles(pile.entries);
-  if(!cycles.length){card.style.display="none";return;}
-  card.style.display="block";
-  // Active cycle first, then completed in reverse order (most recent first)
-  const activeCycle=cycles[cycles.length-1].completed?null:cycles[cycles.length-1];
-  const completedCycles=cycles.filter(c=>c.completed);
-
-  const renderCycleRow=(cycle,index,isActive)=>{
-    const stats=cycleStats(cycle);
-    const{sp,highestSatisfied,closestBand,durationMs,peakCore,avgMoisture,startDate,endDate,readingCount}=stats;
-    const cycleNum=index+1;
-    const key="cycle-"+cycleNum;
-    const isExpanded=expandedCycles.has(key);
-
-    // For active cycle: show closest stage to completion
-    // For completed: show highest satisfied, or if none, closest reached
-    let barBand=null,barPct=0,barColor="#f97316",barLabel="",barRight="";
-    if(isActive){
-      barBand=closestBand;
-      if(barBand){
-        const bsp=sp[barBand.label];
-        barPct=(bsp&&bsp.progress)||0;
-        barColor=(bsp&&bsp.satisfied)?"#4ade80":"#f97316";
-        barLabel=barBand.label+" · "+barBand.hours+"H";
-        const rem=Math.max(0,barBand.hours-((bsp&&bsp.elapsed)||0));
-        barRight=(bsp&&bsp.satisfied)?"✓ COMPLETE":fmtHr(rem)+" LEFT";
-      }
-    } else {
-      if(highestSatisfied){
-        barBand=BANDS.find(b=>b.label===highestSatisfied);
-        barPct=100;barColor="#4ade80";
-        barLabel=highestSatisfied+" ✓";
-        barRight=barBand?barBand.hours+"H SATISFIED":"";
-      } else {
-        barBand=closestBand;
-        if(barBand){
-          const bsp=sp[barBand.label];
-          barPct=(bsp&&bsp.progress)||0;
-          barColor="#ef4444";
-          barLabel=barBand.label+" — NOT SATISFIED";
-          barRight=Math.round(barPct)+"%";
-        }
-      }
-    }
-
-    const durationStr=fmtH(durationMs);
-    const peakStr=peakCore?dispStr(peakCore):"–";
-    const dateRange=isActive?`${startDate} → NOW`:`${startDate} → ${endDate}`;
-
-    const readingsHtml=isExpanded?`<div class="cycle-readings open">
-      <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:0.68rem">
-        <thead><tr>${["Date","Time","Core","Top","Bot","Moist","Turned"].map(h=>`<th class="mono" style="text-align:left;padding:0.25rem 0.35rem;border-bottom:1px solid #111;color:#444;font-weight:normal;font-size:0.6rem">${h}</th>`).join("")}</tr></thead>
-        <tbody>${cycle.entries.map(e=>`<tr style="border-bottom:1px solid #080808">
-          <td class="mono" style="padding:0.25rem 0.35rem;color:#555;font-size:0.65rem">${e.date}</td>
-          <td class="mono" style="padding:0.25rem 0.35rem;color:#555;font-size:0.65rem">${e.time}</td>
-          <td class="mono" style="padding:0.25rem 0.35rem;color:#ff4444;font-size:0.65rem">${e.core!=null?dispStr(e.core):"–"}</td>
-          <td class="mono" style="padding:0.25rem 0.35rem;color:#4ade80;font-size:0.65rem">${e.top!=null?dispStr(e.top):"–"}</td>
-          <td class="mono" style="padding:0.25rem 0.35rem;color:#a855f7;font-size:0.65rem">${e.bottom!=null?dispStr(e.bottom):"–"}</td>
-          <td style="padding:0.25rem 0.35rem">${e.moisture!=null?`<span style="background:${mColor(e.moisture)};color:#fff;padding:0.05rem 0.2rem;border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:0.6rem">${e.moisture}%</span>`:"–"}</td>
-          <td class="mono" style="padding:0.25rem 0.35rem;color:${e.turned?"#f97316":"#1a1a1a"};font-size:0.65rem">${e.turned?"↩":""}</td>
-        </tr>`).join("")}</tbody>
-      </table></div>
-    </div>`:`<div class="cycle-readings"></div>`;
-
-    return `<div class="cycle-row" onclick="toggleCycle('${key}')">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem">
-        <div style="display:flex;align-items:center;gap:0.5rem">
-          <span class="hd" style="font-size:1rem;color:${isActive?"#f97316":"#fff"}">${isActive?"ACTIVE":"CYCLE "+cycleNum}</span>
-          ${isActive?`<span class="mono" style="font-size:0.6rem;color:#555;background:#111;padding:0.1rem 0.35rem;border-radius:2px">IN PROGRESS</span>`:""}
+// ── TIMER ──
+function renderTimer(pile){
+  const t=calcSmartTimer(pile.entries);
+  const card=document.getElementById("timer-card");const content=document.getElementById("timer-content");
+  if(!t){card.style.borderLeftColor="#222";content.innerHTML='<div class="mono" style="color:#333;font-size:0.78rem;text-align:center">LOG ENTRIES TO ACTIVATE</div>';return;}
+  if(t.turnNow){card.style.borderLeftColor="#ff0000";content.innerHTML='<div class="hd" style="color:#ff0000;font-size:2rem;text-align:center">TURN NOW!</div>';return;}
+  const isDone=t.complete||t.stageDone;
+  card.style.borderLeftColor=isDone?"#4ade80":t.band.color;
+  const timeLeft=isDone?"CLEAR TO TURN ✓":Math.floor(t.remaining)+"h "+Math.round((t.remaining%1)*60)+"m";
+  const satisfiedStages=t.satisfiedStages||{};
+  const calBtn=t.deadline&&!isDone?`<button class="btn-sm" onclick="addToCalendar('${pile.name}',${t.deadline.getTime()})" style="margin-top:0.75rem;width:100%;padding:0.55rem">CALENDAR REMINDER — ${fmtDate(t.deadline)}</button>`:"";
+  content.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1rem">
+      <div><span class="hd" style="color:${t.band.color};font-size:1.2rem">${t.band.label}</span>
+      <span class="mono" style="color:#444;font-size:0.7rem;margin-left:0.5rem">${bandRange(t.band)}</span></div>
+      <span class="${isDone?"hd":"mono"}" style="color:${isDone?"#4ade80":"#fff"};font-size:${isDone?"1rem":"0.95rem"}">${timeLeft}</span>
+    </div>
+    ${BANDS.filter(b=>b.hours>0).map(band=>{
+      const isCur=t.band.label===band.label;
+      const done=satisfiedStages[band.label];
+      const pct=done?100:isCur?t.progress:0;
+      const barColor=done?"#4ade80":isCur?band.color:"#1e1e1e";
+      return `<div style="margin-bottom:0.6rem">
+        <div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">
+          <span class="mono" style="font-size:0.62rem;color:${done?"#4ade80":isCur?band.color:"#2a2a2a"}">${band.label} · ${bandRange(band)} · ${band.hours}H${done?" ✓":""}</span>
+          <span class="mono" style="font-size:0.62rem;color:${done?"#4ade80":isCur?band.color:"#2a2a2a"}">${Math.round(pct)}%</span>
         </div>
-        <span style="color:#333;font-size:0.8rem">${isExpanded?"▾":"▸"}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.3rem">
-        <div class="cycle-bar">
-          <div class="cycle-bar-fill" style="width:${barPct}%;background:${barColor}"></div>
-        </div>
-        <span class="mono" style="font-size:0.62rem;color:${barColor};flex-shrink:0">${barRight}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">
-        <span class="mono" style="font-size:0.6rem;color:#555">${barLabel}</span>
-      </div>
-      <div style="display:flex;gap:1rem;margin-top:0.35rem;flex-wrap:wrap">
-        <span class="mono" style="font-size:0.62rem;color:#444">${dateRange}</span>
-        <span class="mono" style="font-size:0.62rem;color:#444">${durationStr}</span>
-        <span class="mono" style="font-size:0.62rem;color:#444">PEAK ${peakStr}</span>
-        ${avgMoisture!=null?`<span class="mono" style="font-size:0.62rem;color:#444">MOIST ${avgMoisture}%</span>`:""}
-        <span class="mono" style="font-size:0.62rem;color:#333">${readingCount} READINGS</span>
-      </div>
-      ${readingsHtml}
-    </div>`;
-  };
-
-  let html="";
-  if(activeCycle)html+=renderCycleRow(activeCycle,completedCycles.length,true);
-  // Completed cycles in reverse order (most recent first)
-  [...completedCycles].reverse().forEach((cyc,i)=>{
-    const originalIndex=completedCycles.length-1-i;
-    html+=renderCycleRow(cyc,originalIndex,false);
-  });
-  content.innerHTML=html;
+        <div class="pbar-wrap"><div class="pbar" style="width:${pct}%;background:${barColor}"></div></div>
+      </div>`;
+    }).join("")}${calBtn}`;
+  if(isDone&&"Notification"in window&&Notification.permission==="granted")
+    new Notification("Compost Academy",{body:pile.name+" is ready to turn!"});
 }
 
-function toggleCycle(key){
-  if(expandedCycles.has(key))expandedCycles.delete(key);else expandedCycles.add(key);
-  const pile=getActivePile();if(pile)renderCycles(pile);
-}
-
-// -- CHART --
+// ── CHART ──
 function renderChart(sorted){
   const section=document.getElementById("chart-section");
   if(!sorted.length){section.classList.add("hidden");return;}
@@ -1090,7 +997,9 @@ function renderChart(sorted){
   const cMax=tempUnit==="C"?Math.round(toC(180)):180;
   function cr(f){return tempUnit==="C"?Math.round(toC(f)):f;}
   const turnAnnotations={};
-  turnDays.forEach((d,i)=>{turnAnnotations["turn"+i]={type:"line",xMin:d,xMax:d,borderColor:"#f97316",borderWidth:2};});
+  turnDays.forEach((d,i)=>{
+    turnAnnotations["turn"+i]={type:"line",xMin:d,xMax:d,borderColor:"#f97316",borderWidth:2};
+  });
   const tempDatasets=tempMode==="three"?[
     {label:"Core",data:sorted.map(e=>e.core!=null?disp(e.core):null),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
     {label:"Top",data:sorted.map(e=>e.top!=null?disp(e.top):null),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#4ade80",spanGaps:true,yAxisID:"y",order:2},
@@ -1100,25 +1009,32 @@ function renderChart(sorted){
       borderColor:"#fff",backgroundColor:"#ffffff08",tension:0.3,pointRadius:4,pointBackgroundColor:"#fff",spanGaps:true,yAxisID:"y",order:1},
   ];
   tempChart=new Chart(document.getElementById("temp-chart"),{
-    type:"line",data:{labels,datasets:[...tempDatasets,
+    type:"line",
+    data:{labels,datasets:[...tempDatasets,
       {label:"Moisture %",data:sorted.map(e=>e.moisture!=null?e.moisture:null),borderColor:"#1e88e5",
         backgroundColor:"rgba(30,136,229,0.12)",fill:true,tension:0.3,
         pointRadius:3,pointBackgroundColor:"#1e88e5",spanGaps:true,yAxisID:"y2",order:10}
     ]},
-    options:{responsive:true,animation:false,interaction:{mode:"index",intersect:false},
-      plugins:{legend:{display:false},
+    options:{
+      responsive:true,animation:false,
+      interaction:{mode:"index",intersect:false},
+      plugins:{
+        legend:{display:false},
         annotation:{annotations:{
           r131:{type:"line",yMin:cr(131),yMax:cr(131),borderColor:"#f59e0b77",borderWidth:1,borderDash:[5,4],yScaleID:"y"},
           r175:{type:"line",yMin:cr(175),yMax:cr(175),borderColor:"#ff000055",borderWidth:1,borderDash:[3,3],yScaleID:"y"},
           danger:{type:"box",yMin:cr(175),yMax:cMax+5,backgroundColor:"rgba(255,0,0,0.04)",borderColor:"rgba(255,0,0,0.15)",borderWidth:1,yScaleID:"y"},
-          ...turnAnnotations}}},
+          ...turnAnnotations
+        }}
+      },
       scales:{
         x:{ticks:{color:"#555",font:{size:11}},grid:{color:"#111"}},
         y:{min:cMin,max:cMax,position:"left",ticks:{color:"#888",font:{size:11}},grid:{color:"#111"},
           title:{display:true,text:"°"+tempUnit,color:"#555",font:{size:11}}},
         y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:11},callback:v=>v+"%"},
           grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:11}}}
-      }}
+      }
+    }
   });
 }
 function toggleChart(){
@@ -1128,106 +1044,50 @@ function toggleChart(){
   renderChart([...pile.entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts)));
 }
 
-// -- LOG TABLE --
-function renderLogTable(sorted){
-  document.getElementById("log-count").textContent="ALL ENTRIES ("+sorted.length+")";
-  const table=document.getElementById("log-table");
-  if(!sorted.length){table.innerHTML="";return;}
-  table.innerHTML=`<thead><tr>${["Day","Date","Core","Top","Bot","Moist","Turn",""].map(h=>`<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#444;font-size:0.62rem;letter-spacing:0.05em">${h}</th>`).join("")}</tr></thead>
-  <tbody>${sorted.map((en,i)=>`<tr style="border-bottom:1px solid #080808">
-    <td class="mono" style="padding:0.3rem 0.4rem;color:#444;font-size:0.7rem">${i+1}</td>
-    <td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">${en.date}</td>
-    <td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.7rem">${en.core!=null?dispStr(en.core):"–"}</td>
-    <td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.7rem">${en.top!=null?dispStr(en.top):"–"}</td>
-    <td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.7rem">${en.bottom!=null?dispStr(en.bottom):"–"}</td>
-    <td style="padding:0.3rem 0.4rem">${en.moisture!=null?`<span style="background:${mColor(en.moisture)};color:#fff;padding:0.05rem 0.25rem;border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:0.65rem">${en.moisture}%</span>`:"–"}</td>
-    <td class="mono" style="padding:0.3rem 0.4rem;color:${en.turned?"#f97316":"#1a1a1a"};font-size:0.7rem">${en.turned?"↩":""}</td>
-    <td style="padding:0.3rem 0.3rem"><button onclick="openEdit('${en.id}')" class="btn-sm" style="padding:0.2rem 0.4rem;font-size:0.6rem">EDIT</button></td>
-  </tr>`).join("")}</tbody>`;
+// ── TURN HISTORY ──
+function renderTurnHistory(pile){
+  const history=buildTurnHistory(pile.entries);
+  const card=document.getElementById("turn-history-card");
+  const content=document.getElementById("turn-history-content");
+  if(!history.length){card.style.display="none";return;}
+  card.style.display="block";
+  content.innerHTML=`<div style="display:flex;flex-direction:column;gap:0.75rem">
+  ${history.map(t=>{
+    // Determine icon content
+    let iconHtml,iconClass="turn-icon";
+    if(t.isWarning){
+      iconHtml=`<span style="font-size:1rem">⚠</span>`;
+      iconClass="turn-icon warn";
+    } else if(t.highestSatisfied){
+      const band=BANDS.find(b=>b.label===t.highestSatisfied);
+      iconHtml=`<span style="font-size:0.7rem;font-weight:bold">${band?band.hours+"h":""}</span>`;
+    } else {
+      iconHtml=`<span style="font-size:0.62rem;color:#555">${t.num}</span>`;
+      iconClass="turn-icon";
+    }
+    const activeColor=t.activeBand?t.activeBand.color:"#555";
+    return `<div style="display:flex;gap:0.85rem;align-items:flex-start;padding:0.75rem;background:#050505;border:1px solid #111;border-radius:3px">
+      <div class="${iconClass}" style="margin-top:0.1rem">${iconHtml}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;margin-bottom:0.3rem">
+          <span class="mono" style="font-size:0.82rem;color:#ccc">${t.date} ${t.time}</span>
+          ${t.core?`<span class="mono" style="font-size:0.78rem;color:${activeColor}">${dispStr(t.core)}</span>`:""}
+          ${t.activeBand?`<span class="mono" style="font-size:0.65rem;color:${activeColor}">${t.activeBand.label}</span>`:""}
+        </div>
+        ${t.sinceMs!=null
+          ?`<div class="mono" style="font-size:0.65rem;color:#444">SINCE PREV TURN: ${fmtHours(t.sinceMs)}</div>`
+          :`<div class="mono" style="font-size:0.65rem;color:#333">FIRST TURN</div>`}
+        ${t.highestSatisfied?`<div class="mono" style="font-size:0.65rem;color:#4ade80;margin-top:0.2rem">✓ SATISFIED: ${t.highestSatisfied} (${BANDS.find(b=>b.label===t.highestSatisfied)?.hours}H)</div>`:""}
+        ${t.isWarning?`<div class="mono" style="font-size:0.65rem;color:#ef4444;margin-top:0.2rem">⚠ TURNED WITHOUT SATISFYING STAGE REQUIREMENT</div>`:""}
+      </div>
+    </div>`;
+  }).join("")}</div>`;
 }
 
-// -- ENTRY --
-function addEntry(){
-  const pile=getActivePile();if(!pile)return;
-  const core=fromInput(document.getElementById("f-core").value);
-  const top=fromInput(document.getElementById("f-top").value);
-  const bottom=fromInput(document.getElementById("f-bottom").value);
-  if(core==null&&top==null&&bottom==null)return alert("Enter at least one temperature");
-  const date=document.getElementById("f-date").value;const time=document.getElementById("f-time").value;
-  pile.entries.push({id:uid(),ts:new Date(date+"T"+time).toISOString(),date,time,core,top,bottom,
-    moisture:parseInt(document.getElementById("f-moisture-slider").value),
-    turned:document.getElementById("f-turned").checked,
-    notes:document.getElementById("f-notes").value});
-  save();
-  ["f-core","f-top","f-bottom","f-notes"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
-  const sl=document.getElementById("f-moisture-slider");sl.value=50;updateSlider(sl);
-  document.getElementById("f-turned").checked=false;
-  renderDashboard();
-}
-function saveRecipe(){
-  const pile=getActivePile();if(!pile)return;
-  const name=document.getElementById("recipe-name").value.trim();if(!name)return;
-  recipes.unshift({id:uid(),name,materials:pile.materials,saved:new Date().toLocaleDateString()});
-  if(recipes.length>10)recipes.pop();
-  document.getElementById("recipe-name").value="";save();
-}
-function addToHist(cat,name){
-  if(!name.trim())return;if(!ingHist[cat])ingHist[cat]=[];
-  if(!ingHist[cat].includes(name))ingHist[cat].unshift(name);
-  if(ingHist[cat].length>50)ingHist[cat].pop();
-}
-function addToCalendar(name,ms){
-  const deadline=new Date(ms);
-  const fmt=d=>d.toISOString().replace(/[-:.]/g,"").slice(0,15)+"Z";
-  const ics=["BEGIN:VCALENDAR","VERSION:2.0","BEGIN:VEVENT",
-    "DTSTART:"+fmt(deadline),"DTEND:"+fmt(new Date(ms+900000)),
-    "SUMMARY:Turn "+name,"DESCRIPTION:Compost pile ready to turn",
-    "BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY","DESCRIPTION:30min reminder","END:VALARM",
-    "END:VEVENT","END:VCALENDAR"].join("\r\n");
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));
-  a.download="turn-"+name.replace(/\s+/g,"-")+".ics";a.click();
-}
-
-// -- EDIT ENTRY --
-function openEdit(entryId){
-  const pile=getActivePile();if(!pile)return;
-  const entry=pile.entries.find(e=>e.id===entryId);if(!entry)return;
-  editingEntryId=entryId;
-  document.getElementById("e-date").value=entry.date;document.getElementById("e-time").value=entry.time;
-  document.getElementById("e-core").value=entry.core!=null?disp(entry.core):"";
-  document.getElementById("e-top").value=entry.top!=null?disp(entry.top):"";
-  document.getElementById("e-bottom").value=entry.bottom!=null?disp(entry.bottom):"";
-  const sl=document.getElementById("e-moisture");sl.value=entry.moisture!=null?entry.moisture:50;updateEditSlider(sl);
-  document.getElementById("e-turned").checked=entry.turned;
-  document.getElementById("e-notes").value=entry.notes||"";
-  ["core","top","bot"].forEach(k=>{const el=document.getElementById("e-unit-"+k);if(el)el.textContent=unitLbl();});
-  document.getElementById("edit-overlay").classList.remove("hidden");
-}
-function closeEdit(){editingEntryId=null;document.getElementById("edit-overlay").classList.add("hidden");}
-function saveEdit(){
-  const pile=getActivePile();if(!pile||!editingEntryId)return;
-  const entry=pile.entries.find(e=>e.id===editingEntryId);if(!entry)return;
-  entry.date=document.getElementById("e-date").value;entry.time=document.getElementById("e-time").value;
-  entry.ts=new Date(entry.date+"T"+entry.time).toISOString();
-  entry.core=fromInput(document.getElementById("e-core").value);
-  entry.top=fromInput(document.getElementById("e-top").value);
-  entry.bottom=fromInput(document.getElementById("e-bottom").value);
-  entry.moisture=parseInt(document.getElementById("e-moisture").value);
-  entry.turned=document.getElementById("e-turned").checked;
-  entry.notes=document.getElementById("e-notes").value;
-  save();closeEdit();renderDashboard();
-}
-function deleteEntry(){
-  if(!editingEntryId)return;if(!confirm("Delete this entry?"))return;
-  const pile=getActivePile();if(!pile)return;
-  pile.entries=pile.entries.filter(e=>e.id!==editingEntryId);
-  save();closeEdit();renderDashboard();
-}
-
-// -- RECIPE SUMMARY --
+// ── RECIPE SUMMARY ──
 function renderRecipeSummary(pile){
-  const tot=totVol(pile.materials);const ratio=calcPileRatio(pile.materials);
+  const tot=totVol(pile.materials);
+  const ratio=calcPileRatio(pile.materials);
   const bar=document.getElementById("pile-ratio-bar");
   if(bar)bar.innerHTML=`
     <div style="flex:${ratio.fastN||1};background:#ef4444;height:100%"></div>
@@ -1296,9 +1156,8 @@ function toggleCat(key){
   const pile=getActivePile();if(pile)renderRecipeSummary(pile);
 }
 
-function renderTempRefContent(){
-  const el=document.getElementById("temp-ref");if(!el)return;
-  el.innerHTML=BANDS.map(b=>`
+function renderTempRef(){
+  document.getElementById("temp-ref").innerHTML=BANDS.map(b=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid #0a0a0a">
       <div style="display:flex;align-items:center;gap:0.45rem">
         <div style="width:7px;height:7px;border-radius:50%;background:${b.color}"></div>
@@ -1308,185 +1167,284 @@ function renderTempRefContent(){
     </div>`).join("");
 }
 
-// -- EXPORT CSV --
+function renderLogTable(sorted){
+  document.getElementById("log-count").textContent="ALL ENTRIES ("+sorted.length+")";
+  const table=document.getElementById("log-table");
+  if(!sorted.length){table.innerHTML="";return;}
+  table.innerHTML=`<thead><tr>${["DAY","DATE","CORE","TOP","BOT","MOIST","TURN",""].map(h=>`<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#444;font-size:0.62rem;letter-spacing:0.05em">${h}</th>`).join("")}</tr></thead>
+  <tbody>${sorted.map((en,i)=>`<tr style="border-bottom:1px solid #080808">
+    <td class="mono" style="padding:0.3rem 0.4rem;color:#444;font-size:0.7rem">${i+1}</td>
+    <td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">${en.date}</td>
+    <td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.7rem">${en.core!=null?dispStr(en.core):"–"}</td>
+    <td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.7rem">${en.top!=null?dispStr(en.top):"–"}</td>
+    <td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.7rem">${en.bottom!=null?dispStr(en.bottom):"–"}</td>
+    <td style="padding:0.3rem 0.4rem">${en.moisture!=null?`<span style="background:${mColor(en.moisture)};color:#fff;padding:0.05rem 0.25rem;border-radius:2px;font-family:'Share Tech Mono',monospace;font-size:0.65rem">${en.moisture}%</span>`:"–"}</td>
+    <td class="mono" style="padding:0.3rem 0.4rem;color:${en.turned?"#f97316":"#1a1a1a"};font-size:0.7rem">${en.turned?"YES":"–"}</td>
+    <td style="padding:0.3rem 0.3rem"><button onclick="openEdit('${en.id}')" class="btn-sm" style="padding:0.2rem 0.4rem;font-size:0.6rem">EDIT</button></td>
+  </tr>`).join("")}</tbody>`;
+}
+
+// ── ENTRY ──
+function addEntry(){
+  const pile=getActivePile();if(!pile)return;
+  const core=fromInput(document.getElementById("f-core").value);
+  const top=fromInput(document.getElementById("f-top").value);
+  const bottom=fromInput(document.getElementById("f-bottom").value);
+  if(core==null&&top==null&&bottom==null)return alert("Enter at least one temperature");
+  const date=document.getElementById("f-date").value;const time=document.getElementById("f-time").value;
+  pile.entries.push({id:uid(),ts:new Date(date+"T"+time).toISOString(),date,time,core,top,bottom,
+    moisture:parseInt(document.getElementById("f-moisture-slider").value),
+    turned:document.getElementById("f-turned").checked,
+    notes:document.getElementById("f-notes").value});
+  save();
+  ["f-core","f-top","f-bottom","f-notes"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  const sl=document.getElementById("f-moisture-slider");sl.value=50;updateSlider(sl);
+  document.getElementById("f-turned").checked=false;
+  renderDashboard();
+}
+function saveRecipe(){
+  const pile=getActivePile();if(!pile)return;
+  const name=document.getElementById("recipe-name").value.trim();if(!name)return;
+  recipes.unshift({id:uid(),name,materials:pile.materials,saved:new Date().toLocaleDateString()});
+  if(recipes.length>10)recipes.pop();
+  document.getElementById("recipe-name").value="";save();
+}
+function addToHist(cat,name){
+  if(!name.trim())return;if(!ingHist[cat])ingHist[cat]=[];
+  if(!ingHist[cat].includes(name))ingHist[cat].unshift(name);
+  if(ingHist[cat].length>50)ingHist[cat].pop();
+}
+function addToCalendar(name,ms){
+  const deadline=new Date(ms);
+  const fmt=d=>d.toISOString().replace(/[-:.]/g,"").slice(0,15)+"Z";
+  const ics=["BEGIN:VCALENDAR","VERSION:2.0","BEGIN:VEVENT",
+    "DTSTART:"+fmt(deadline),"DTEND:"+fmt(new Date(ms+900000)),
+    "SUMMARY:Turn "+name,"DESCRIPTION:Compost pile ready to turn",
+    "BEGIN:VALARM","TRIGGER:-PT30M","ACTION:DISPLAY","DESCRIPTION:30min reminder","END:VALARM",
+    "END:VEVENT","END:VCALENDAR"].join("\r\n");
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([ics],{type:"text/calendar"}));
+  a.download="turn-"+name.replace(/\s+/g,"-")+".ics";a.click();
+}
+
+// ── EDIT ENTRY ──
+function openEdit(entryId){
+  const pile=getActivePile();if(!pile)return;
+  const entry=pile.entries.find(e=>e.id===entryId);if(!entry)return;
+  editingEntryId=entryId;
+  document.getElementById("e-date").value=entry.date;
+  document.getElementById("e-time").value=entry.time;
+  document.getElementById("e-core").value=entry.core!=null?disp(entry.core):"";
+  document.getElementById("e-top").value=entry.top!=null?disp(entry.top):"";
+  document.getElementById("e-bottom").value=entry.bottom!=null?disp(entry.bottom):"";
+  const sl=document.getElementById("e-moisture");sl.value=entry.moisture!=null?entry.moisture:50;updateEditSlider(sl);
+  document.getElementById("e-turned").checked=entry.turned;
+  document.getElementById("e-notes").value=entry.notes||"";
+  ["core","top","bot"].forEach(k=>{const el=document.getElementById("e-unit-"+k);if(el)el.textContent=unitLbl();});
+  document.getElementById("edit-overlay").classList.remove("hidden");
+}
+function closeEdit(){editingEntryId=null;document.getElementById("edit-overlay").classList.add("hidden");}
+function saveEdit(){
+  const pile=getActivePile();if(!pile||!editingEntryId)return;
+  const entry=pile.entries.find(e=>e.id===editingEntryId);if(!entry)return;
+  entry.date=document.getElementById("e-date").value;entry.time=document.getElementById("e-time").value;
+  entry.ts=new Date(entry.date+"T"+entry.time).toISOString();
+  entry.core=fromInput(document.getElementById("e-core").value);
+  entry.top=fromInput(document.getElementById("e-top").value);
+  entry.bottom=fromInput(document.getElementById("e-bottom").value);
+  entry.moisture=parseInt(document.getElementById("e-moisture").value);
+  entry.turned=document.getElementById("e-turned").checked;
+  entry.notes=document.getElementById("e-notes").value;
+  save();closeEdit();renderDashboard();
+}
+function deleteEntry(){
+  if(!editingEntryId)return;if(!confirm("Delete this entry?"))return;
+  const pile=getActivePile();if(!pile)return;
+  pile.entries=pile.entries.filter(e=>e.id!==editingEntryId);
+  save();closeEdit();renderDashboard();
+}
+
+// ── EXPORT CSV ──
 function exportCSV(){
   document.getElementById("export-menu").classList.add("hidden");
   const pile=getActivePile();if(!pile)return;
   const sorted=[...pile.entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-  const headers=["Day","Date","Time","Core (°F)","Top (°F)","Bottom (°F)","Core (°C)","Top (°C)","Bottom (°C)","Moisture (%)","Pile Turned","Stage","Notes"];
-  const rows=[headers];
+  const rows=[["Day","Date","Time","Core °F","Top °F","Bottom °F","Core °C","Top °C","Bottom °C","Moisture %","Turned","Stage","Notes"]];
   sorted.forEach((e,i)=>{
     const band=getBand(e.core);
     rows.push([i+1,e.date,e.time,
-      e.core!==null?e.core:"",e.top!==null?e.top:"",e.bottom!==null?e.bottom:"",
+      e.core||"",e.top||"",e.bottom||"",
       e.core!=null?toC(e.core):"",e.top!=null?toC(e.top):"",e.bottom!=null?toC(e.bottom):"",
-      e.moisture!==null?e.moisture:"",
-      e.turned?"Yes":"No",
-      band?band.label:"",
-      (e.notes||"").replace(/"/g,'""')
-    ]);
+      e.moisture||"",e.turned?"YES":"",band?band.label:"",
+      (e.notes||"").replace(/,/g,";")]);
   });
-  const csv=rows.map(r=>r.map(v=>`"${v}"`).join(",")).join("\n");
+  const csv=rows.map(r=>r.join(",")).join("\n");
   const a=document.createElement("a");
-  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
-  a.download=pile.name.replace(/[^a-z0-9]/gi,"-")+"-log.csv";a.click();
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+  a.download=pile.name.replace(/\s+/g,"-")+"-log.csv";
+  a.click();
 }
 
-// -- EXPORT PDF --
-function exportPDF(){
+// ── EXPORT PDF ──
+async function exportPDF(){
   document.getElementById("export-menu").classList.add("hidden");
-  const pile=getActivePile();if(!pile){alert("No pile selected.");return;}
-  // Build PDF using canvas + blob approach
-  const printWin=window.open("","_blank","width=800,height=600");
-  if(!printWin){alert("Please allow popups to export PDF.");return;}
-  const sorted=[...pile.entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-  const cycles=buildCycles(pile.entries);
-  const ratio=calcPileRatio(pile.materials);
+  const pile=getActivePile();if(!pile)return;
+  if(!window.jspdf){alert("PDF library loading, please wait a moment and try again.");return;}
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+  const W=210,M=15,CW=W-M*2;
+  let y=M;
+  const lh=7;
+  function check(needed){if(y+needed>285){doc.addPage();y=M;}}
+  // Header
+  doc.setFillColor(0,0,0);doc.rect(0,0,W,30,"F");
+  doc.setFont("helvetica","bold");doc.setFontSize(18);doc.setTextColor(255,255,255);
+  doc.text("COMPOST ACADEMY — PILE REPORT",M,12);
+  doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(180,180,180);
+  doc.text(pile.name,M,20);
+  doc.text("Created: "+new Date(pile.created).toLocaleDateString()+" · Days: "+pile.entries.length+" · Turns: "+pile.entries.filter(e=>e.turned).length,M,26);
+  y=38;
+  // Recipe summary
+  doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
+  doc.text("MATERIAL RECIPE",M,y);y+=5;
+  doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
   const tot=totVol(pile.materials);
-  const chartCanvas=document.getElementById("temp-chart");
-  const chartImg=chartCanvas?chartCanvas.toDataURL("image/png"):"";
-  const turnCount=pile.entries.filter(e=>e.turned).length;
-
-  const cyclesHtml=cycles.filter(c=>c.completed).map((cyc,i)=>{
-    const stats=cycleStats(cyc);
-    const sat=stats.highestSatisfied?`${stats.highestSatisfied} ✓`:"No stage satisfied";
-    return `<tr>
-      <td>Cycle ${i+1}</td>
-      <td>${stats.startDate} → ${stats.endDate}</td>
-      <td>${fmtH(stats.durationMs)}</td>
-      <td>${stats.peakCore?stats.peakCore+"°F":"–"}</td>
-      <td>${sat}</td>
-      <td>${stats.avgMoisture!=null?stats.avgMoisture+"%":"–"}</td>
-    </tr>`;
-  }).join("");
-
-  const entriesHtml=sorted.map((e,i)=>{
-    const band=getBand(e.core);
-    return `<tr style="background:${i%2===0?"#f9f9f9":"#fff"}">
-      <td>${i+1}</td><td>${e.date}</td><td>${e.time}</td>
-      <td>${e.core!=null?e.core+"°F":"–"}</td>
-      <td>${e.top!=null?e.top+"°F":"–"}</td>
-      <td>${e.bottom!=null?e.bottom+"°F":"–"}</td>
-      <td>${e.moisture!=null?e.moisture+"%":"–"}</td>
-      <td>${e.turned?"✓":""}</td>
-      <td>${band?band.label:""}</td>
-    </tr>`;
-  }).join("");
-
-  var recipeText="";
-  CATS.forEach(function(cat){
-    var items=(pile.materials[cat.key]||[]).filter(function(i){return i.name;});
+  const ratio=calcPileRatio(pile.materials);
+  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(80,80,80);
+  doc.text("Total Volume: "+tot.toFixed(1)+" gallons",M,y);y+=5;
+  doc.text("C:N Ratio — Fast N: "+ratio.fastN+"% | Slow N: "+ratio.slowN+"% | Brown: "+ratio.brown+"%",M,y);y+=6;
+  CATS.forEach(cat=>{
+    const items=(pile.materials[cat.key]||[]).filter(i=>i.name);
     if(!items.length)return;
-    recipeText+="<strong>"+cat.label+":</strong> "+items.map(function(i){return i.name+(i.volume?" ("+i.volume+" gal)":"");}).join(", ")+"<br/>";
+    doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(60,60,60);
+    doc.text(cat.label,M,y);y+=4;
+    items.forEach(item=>{
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(100,100,100);
+      doc.text("  · "+item.name+(item.volume?" ("+item.volume+" gal)":"")+(item.notes?" — "+item.notes:""),M,y);y+=4;
+    });
   });
-  var pName=pile.name;
-  var pCreated=new Date(pile.created).toLocaleDateString();
-  var pDays=pile.entries.length;
-  var pTurns=turnCount;
-  var html="<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/>"+
-  "<title>Compost Report - "+pName+"</title>"+
-  "<style>"+
-  "body{font-family:Arial,sans-serif;font-size:11px;color:#222;margin:0;padding:20px}"+
-  "h1{font-size:18px;margin-bottom:4px}h2{font-size:13px;color:#444;margin:20px 0 6px;border-bottom:1px solid #ccc;padding-bottom:3px}"+
-  ".meta{color:#666;font-size:10px;margin-bottom:20px}"+
-  "table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:16px}"+
-  "th{background:#222;color:#fff;padding:5px 6px;text-align:left}"+
-  "td{padding:4px 6px;border-bottom:1px solid #eee}"+
-  ".chart-img{width:100%;max-width:700px;margin:8px 0}"+
-  "@media print{body{margin:0;padding:12px}}"+
-  "</style></head><body>"+
+  y+=4;
+  // Turn history
+  const history=buildTurnHistory(pile.entries);
+  if(history.length){
+    check(20);
+    doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
+    doc.text("TURN HISTORY",M,y);y+=5;
+    doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
+    history.forEach(t=>{
+      check(14);
+      doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(60,60,60);
+      const icon=t.highestSatisfied?BANDS.find(b=>b.label===t.highestSatisfied)?.hours+"H ✓":t.isWarning?"⚠ WARNING":"TURN "+t.num;
+      doc.text("Turn "+t.num+" — "+icon,M,y);y+=4;
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(100,100,100);
+      doc.text("Date: "+t.date+" "+t.time+(t.core?" | Core: "+t.core+"°F":"")+(t.activeBand?" | "+t.activeBand.label:""),M+4,y);y+=4;
+      if(t.sinceMs!=null){doc.text("Since previous turn: "+fmtHours(t.sinceMs),M+4,y);y+=4;}
+      if(t.highestSatisfied){doc.text("Stage satisfied: "+t.highestSatisfied,M+4,y);y+=4;}
+      if(t.isWarning){doc.setTextColor(200,60,60);doc.text("Warning: turned without satisfying stage requirement",M+4,y);doc.setTextColor(100,100,100);y+=4;}
+      y+=1;
+    });
+  }
+  // Chart image
+  const chartCanvas=document.getElementById("temp-chart");
+  if(chartCanvas&&sorted.length){
+    check(90);
+    try{
+      const imgData=chartCanvas.toDataURL("image/png");
+      doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
+      doc.text("TEMPERATURE + MOISTURE CHART",M,y);y+=5;
+      doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=4;
+      const chartH=70;const chartW=CW;
+      doc.addImage(imgData,"PNG",M,y,chartW,chartH);y+=chartH+6;
+    }catch(e){console.log("Chart image failed",e);}
+  }
+  // Log table
+  check(20);
+  doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
+  doc.text("LOG ENTRIES",M,y);y+=5;
+  doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
+  // Table header
+  const cols=[12,26,14,14,14,14,14,16];const headers=["Day","Date","Core°F","Top°F","Bot°F","Moist","Turn","Stage"];
+  let x=M;
+  doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(80,80,80);
+  headers.forEach((h,i)=>{doc.text(h,x,y);x+=cols[i];});y+=1;
+  doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=3;
+  const sorted=[...pile.entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts));
+  sorted.forEach((e,i)=>{
+    check(6);
+    x=M;doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);
+    const band=getBand(e.core);
+    const row=[i+1,e.date,e.core||"",e.top||"",e.bottom||"",e.moisture?e.moisture+"%":"",e.turned?"YES":"",band?band.label:""];
+    row.forEach((v,j)=>{doc.text(String(v),x,y);x+=cols[j];});
+    y+=5;if(i%2===0){doc.setFillColor(248,248,248);doc.rect(M,y-4,CW,5,"F");}
+  });
+  doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(160,160,160);
+  doc.text("Generated by Compost Academy Logger · "+new Date().toLocaleDateString(),M,290);
+  doc.save(pile.name.replace(/\s+/g,"-")+"-report.pdf");
 
-“<h1>COMPOST ACADEMY - PILE REPORT</h1>”+
-“<div class="meta">”+pName+”  ·  Created: “+pCreated+”  ·  Days: “+pDays+”  ·  Turns: “+pTurns+”</div>”+
-“<h2>MATERIAL RECIPE</h2>”+
-“<div style="display:flex;gap:16px;font-size:11px;margin-bottom:12px">”+
-“<span>Total Volume: <strong>”+tot.toFixed(1)+” gal</strong></span>”+
-“<span>Fast N: <strong>”+ratio.fastN+”%</strong></span>”+
-“<span>Slow N: <strong>”+ratio.slowN+”%</strong></span>”+
-“<span>Brown: <strong>”+ratio.brown+”%</strong></span></div>”+
-recipeText+
-(cyclesHtml?”<h2>TURN CYCLES</h2><table><thead><tr><th>Cycle</th><th>Date Range</th><th>Duration</th><th>Peak Temp</th><th>Stage Satisfied</th><th>Avg Moisture</th></tr></thead><tbody>”+cyclesHtml+”</tbody></table>”:””)+
-(chartImg?”<h2>TEMPERATURE + MOISTURE CHART</h2><img class="chart-img" src="”+chartImg+”">”:””)+
-“<h2>LOG ENTRIES</h2>”+
-“<table><thead><tr><th>Day</th><th>Date</th><th>Time</th><th>Core</th><th>Top</th><th>Bottom</th><th>Moisture</th><th>Turned</th><th>Stage</th></tr></thead>”+
-“<tbody>”+entriesHtml+”</tbody></table>”+
-“<div style="color:#aaa;font-size:9px;margin-top:20px">Generated by Compost Academy Logger - “+new Date().toLocaleDateString()+”</div>”+
-“<scr”+“ipt>window.onload=function(){setTimeout(function(){window.print();},500);}</scr”+“ipt>”+
-“</body></html>”;
-printWin.document.write(html);printWin.document.close();
+  // Local var for sorted used above — redefine for clarity
 }
 
-// – DRIVE –
-function driveLabelShort(){return{disconnected:“LOCAL ONLY”,connecting:“CONNECTING…”,connected:“DRIVE SYNCED”,error:“SYNC FAILED”}[driveStatus];}
+// ── DRIVE ──
+function driveLabelShort(){return{disconnected:"LOCAL ONLY",connecting:"CONNECTING...",connected:"DRIVE SYNCED",error:"SYNC FAILED"}[driveStatus];}
 function updateDriveUI(){
-const colors={disconnected:”#333”,connecting:”#f59e0b”,connected:”#4ade80”,error:”#ef4444”};
-const labels={disconnected:“LOCAL ONLY”,connecting:“CONNECTING…”,connected:“GOOGLE DRIVE SYNCED”,error:“SYNC FAILED”};
-const dot=document.getElementById(“home-drive-dot”);const lbl=document.getElementById(“home-drive-label”);const btn=document.getElementById(“btn-connect-home”);
-if(dot)dot.style.background=colors[driveStatus];
-if(lbl){lbl.style.color=colors[driveStatus];lbl.textContent=labels[driveStatus];}
-if(btn)btn.style.display=driveStatus===“connected”?“none”:“inline”;
+  const colors={disconnected:"#333",connecting:"#f59e0b",connected:"#4ade80",error:"#ef4444"};
+  const labels={disconnected:"LOCAL ONLY",connecting:"CONNECTING...",connected:"GOOGLE DRIVE SYNCED",error:"SYNC FAILED"};
+  const dot=document.getElementById("home-drive-dot");const lbl=document.getElementById("home-drive-label");const btn=document.getElementById("btn-connect-home");
+  if(dot)dot.style.background=colors[driveStatus];
+  if(lbl){lbl.style.color=colors[driveStatus];lbl.textContent=labels[driveStatus];}
+  if(btn)btn.style.display=driveStatus==="connected"?"none":"inline";
 }
-async function driveGet(path){const r=await fetch(“https://www.googleapis.com/drive/v3”+path,{headers:{Authorization:“Bearer “+driveToken}});if(!r.ok)throw new Error(r.status);return r.json();}
-async function drivePost(path,body){const r=await fetch(“https://www.googleapis.com/drive/v3”+path,{method:“POST”,headers:{Authorization:“Bearer “+driveToken,“Content-Type”:“application/json”},body:JSON.stringify(body)});if(!r.ok)throw new Error(r.status);return r.json();}
-async function driveUpload(fileId,data){await fetch(“https://www.googleapis.com/upload/drive/v3/files/”+fileId+”?uploadType=media”,{method:“PATCH”,headers:{Authorization:“Bearer “+driveToken,“Content-Type”:“application/json”},body:JSON.stringify(data)});}
+async function driveGet(path){const r=await fetch("https://www.googleapis.com/drive/v3"+path,{headers:{Authorization:"Bearer "+driveToken}});if(!r.ok)throw new Error(r.status);return r.json();}
+async function drivePost(path,body){const r=await fetch("https://www.googleapis.com/drive/v3"+path,{method:"POST",headers:{Authorization:"Bearer "+driveToken,"Content-Type":"application/json"},body:JSON.stringify(body)});if(!r.ok)throw new Error(r.status);return r.json();}
+async function driveUpload(fileId,data){await fetch("https://www.googleapis.com/upload/drive/v3/files/"+fileId+"?uploadType=media",{method:"PATCH",headers:{Authorization:"Bearer "+driveToken,"Content-Type":"application/json"},body:JSON.stringify(data)});}
 async function driveCreateFile(name,folderId,data){
-const form=new FormData();
-form.append(“metadata”,new Blob([JSON.stringify({name,mimeType:“application/json”,parents:[folderId]})],{type:“application/json”}));
-form.append(“file”,new Blob([JSON.stringify(data)],{type:“application/json”}));
-const r=await fetch(“https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart”,{method:“POST”,headers:{Authorization:“Bearer “+driveToken},body:form});
-if(!r.ok)throw new Error(r.status);return r.json();
+  const form=new FormData();
+  form.append("metadata",new Blob([JSON.stringify({name,mimeType:"application/json",parents:[folderId]})],{type:"application/json"}));
+  form.append("file",new Blob([JSON.stringify(data)],{type:"application/json"}));
+  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",{method:"POST",headers:{Authorization:"Bearer "+driveToken},body:form});
+  if(!r.ok)throw new Error(r.status);return r.json();
 }
 async function initDriveStorage(){
-const q1=encodeURIComponent(“name=‘Compost Logger’ and mimeType=‘application/vnd.google-apps.folder’ and trashed=false”);
-const fr=await driveGet(”/files?q=”+q1+”&fields=files(id)”);
-const folderId=fr.files&&fr.files.length?fr.files[0].id:(await drivePost(”/files”,{name:“Compost Logger”,mimeType:“application/vnd.google-apps.folder”})).id;
-const q2=encodeURIComponent(“name=‘compost_data.json’ and ‘”+folderId+”’ in parents and trashed=false”);
-const dr=await driveGet(”/files?q=”+q2+”&fields=files(id)”);
-if(dr.files&&dr.files.length){
-driveFileId=dr.files[0].id;
-const r=await fetch(“https://www.googleapis.com/drive/v3/files/”+driveFileId+”?alt=media”,{headers:{Authorization:“Bearer “+driveToken}});
-if(r.ok){const d=await r.json();if(d.piles){piles=d.piles||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;if(d.tempUnit)tempUnit=d.tempUnit;localStorage.setItem(“ca_v5”,JSON.stringify({piles,recipes,ingHist,tempUnit}));}}
-}else{
-const f=await driveCreateFile(“compost_data.json”,folderId,{piles,recipes,ingHist,tempUnit});driveFileId=f.id;
-}
+  const q1=encodeURIComponent("name='Compost Logger' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+  const fr=await driveGet("/files?q="+q1+"&fields=files(id)");
+  const folderId=fr.files?.length?fr.files[0].id:(await drivePost("/files",{name:"Compost Logger",mimeType:"application/vnd.google-apps.folder"})).id;
+  const q2=encodeURIComponent("name='compost_data.json' and '"+folderId+"' in parents and trashed=false");
+  const dr=await driveGet("/files?q="+q2+"&fields=files(id)");
+  if(dr.files?.length){
+    driveFileId=dr.files[0].id;
+    const r=await fetch("https://www.googleapis.com/drive/v3/files/"+driveFileId+"?alt=media",{headers:{Authorization:"Bearer "+driveToken}});
+    if(r.ok){const d=await r.json();if(d.piles){piles=d.piles||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;if(d.tempUnit)tempUnit=d.tempUnit;localStorage.setItem("ca_v5",JSON.stringify({piles,recipes,ingHist,tempUnit}));}}
+  }else{
+    const f=await driveCreateFile("compost_data.json",folderId,{piles,recipes,ingHist,tempUnit});driveFileId=f.id;
+  }
 }
 async function onDriveToken(resp){
-if(resp.error){driveStatus=“error”;updateDriveUI();return;}
-driveToken=resp.access_token;driveStatus=“connecting”;updateDriveUI();
-try{await initDriveStorage();driveStatus=“connected”;updateDriveUI();renderHome();}
-catch(ex){console.error(ex);driveStatus=“error”;updateDriveUI();}
+  if(resp.error){driveStatus="error";updateDriveUI();return;}
+  driveToken=resp.access_token;driveStatus="connecting";updateDriveUI();
+  try{await initDriveStorage();driveStatus="connected";updateDriveUI();renderHome();}
+  catch(ex){console.error(ex);driveStatus="error";updateDriveUI();}
 }
-function connectDrive(){if(!tokenClient){alert(“Google auth loading…”);return;}tokenClient.requestAccessToken({prompt:“consent”});}
+function connectDrive(){if(!tokenClient){alert("Google auth loading...");return;}tokenClient.requestAccessToken({prompt:"consent"});}
 function scheduleDriveSave(){
-if(!driveFileId||!driveToken)return;
-clearTimeout(saveTimer);
-saveTimer=setTimeout(async()=>{
-try{await driveUpload(driveFileId,{piles,recipes,ingHist,tempUnit});driveStatus=“connected”;updateDriveUI();}
-catch(ex){driveStatus=“error”;updateDriveUI();if(tokenClient)tokenClient.requestAccessToken({prompt:””});}
-},3000);
+  if(!driveFileId||!driveToken)return;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    try{await driveUpload(driveFileId,{piles,recipes,ingHist,tempUnit});driveStatus="connected";updateDriveUI();}
+    catch(ex){driveStatus="error";updateDriveUI();if(tokenClient)tokenClient.requestAccessToken({prompt:""});}
+  },3000);
 }
 function initGoogleAuth(){
-const iv=setInterval(()=>{
-if(window.google&&window.google.accounts&&window.google.accounts.oauth2){clearInterval(iv);
-tokenClient=window.google.accounts.oauth2.initTokenClient(
-{client_id:CLIENT_ID,scope:“https://www.googleapis.com/auth/drive.file”,callback:onDriveToken});}
-},300);
+  const iv=setInterval(()=>{
+    if(window.google?.accounts?.oauth2){clearInterval(iv);
+      tokenClient=window.google.accounts.oauth2.initTokenClient(
+        {client_id:CLIENT_ID,scope:"https://www.googleapis.com/auth/drive.file",callback:onDriveToken});}
+  },300);
 }
 
-if(“serviceWorker”in navigator){
-navigator.serviceWorker.getRegistrations().then(function(regs){
-regs.forEach(function(r){r.unregister();});
-});
-caches.keys().then(function(keys){
-keys.forEach(function(k){caches.delete(k);});
-});
-}
-// logo set in HTML
-if(“Notification”in window&&Notification.permission===“default”)Notification.requestPermission();
-try{load();}catch(e){console.error(“load”,e);}
-try{renderHome();}catch(e){console.error(“render”,e);var pl=document.getElementById(“pile-list”);if(pl)pl.innerHTML=”<div style='color:#ef4444;padding:1rem'>JS Error: “+e.message+”</div>”;}
-try{showView(“home”);}catch(e){console.error(“view”,e);}
-try{initGoogleAuth();}catch(e){console.error(“auth”,e);}
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+document.getElementById("logo-img").src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAEsASwDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD5/ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAoq3baXf3hAtbK5nJ6CKJmz+QrTj8EeKpVDJ4b1Yg9/scn+FAGDRW3eeD/EunxGW70HUoYxyWe2cAfXisXBoASiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACpra1uL25jtrWCSeeQ7UjiUszH0AHJqGvq/4LeB7Lw/4QtNXltwdV1GMTPK6/NHGeVRfQYwT6k+woA8Q0b4S6/dy/8AE3tb7S4iMqfsLzO3/AVxj8SK9h8HfDjRdDVJLbwteX94Mf6Zq5jjUe6pltv/AHyT7162Yo85KA/hTwAOlAGFNda/ZW+6LRbS5Vf+WVvelXx7BkCk/iKs6Pr1prSSiESw3MDBbi1uF2Swk9Ay+/YjIPY1qGuI8aafNFeWeu6dI1vf2eQ8iDJkhP3lI/iA649uME0AdsQCMHpXn/ijwHYrenXtIsLX7cgLTW0kKtDdr3VhjhvRq6rQtZbVLfbcQ+TdIqlgp3I4I4dG7qfzHetSRQ6Mp7jFAHnS/DrwD430eLUY9FitmnXl7UmJ0YcEEDjIORyK8l8bfAnVtCikvdDlbVLRMlotuJkH0/i/Dn2r2zweG07xN4h0kE+R5kd3Ep7eYCGx+K12ZVX5xQB8CMrIxVgQwOCD2pK+hvjd8M4ZbafxVo8ISeMbr2BF4kXvIPcd/Uc1880AFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAFvSrdLrVrO3kxslnSNstt4LAHntX1l8P/E2tXXhvfq+l3Ml0biQQw2luFSKEYCKWJC8YPcnGK8I+Cfhm18SfECIX0KTWtjC108TjKuQQqgjuMsD+FfTTeIl8pJLKwaW1LbI5WmjhWTt8gYjI/LPagCX/hI44pNl5p2o2Y/56Swbo/xZCwH44rVguYbmJZIZFkRujKQQfxFUtN1aHUJbi3MMttd25Alt5gAyg9GGCQVPOCDjg9xVe7sJrG6N9pka5bme2HyrN7jsH9D36H2AI/Fni/SPBmlpqGsSyJDJKsKCNNzMxyensASfpWmyR3aRyL8yMuQfUEZrD8X+DtL8e6LbWWpGdIo5luEaIhWBAIIOfUEg10kcSwxLGg2ooCqPQDpQBgQT/ZfEY01IgFS3SZXz/CzMpXHbBAI+p9K6BiMqPU1zE+pQHxvFp0I33MluZp5B/wAs4lOEX8WZj+FdKSScgZIHGaAOctbNoPHV5cAEiXT4gT9JX/xrpsccVXWI/bpJeNvlqo49yf61YHrQBVvoUuIHilQPG6lWUjIII5H5Zr5L8TfDS80/XdVs9OVpfssu5Im4LxsMrt9SAentX1ndXKxyRxAgu7AYHp3P5CsVND0+88Q393KiySskUZB9AD/j+lAHxRJG8MrRyIyOpwysMEH0NNr3r4x/DdI7d9d06FhKnMwVfvj1PvXgtABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAHqnwE1KO08dz2LyCN9QsZIImJ6OCGH6Ka6H4jeE9a8XNpcmkGOeXTrRbK50wzLHJbSKeXCsRlTxz6YNeJWF9c6bfwX1nM0NzbyCSORTyrA5Br6bh8QWOr6Hp17468KxRNcQJIl60HmRspGR8y/Mh77T60AXPCAv49b8PaZc3i3upaZp0i6pcRPuVVbAjjZv4mBA9/lJr04OCCccA45rkdK1nwfp+nFdJuLG0t25P2YBdx/DnPv1rI1n4paFbQG2tLkNKPugDAI/wCBYJP4Y+tAHdC/t1aYF1HlfM3Pr/8AqqpqeuW1jpkl5JIohVN2c9R6/SuAg8SaJb2kl7qWvWcjS4eSCJydxx8q46lVHYDk5PesOe41fx9eRiS2lg0h5gltaMPLNyw5y/dUUAsfb68gHQ+AruMjVfFerTpANSlAhEhwREmdvPv1xXcWXiSz1Fh9hhup4/8AnoIWC/gSBn8Kj0rwtYWRiuJ40urtECrLIg2xgdo16IPpz6k1u0ANDr8ob5Wbop61HLdRxuY9w3Bdx9h71U1GaOBftJcBoQwX6njH8q5zxJ4r07wvp97PO/mSwxh8MR+8c8ImPUkH9aALuoara6churlsu4EccScu+ewXqWORgCl8MWOpo0+o6nGlvNdHeYAQ2wYAVcj0A59STXJ+D9H1eeBNau5GjupgZGuZolldQeSEBOEXtgAk9z2HoE141lCguHZhIQgkCYAY+vpk0AWr6yg1CyltbmMPFKpVlI6ivkH4n+CW8HeJZI4F/wBAn+eAg52+qn/P8q+vLO688umxl2Yxkda8l+PmlwTeGhqBA86EheDyVJ449j/M0AfMtFFFABRRRQAUUUUAFFFFABRRXReBdAg8T+NtK0a5d0guZsSFOu0AsQPQkDH40Ac9g+lJg+lfZQ+GngO0gVX8OaasSADzJRk/iSefrmiL4e/D+clYdA0iRgM7UUMf0NAHxrRjNey/HHwJonhuLTtV0W1+xLcyvDNbrnZkDIZQencenSum+EHw18MX3gu11vWbGO+ur93CLOSVjUMVAVfU7SSTQB864PpSYPpX2TJ8Pfh7ExWTQtIRhwQ2AR+tUtQ+FPgjWLO4sItDhs5WTKXNsCpjOSFIOcH1weCKAPkOjB9K63wFZWz/ABJ0rTb61t7y3lu/s0sUyblYHKk49e4r3nUPB/w/1ttU8O2Gj2Vnqn2f9xMiAEOQcMpBPAOAfxFAHyzRjNS3NvLaXU1tPGY5oXMciHqrA4I/Ovafgr4E0jUNF1HxF4isIrq0LeRbJKhYDby74H4D8DQB4jg+lGDXufxs0Pw/ovhbSZtF0OysmvLhhJIkWHAVfug+mTz64FQ/Ajw/oPiKx1tNb0myuxavE8cs6fMoYMCM56fKP1oA8TwfQ0YPpX2S3w58AoAZPD2lx7um5QMj160h+G3gGSI/8U9prI2RujU8fiDwaAPjmKN5pVjjUs7HAA7mvqCy1zULuxt4G1BLb7NaRq9tZqGL7VUMPNYYc5YfKnA3Lyc5ryfXfDtl4L+LF3ptkHmhiVZbSGQj5iwVvLJPtuHvxXp+jeHLOe40jzo5JbTzrmCZmJJtpcEAn+5kRpjsCvuKAK95daVaapaC9sLLUrK/RvLmmtljnilXIaOQKADjB7A8H610EOm+Gb6HbFo9sqDgqQAhPuMY71Z0HwfoktlLFrthpt7qCXk8kcgcMZVZyyuADwSD07HNO8T6fpnh/Qjr+mxG0W1mTegchJV3hc4JIHXIP50AIPDGiaZC141taxbELLsQBV9ycZNc5F4mlh1CbUZLmW0WCJovLFi0vkKHCktyACWwCoz6c81fmvW1/Q9Q1S2Mx+ySwiGEHoxYEt74yDjpxVq68G6bHEPs+mQixTTfOW1lYCS4uQH2BwW6jLH/AHmz2oAdbfEP7OVkXUodWhADzRfZmt54kIzuCnhhg59cV3NvqSXlmlwHiWCVNySpJ1z6ZHH+NcVN4LsrhdISe3WQ3Ehk1O4jc/vG2luSDwA+0D0GK4e6/t6w8Vjw1bxXE+j2l/HEJHcBTGzISDjknDY49/WgDe8e+MYEurDTNPkkmJk3vHCCzsqtnaB6k8c9jXL6fbXOp6zPrHiGaVZLWff9nhiSbbKTtGQx2nBO1VG4kg4Bwa9eXwn4YtblnsdJ01LqTKlx97PYEA5xmuJm8L2uoXlxcWNtBbRwXquIw/lCEKhDujZI3s+QGbGMdOtAHUaR4lE8ktrYX0N7eWzsk1jPEkE2R94KyHYWHp09SK3/ALRba9phaIl7acFJEZcFf4WUjswPb1FeLXOhX2l20UsenpbRQXSQxPFJiG2klcbniUHdI3AAZsDAz2Ar0DTPEFrbX+v3SORarNGCDwDKEzIR+G3PvQB0fhu9F1owknKtd2jPbTueu9CVJz74B/GvJfi1qtxr83/CP6btmnuF4RRgnBDHn2Ax9TVPRPE+ta+L6w0XyrcahqMs5uZMlVU4XCqOW4544GRmvVPD/hHTPC2nGdl8+8lI8+7nGZJMkev3QM9BgCgD4zZWRirAhgcEEcikrvPi7oC6F4/vfJ/1F2ftKexb7w/PNcHQAUUUUAFFFFABRRRQAV3Hwe/5KvoH/XV//Rb1w9dx8H/+Sr6B/wBdX/8ARb0Ae4fGeQv8JtRje4S4kiu4kd0UBQ3mA7cAnGAQK8n+BWsabonja7u9Vvrazt/sDqJJ5AgJ3pwCe/B4r1744EH4V6jhSALmEgkg7vnHPHavlGgD3H46eNvDnibSdLs9F1OO8mguWkkEathQVx1IwefSvR/hDFFL8J/D6y7MB5GG7OSRK+Me+f618kV9d/Bo4+E+h8gZ80fX969AHzl8Uf8Akp3iH/r8b+Qr6x8KMF8LaCpkGW0232x59EXJ/UV8nfFH/kp3iH/r8b+Qr6t8NRJL4W8OEbBLHY27hmQMQPLAOPTOetAHyz4H/wCSw6R/2FR/6Ga6PWtZfS/HM0tpHbwznUjKojcOituIBJ7ZDE4U8E1zngf/AJLBpH/YVH/oZr2PxF4N0ya51HxDr19Kum28yowSMHJeQKd+452AnJXA65BxigDzn4seGHufGWnappULPH4jCNGm3GLg4VlI7Ekqce5ra+Jc9jpOkaN4NsJ18jTrYq0scw2ST4y+7aeMHJOR1bt1r1qW0ttOmtYbizjujbTifTvNlEZWTAjBUkndncTknOSOOlc14i8GaFq2sCO/MMOttYveSwxjEIVW2l5AoGSxfAbGflPWgDzz4jXMt38IfBcstuIcs4ACbNw2D5sAkc9a3f2cYxLa+JYyzKGNvllbaQPn6Gs74u6VBonw78M6dbmVlhup1ZpVwzNgZOASOvTGBgDAqX4CTJb6L4rkkieWMfZt6oecZfPcfzoAg/aKz/buhAmQkWTjMg+Y4kPJxXUfBa5e0+FFxJGyrN/ajiMsgYZ2oTxkdge4rX1r4b2HxHtdMu7zUr63azt/KTbCqmRCcgkHgHtgeldJ4R8FR+DfDaaRp91JPE90Z5HuFw2CAMYXjsOtAHgnxkVX+MkqMNyFbUEHuNq19C6/p1pY+E9cWBVBj0qaMckvtEbD5jn5ugGTzx1r55+L8qS/GebbIrshtVcr2YKuRX0l4sbPhHXlyONOn49P3bUAfJnwu/5Kd4e/6/F/ka+jPjA+fhRrwEgdk8sMQfunzUOPyIr5z+F3/JT/AA9/1+L/ACNfRPxfhjPwy8QSx+WN6Qq+EwSRKvJPfg0Ach8BZri88Ga7Cu6eVLuMrGzDBG0cHPG04INdJ48s9TXXItbt9Oiv9LFosUrRJ5rREMxJ29SuD1GcYOa5r4d2sPhKX7LYK0V9Mdk80twJI7hgCyqUAGwEcqwz16816hpPirTdRnFgs0dpfjpA5GG5/gP8X060Acl4P8Z2yaQlhptrHcESSPnzNoG5ieFxk9a6ay0n7XPdXd3GqvcyBztzheABg/hWd4n+Gula9O9/YO+j6yST9ptuFkPYunQ5x16/WuJ0yf4iaXNcW7LYz/ZWMbCSXaxx378Hg9s+lAHeXmh6bYaxoz20SeYLtSWCgHvTtZ02OPRdfhl2PDcXEchhDBlXc65BX1PB59R2FcbY+Lde1TxVodtqVpYRf6YiuYZ9zDr1GOK6/wAbyzWvhLXpbUxJlonEpPy+YZEBBBPXAHoOlAGTL8O/CdnGb1JbnTFkUGRLe58uMkdDtwcH6YrzXxLPp0WmtbaDJez2SuUNxcyZhaU+g48xucnOQM5NdNYeFpte23GuaxPPHgFLc8xH2CKcE/Un6VV8QaVZ2XiPQlurdhpvm5BchgwXJUYHygEjhQAPagDuPhh4bTRdLDx2c+JlBa7uMK0465Cn5guSSAcfSu9u4RLbSIwDBgQwJIBGMU6L95Ag5jO0cA9OKy7XVJP7UudKuipnRPNiOMebGeAfqDwccdDxmgD5o+NVxN/wk1vY3RL3FrGUM3/PZM5Rvrjg+4J715lXsP7QIiPiaxkCBZWtxux3/wA9Pwrx6gAooooAKKKKACiiigArufg9z8V9A/66v/6LeuGra8JeIH8LeKtO1uOITG0l3mMnG5SCGGexwTQB9K/Fu1vtW+G+p2djay3ci3EIjjt4mL4D8jaB29Rx+RrzT4K+C7v/AITK5PiHw3N9kFk+37fZny9+5cY3DGcZ/WvQovj94KdEdv7TicgZT7MOPYkNzUp+P3ghhgvqP/gL/wDZUAcn+0BoOj6VoGjzabpVlZySXTKzW8Cxlhszg4AzXefBvyx8KdBL43ZlC5OOfMf+ma8V+LvxOs/HJsbHS4JlsrNmkM06hXlcgDhR0AGfrntW/wDC/wCMmkeGvCseg65BdKLZmME9ugfcrHdgjIIIJPP8qAOT+JXhfX7r4i69c2+h6lNBJdsUkjtXZWBA5BA5r6Z8N74NC0K1kDJLHYwrLCykMjeWOvoRg5riG+PXg1iv+k6moBOQtoOQRx37fzqrqf7QXha20+aTTINQur7ZiJJYgilscFjnp64GaAPGfAw/4vBpAPX+1R/6Ga+gvivFFD8L/Eyx7RuWOTCgL1lQHPOScg8n6dq+bfBWsWWmeO9O1nVppI4Le4+0SNFFvZiMnAGR1P5V7B42+LPgvxJ4L1fR7OW9huLyPKu1pwXDBgD83AJXHtnNAGV4Q+Olhpfhew0zX9Lu766sTtinjKkFV+4TuP3gOPwB61Z+EviG48ZfF7XtVvR/x86fIqRNyI496BU+gH5814Ketei/CDxbovgzX77UtYmuFElr5EaQQ7yxLAkk5GMbR+dAHc/Hu3jtfCHh2KNVQi5lDqh4VgoBA5OMY6ZqH9neFrmw8UQo5QsLf5gMn+Osv4v/ABC8M+ONDsYtKnvFubScv5c1vtV1YYPzZ4IwKq/B3x54e8EWWrHV57sTXrIqJBBu2qoPzZz1y36UAdV8aPE+t+CdR0XTvDupTafaG0YmKLBGQ+B97Jry5vix46dSp8S3mCMcbQfzArb+MHjLQfGlzpV3pFzdvJbRNDKlxBsJGchs55PXIrzGgC7ZzS3OtQTTyPLLJcKzu7EsxLDJJPU19r+J4vP8Na7DBGZLiTT5VCJyzEowAAr4ehlaCZJUOHRgyn3BzX0zpv7Qfhm506GTUYb61vtgEqRwiRN3cgggkfXFAHk/w38Ma/ZfEfQZ7rRNSghjulZ5JbV1VQAckkjAFe6fFe5P/CsNdlikDeW0DIxUnpKvByMHkH8Kzf8AhfXgzzSzXOqlcghBagAYGMdec9a4n4n/ABk0fxJ4Uk0DQre6K3LKZ5rhQoVVbdhRkkkkD8KAIPAhg8TzJc3Ey2dtbMglWRXAMYdB5aup65YKvGcYHaut8TeBLQ+IwLT+1m077OrbLZ2cNIGYH94ckEYHAxXn/wAOPEul29vYpfSJDJp91AEjL/61TLI5cA4GVJUHnpXqvg/x9ZaXo6WF7HdS4kBhlgi8wMZBvKHn7ytvz6DB70AdR4Vg1BtAshcmZWikkG66LGXaGIQEkZPGRk84rDj8JprXjnWrnUriR7NJ1MdpG5VWOxeXI5I/2R+PpWtYeNdJ1edri0s9QuJYHeFZPI2gHjcuc4I6DPqK2NCtJ1kub25QJLcyFygP3ewH5AUAZupWFvY6ho0NrBHBEl2mEiQIo/AUeJbMt4d1WGT5o5XiJikQFM+YuSBjv1IP9aseIiY7+wuXWQw28okby03McdAB9aoax4hs9T0u4soYrqGeTaVMsGBkEEZ59qAMtvh1ayRxz2FvHYyYz5llK8J/IHb+lcl4l8L3guUsZtc+0ytjYpi3yRKGyWG3ByCOBjk8dMkeu6VMxtozJdpKwGGVFGBWX4usrqa1doDBb2roFuZo7dprlxnhEVR79c8Z7daAOT8GeLjp13BDqPmwafqZJtvtU/mSQuG2DeemJCrHIONwJ4BFdD471aHQU0zUd8ayxXaoWIz8jAhwfbHP1UVwyaE2rXt89rCIomHlST3LZwU+7HkYGFIBIXqVVflVTnG1/RLjV2N1rOqyXcEW5IQRsUN0OUHf3Oc+1AHmfxB8Vt4t8TzXq7hbJ+7hVuyjv+NcpTpBiVx6MabQAUUUUAFFFFABRRRQAUUUUAFFFaGh6ZJrWu2GmRZ33dwkII7bmAzQB6BpnwI8Varplnf291pYiu4VnjEkzq21gCMjZ15rzS5ga1upbdyC0TshI6ZBxX0N4q1TXNP8cotvEselWqRwW3mHCxhWQ5IyN3IXjjAIz0NeUfFbSf7J+I2qqsRijuXF2iHHAkG4jjjhiw49KAMPwz4Y1PxdrUelaTCJLl1Lku21UUdWY9hXoY/Z38Xnpe6OR6+e/wD8RSfs9s6eO79o4/McaZIVTIG4704yeldj8Y/iN4l8IeJ7Gy0O/jgtpbJZmUwI+WLsM5YE9AKAPPPEHwR8WeHtGuNUmNjdQW6GSVbaZmdUHVsFRkD2rzevsO51qK7+EJv9Tvbdb270JpGLuqb3eHJwPcnpXx53oA7HwX8NtZ8dW15Ppc1lGloyrJ9pkZPvAkYwp9Kp+M/BGp+BtSgsNVktnmmh85TbszLtyR1IHPBr0nRLHV9D+Ctk2loVm1W7e6uGxg+UvCjJ9kz7AnuRWf8AEa2udX+HOla3PAqy2V/NavtYNtVyW2k5JJDqeTjO4EdaAPIgMnFejw/A7xrcQRTQ21k8cyh42F4mGBGQR+Febivsm41K50P4U/2rZsvn2uipLH5ihl3LECOPSgDwI/Afx0ASbO0/8C0riNQ8PahpHiA6JqkQsrtZFjfzj8q7sYbIzlec5GeK98+F3xJ8Q+NbvV7bVZIAltaCaM28G07twHPJyK4L41O0vxQtpG27ntLZjtBxk56Z5oAmX9nnxczMovtG3LjK/aHyM/8AAKU/s7+LwQPtuj5PQfaH/wDiK9m+I3iG+8OeD9d1XSZnhvYHhCu6q6rllU4U+xPUV5Z4d/aI1Gx09o9e05tUuvNLLPHIkACYGF2hOec8+9AHmeneDb/UfGknhVLi0i1BZ5IA0jt5bOmcgEAnnBxxWv4w+FHiHwVpKanqL2c1s0whY2sjOUYgkbsqMDirngTUxrXxzsdUERhW71GWcR7txTcHOM98ZrsdF1M+IrzVfBuo3EskerRyBWmjEflTbt0blf4eQuQD1PQUAeGwRyTXEcUKs0rsFRV6lieAPxr1jVfhR470TRrzVL7XrRLe2gaSYC8lL7cZI+73xj3rN+Ffh3yvGF9qurQlLXw4jz3CspP75SQi49dwJ/4DXYW3i/UfEvgzx2upzxySLY+ZCsCAR+WT1BySeeP88gHV/Da8uB4M0Oz0yK2Mn2TfiR9pc5Jcg4OTk10GseLr7wyLdNUgV5rolbeK2JdpCMcDgeoryP4ZeMLax8KKJ5Ntxolz5yju8DnkfmWH4ivZ/GcCah4fTUrFFnu7MC5t9q5YowwQPqp/SgDmFs/GHi9Zr2a8SC1V2iWwtrkxbSOzyAEk9M7ePfirXhfRdK1CK6sZ9Njt7mNWSbLl5FOSpYOTnIIPPYjmti4vtT8JaPbpHYRXNrHEBNMHYMszHkkBTkbiOma871m7jYtbhJ1ieKNpZowd0shYFuVPKMmVyMgsi/3aAPTvB99Fe6SsFzNCb+D93Ns2qXA6PgdAwIPpnNdMIyB8rnHoea8n8NaGNQMukyr5N7HYo/nRDY9rhlWFdwOd4RCTz1YjpXaeDdbuNS0kJfSiS6hmkgZ8AGQK7KrYHqF59waAN9rW3WMIIowgBAXaMAe3pXlXjyNLPSLu6dUB8oyYB+Utyv8AI16lfXSwxsCe3Pqc9APevn74063FDYw6fAzfaHfdICeibcAD8c0AeHMcsT6mkoooAKKKKACiiigAooooAKKKKACvTvgTo/8AaPxDS9eNnj023e4wBn5j8i/qxP4V5jX0R8B9BuU8Farqduqrc31ysUbk4ISMZyCQf4mPbtQB2Os+KUsPiboHhqQQuuoW032j5Pvkn9yW9/kb/vrivPP2idGUf2LrcaEcPZSkrg8fMmfwLV3l54o+Gy6qLjVNR0mTXLM+V9qkiZpUdCQPmC9R7d6h+JHh9dU+FOrtDKbmRNupRyBMKQDklfUFSx60AeW/s9hW8d36uMqdMkBHr86VL+0Mqp4y0pVTYo0xAF/uje/HFR/s9Z/4T2+AyT/ZsmMHB++ldt8VPhf4k8b69Y3+nvZYhshDJ58uxtwdj0APYjmgD5wZmYjcckDHJzUlrbSXd3DbQjdLM6xoPUk4H86+wZtFj0n4TT6fdwWxubTRHilZVBG9YSCQcZPI6186/B3RhrPxM0tXTfFaE3bjH9wZX/x7bQB9AeLbseB/hjcNbFF/s6zjtrXfGMrMMIjr+ZP4UzxRaW/jL4UXr2sK51DT1vogo481QJAB75BHerHiDU/DemhrDxveWBgunM0NtdL5i8N1AC8dT1yateG7nw/q/lXPh69gl06xJgSC1jISPIHykEcDoeB680AfGnevrvxAv/Fk7tvMb/kXgPL7f6oc/Xivl/xjox8P+MdX0ojC29y6p/uE5U/98kV9W3GlXWtfCoaZaAefeaJHDGXbCbjEMZ9PrQB4v+z+CdY14AgFrFVGRnrIO3f6VS+NSLH8ULVE+6tpbAZOeOe9ehfCr4Za74Mv9Vm1gWLR3VqIYgku8F92RkYHHFef/HAj/ha0P/Xtb9sdzQB6xq/7jxV4ivfEdzaS+G0ht4p4ruNjGoJJQYC4Ztx6jOMAd+PK/i3ceALzSdOl8IPpyXcczLPHZwNHuQrwTlRnBH/j1e0/ELQr7xL4a1nRrHylubtYWiaZyqYVwTk444H615z4e/Z3SSwY+JNTlgvTKQiWUishTAwcsuc5z+lAHm3wmAb4o6CpGQZyCD/uNXsWmeCNM0/xJaajNfFb2/ecadHDGFRyi5IJ3D5jzxwPl5wea8w8DabHo/x3s9Mhd3itNSlgR3xuYKHAJx34r0X473s+maV4bvbF5YJrfUJJIZDwQQoIP4dPwoA6jVdH0ifSteNzbxWkLM15qV2JPmSZUIVlXjBwucHjLHrmuSn8JWXhnwR4uexuZXiutJVliYYwuFYF+fvYbHAwOcHkgee+MPjFrnjDQX0ie0s7OCV1edrYMGl29Ack8ZAP4CvcPGoig+E2oSuFDXGkRQRkDkuQAF45JOR+VAHzr8OdMOtePNL0tmYQXEuJ1BwHjUbyp9jtr6N1O8uIPCN0lpcSW+oWEyx+dAuZPKzuUe46jHfBA5NeHfBzQtc1DxlHqOki3ijswwluLknYu9SuAByzYJOB6c4r6C8PaW9t4g1aO7v2u98Ee7dGsaKQzdAP6k0AY11pU17FpFvfX851BLczXU8UpCkFiU+Q8ep55HrXMaNayXHiOdlt7nUJbOWVbe2G4rJOXOZHYjaiAgMcknJ4z1rstQ0WfUPF+pRWupXFvIkUIVcKykbO4I/rXN6p8Pb1J/tYv7q3nYbnaBSgY9M/KeuPXt3oA62y8vwTpFzNe3AutXvZDLKUXG+QjgD2HAA9Kb4Z06502aDzv9d5W9+erNkgfXLOx/Cub0Lwz9ivobjUdRku3ADRv5rhgeg+V+PwBNdTqms6X4atUlmuvMuGBJVmG5Fx1OOB+f50AHinxBa6HbM93KDIBvb0XHQH3ODgV8p+Kdfm8Ra1LeSng8KOwA6Vv/EDxzJ4m1KRbeTFoD8qrwPr7k461wtABRRRQAUUUUAFFFFABRRRQAUUUUAFd5ovxf8AFnh/SLfS9MuLSCzt12ogtEPfJJPck5JNcHRQBNd3Ul5eTXMm0PM7SMFGBknJwO1d3B8ZvGFvpUemR3Fn9ijhFusJs0I8sLt2nPUY4rz6igDU0TxDqfhzWU1XSbg2t2hOCgBGD1Ug8Eexrtv+F7+O/wDn/tf/AAET/CvNaKAO5134ueMfEOlTabe6jGLacbZRDAkZdf7pIGce1ZPhTxtrHgye4n0ZreKedQjyyQLI20c4BPQZ5/AVzlFAHQeK/GeseM7uC61mWKWeCMxo8cQT5c5wcdec/nVrwp8Q/EHgu2uINFmgiW4cPKXgVyxAwOT25P51ytFAGz4k8Tah4r1b+1NU8hrtlCu8UQj346ZA6nHGfQV10Hxx8b20EcEN5aRxRKERFs0wqgYAHHpXnFFAHpR+O/js9b+1/wDARP8ACuJ1DxDqWreIDreoz/a75pFkZpVBUlcYG3pt4Ax0xWXRQB6Ufjt46Jyb60z0z9jj/wAKP+F7+Oz1v7U/9uif4V5rRQBu2Hi3VNO8VP4lhaE6m8rzeY8IZQ75yQvQdT9K0PFPxH8Q+MrGGz1qa3mjhk8yMpbqjKcY6jtiuSooAVW2uGwDg5wehr0F/itr2tLFYazdwrYAbAIrZVVOABlV5KjA4HI6jkCvPaKAPZ/B72kvii2lsbq1naGePzZzEglXJBCrL1kzjBbaDjJbHSvcXs5/t80+mahBG8wAf5FckDoBntzXxZBcTWsyzW8rxSqcq6MQR+NdVpvxO8W6Yw8vVXlUfwTorj9RQB9ZWOlzR3j397cRyTsoBkVQvA6dKr67qVpZqZ5ZTlVyNmOnXoePxr5om+M/i+WPyxc28a4xiOLH49a5bUvFeuaqzG71Gdw3UbsCgD2TxP8AFLT7AMlsokuc52ocHP8AtEdvy/CvHde8Uajr87vcvtRjny16H6+tYhOaKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/2Q==";
+if("Notification"in window&&Notification.permission==="default")Notification.requestPermission();
+load();renderHome();showView("home");initGoogleAuth();
 </script>
 
 </body>

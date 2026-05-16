@@ -382,7 +382,7 @@ let editingEntryId=null;
 let expandedCats=new Set(["highN","greens","browns"]);
 let expandedCycles=new Set();
 
-// ── UTILS ──
+// -- UTILS --
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
 const newItem=()=>({id:uid(),name:"",volume:"",notes:"",fastN:33,slowN:34,brown:33,fastN_locked:false,slowN_locked:false,brown_locked:false});
 const newMats=()=>({highN:[newItem()],greens:[newItem()],browns:[newItem()]});
@@ -424,7 +424,7 @@ function toggleTempRef(){
     else{el.classList.add("hidden");if(arr)arr.textContent="▸";}}
 }
 
-// ── INDEPENDENT STAGE TRACKING ──
+// -- INDEPENDENT STAGE TRACKING --
 // Each stage runs independently. A stage's streak resets ONLY when temp
 // drops BELOW that stage's minimum floor. Going higher does NOT affect it.
 function computeStageProgress(cycleEntries){
@@ -572,7 +572,7 @@ function showView(v){
   if(v==="dashboard")renderDashboard();
 }
 
-// ── HOME ──
+// -- HOME --
 function renderHome(){
   updateDriveUI();
   const el=document.getElementById("pile-list");
@@ -634,7 +634,7 @@ function openPile(id){activeId=id;showView("dashboard");}
 function togglePileStatus(id){const p=piles.find(x=>x.id===id);if(!p)return;p.status=p.status==="completed"?"active":"completed";save();renderHome();}
 function deletePile(id){const p=piles.find(x=>x.id===id);if(!p)return;if(!confirm(`Delete "${p.name}"?`))return;piles=piles.filter(x=>x.id!==id);save();renderHome();}
 
-// ── SETUP ──
+// -- SETUP --
 function renderSetup(){newMaterials=newMats();document.getElementById("new-pile-name").value="";updateTotalVol();renderCatEditors("new");renderRecipesPanel();}
 function renderCatEditors(mode){
   const prefix=mode==="edit"?"re":"cat";
@@ -813,7 +813,7 @@ function saveRecipeEdit(){
   save();closeRecipeEdit();renderDashboard();
 }
 
-// ── DASHBOARD ──
+// -- DASHBOARD --
 function getActivePile(){return piles.find(p=>p.id===activeId)||null;}
 function renderDashboard(){
   const pile=getActivePile();if(!pile)return showView("home");
@@ -870,7 +870,7 @@ function autoAdvance(fromId,toId){
   if(val&&val.length>=2){const next=document.getElementById(toId);if(next)next.focus();}
 }
 
-// ── STATUS CARD ──
+// -- STATUS CARD --
 function renderStatusCard(pile,status){
   const heroEl=document.getElementById("status-hero-area");
   const detailEl=document.getElementById("status-details");
@@ -966,7 +966,7 @@ function renderStatusCard(pile,status){
     </div>`;
 }
 
-// ── TURN CYCLES BOX ──
+// -- TURN CYCLES BOX --
 function renderCycles(pile){
   const card=document.getElementById("cycles-card");
   const content=document.getElementById("cycles-content");
@@ -1078,7 +1078,7 @@ function toggleCycle(key){
   const pile=getActivePile();if(pile)renderCycles(pile);
 }
 
-// ── CHART ──
+// -- CHART --
 function renderChart(sorted){
   const section=document.getElementById("chart-section");
   if(!sorted.length){section.classList.add("hidden");return;}
@@ -1128,7 +1128,7 @@ function toggleChart(){
   renderChart([...pile.entries].sort((a,b)=>new Date(a.ts)-new Date(b.ts)));
 }
 
-// ── LOG TABLE ──
+// -- LOG TABLE --
 function renderLogTable(sorted){
   document.getElementById("log-count").textContent="ALL ENTRIES ("+sorted.length+")";
   const table=document.getElementById("log-table");
@@ -1146,7 +1146,7 @@ function renderLogTable(sorted){
   </tr>`).join("")}</tbody>`;
 }
 
-// ── ENTRY ──
+// -- ENTRY --
 function addEntry(){
   const pile=getActivePile();if(!pile)return;
   const core=fromInput(document.getElementById("f-core").value);
@@ -1189,7 +1189,7 @@ function addToCalendar(name,ms){
   a.download="turn-"+name.replace(/\s+/g,"-")+".ics";a.click();
 }
 
-// ── EDIT ENTRY ──
+// -- EDIT ENTRY --
 function openEdit(entryId){
   const pile=getActivePile();if(!pile)return;
   const entry=pile.entries.find(e=>e.id===entryId);if(!entry)return;
@@ -1225,7 +1225,7 @@ function deleteEntry(){
   save();closeEdit();renderDashboard();
 }
 
-// ── RECIPE SUMMARY ──
+// -- RECIPE SUMMARY --
 function renderRecipeSummary(pile){
   const tot=totVol(pile.materials);const ratio=calcPileRatio(pile.materials);
   const bar=document.getElementById("pile-ratio-bar");
@@ -1308,7 +1308,7 @@ function renderTempRefContent(){
     </div>`).join("");
 }
 
-// ── EXPORT CSV ──
+// -- EXPORT CSV --
 function exportCSV(){
   document.getElementById("export-menu").classList.add("hidden");
   const pile=getActivePile();if(!pile)return;
@@ -1332,7 +1332,7 @@ function exportCSV(){
   a.download=pile.name.replace(/[^a-z0-9]/gi,"-")+"-log.csv";a.click();
 }
 
-// ── EXPORT PDF ──
+// -- EXPORT PDF --
 function exportPDF(){
   document.getElementById("export-menu").classList.add("hidden");
   const pile=getActivePile();if(!pile){alert("No pile selected.");return;}
@@ -1373,49 +1373,50 @@ function exportPDF(){
     </tr>`;
   }).join("");
 
-  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
-  <title>Compost Report — ${pile.name}</title>
-  <style>
-    body{font-family:Arial,sans-serif;font-size:11px;color:#222;margin:0;padding:20px}
-    h1{font-size:18px;margin-bottom:4px}h2{font-size:13px;color:#444;margin:20px 0 6px;border-bottom:1px solid #ccc;padding-bottom:3px}
-    .meta{color:#666;font-size:10px;margin-bottom:20px}
-    table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:16px}
-    th{background:#222;color:#fff;padding:5px 6px;text-align:left}
-    td{padding:4px 6px;border-bottom:1px solid #eee}
-    .ratio{display:flex;gap:16px;font-size:11px;margin-bottom:12px}
-    .chart-img{width:100%;max-width:700px;margin:8px 0}
-    @media print{body{margin:0;padding:12px}}
-  </style></head><body>
+  var recipeText="";
+  CATS.forEach(function(cat){
+    var items=(pile.materials[cat.key]||[]).filter(function(i){return i.name;});
+    if(!items.length)return;
+    recipeText+="<strong>"+cat.label+":</strong> "+items.map(function(i){return i.name+(i.volume?" ("+i.volume+" gal)":"");}).join(", ")+"<br/>";
+  });
+  var pName=pile.name;
+  var pCreated=new Date(pile.created).toLocaleDateString();
+  var pDays=pile.entries.length;
+  var pTurns=turnCount;
+  var html="<!DOCTYPE html><html><head><meta charset=\"UTF-8\"/>"+
+  "<title>Compost Report - "+pName+"</title>"+
+  "<style>"+
+  "body{font-family:Arial,sans-serif;font-size:11px;color:#222;margin:0;padding:20px}"+
+  "h1{font-size:18px;margin-bottom:4px}h2{font-size:13px;color:#444;margin:20px 0 6px;border-bottom:1px solid #ccc;padding-bottom:3px}"+
+  ".meta{color:#666;font-size:10px;margin-bottom:20px}"+
+  "table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:16px}"+
+  "th{background:#222;color:#fff;padding:5px 6px;text-align:left}"+
+  "td{padding:4px 6px;border-bottom:1px solid #eee}"+
+  ".chart-img{width:100%;max-width:700px;margin:8px 0}"+
+  "@media print{body{margin:0;padding:12px}}"+
+  "</style></head><body>"+
 
-  <h1>COMPOST ACADEMY — PILE REPORT</h1>
-  <div class="meta">${pile.name} &nbsp;·&nbsp; Created: ${new Date(pile.created).toLocaleDateString()} &nbsp;·&nbsp; Days: ${pile.entries.length} &nbsp;·&nbsp; Turns: ${turnCount}</div>
-  <h2>MATERIAL RECIPE</h2>
-  <div class="ratio">
-    <span>Total Volume: <strong>${tot.toFixed(1)} gal</strong></span>
-    <span>Fast N: <strong>${ratio.fastN}%</strong></span>
-    <span>Slow N: <strong>${ratio.slowN}%</strong></span>
-    <span>Brown: <strong>${ratio.brown}%</strong></span>
-  </div>
-  ${CATS.map(cat=>{
-    const items=(pile.materials[cat.key]||[]).filter(i=>i.name);if(!items.length)return"";
-    return`<strong>${cat.label}:</strong> ${items.map(i=>i.name+(i.volume?" ("+i.volume+" gal)":"")).join(", ")}<br/>`;
-  }).join("")}
-  ${cycles.filter(c=>c.completed).length?`
-  <h2>TURN CYCLES</h2>
-  <table><thead><tr><th>Cycle</th><th>Date Range</th><th>Duration</th><th>Peak Temp</th><th>Stage Satisfied</th><th>Avg Moisture</th></tr></thead>
-  <tbody>${cyclesHtml}</tbody></table>`:""}
-  ${chartImg?`<h2>TEMPERATURE + MOISTURE CHART</h2><img class="chart-img" src="${chartImg}"/>`:""}
-  <h2>LOG ENTRIES</h2>
-  <table><thead><tr><th>Day</th><th>Date</th><th>Time</th><th>Core</th><th>Top</th><th>Bottom</th><th>Moisture</th><th>Turned</th><th>Stage</th></tr></thead>
-  <tbody>${entriesHtml}</tbody></table>
-  <div style="color:#aaa;font-size:9px;margin-top:20px">Generated by Compost Academy Logger · ${new Date().toLocaleDateString()}</div>
-  <script>window.onload=function(){setTimeout(function(){window.print();},500);}<\/script>
-  </body></html>`;
-
+“<h1>COMPOST ACADEMY - PILE REPORT</h1>”+
+“<div class="meta">”+pName+”  ·  Created: “+pCreated+”  ·  Days: “+pDays+”  ·  Turns: “+pTurns+”</div>”+
+“<h2>MATERIAL RECIPE</h2>”+
+“<div style="display:flex;gap:16px;font-size:11px;margin-bottom:12px">”+
+“<span>Total Volume: <strong>”+tot.toFixed(1)+” gal</strong></span>”+
+“<span>Fast N: <strong>”+ratio.fastN+”%</strong></span>”+
+“<span>Slow N: <strong>”+ratio.slowN+”%</strong></span>”+
+“<span>Brown: <strong>”+ratio.brown+”%</strong></span></div>”+
+recipeText+
+(cyclesHtml?”<h2>TURN CYCLES</h2><table><thead><tr><th>Cycle</th><th>Date Range</th><th>Duration</th><th>Peak Temp</th><th>Stage Satisfied</th><th>Avg Moisture</th></tr></thead><tbody>”+cyclesHtml+”</tbody></table>”:””)+
+(chartImg?”<h2>TEMPERATURE + MOISTURE CHART</h2><img class="chart-img" src="”+chartImg+”">”:””)+
+“<h2>LOG ENTRIES</h2>”+
+“<table><thead><tr><th>Day</th><th>Date</th><th>Time</th><th>Core</th><th>Top</th><th>Bottom</th><th>Moisture</th><th>Turned</th><th>Stage</th></tr></thead>”+
+“<tbody>”+entriesHtml+”</tbody></table>”+
+“<div style="color:#aaa;font-size:9px;margin-top:20px">Generated by Compost Academy Logger - “+new Date().toLocaleDateString()+”</div>”+
+“<scr”+“ipt>window.onload=function(){setTimeout(function(){window.print();},500);}</scr”+“ipt>”+
+“</body></html>”;
 printWin.document.write(html);printWin.document.close();
 }
 
-// ── DRIVE ──
+// – DRIVE –
 function driveLabelShort(){return{disconnected:“LOCAL ONLY”,connecting:“CONNECTING…”,connected:“DRIVE SYNCED”,error:“SYNC FAILED”}[driveStatus];}
 function updateDriveUI(){
 const colors={disconnected:”#333”,connecting:”#f59e0b”,connected:”#4ade80”,error:”#ef4444”};

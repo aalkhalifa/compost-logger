@@ -25,7 +25,7 @@ html,body{background:#000;color:#fff;font-family:Inter,sans-serif;min-height:100
 input[type=text],input[type=number],input[type=date],input[type=time],textarea{
   background:#050505;border:1px solid #222;border-radius:3px;color:#fff;
   padding:0.6rem 0.75rem;font-size:0.9rem;font-family:Inter,sans-serif;width:100%;box-sizing:border-box}
-input:focus,textarea:focus{border-color:#444;outline:none}
+input:focus,textarea:focus{border-color:#555;outline:none}
 input.error,textarea.error{border-color:#ef4444 !important}
 .error-msg{color:#ef4444;font-size:0.7rem;margin-top:0.3rem;font-family:"Share Tech Mono",monospace}
 input[type=checkbox]{width:18px;height:18px;accent-color:#f97316}
@@ -40,15 +40,16 @@ input[type=range]:disabled{opacity:0.3}
 .btn{display:block;width:100%;padding:0.85rem;background:#fff;color:#000;border:none;
   border-radius:3px;font-size:0.9rem;font-weight:600;letter-spacing:0.05em;
   cursor:pointer;font-family:Inter,sans-serif;text-align:center}
-.btn-sm{background:#0a0a0a;border:1px solid #222;color:#666;border-radius:3px;
+.btn-sm{background:#0a0a0a;border:1px solid #222;color:#999;border-radius:3px;
   padding:0.35rem 0.75rem;cursor:pointer;font-size:0.72rem;font-family:Inter,sans-serif;white-space:nowrap}
-.btn-now{background:#111;border:1px solid #333;color:#888;border-radius:3px;
-  padding:0 0.85rem;cursor:pointer;font-size:0.72rem;font-family:"Share Tech Mono",monospace;
-  letter-spacing:0.05em;white-space:nowrap;min-height:38px;height:100%}
+.btn-now{background:#1a1a1a;border:1px solid #555;color:#ccc;border-radius:3px;
+  padding:0 0.9rem;cursor:pointer;font-size:0.7rem;font-family:"Share Tech Mono",monospace;
+  letter-spacing:0.08em;white-space:nowrap;height:38px;display:flex;align-items:center;justify-content:center;font-weight:600}
+.btn-now:hover{background:#222;border-color:#999;color:#fff}
 .temp-input{background:#050505;border:1px solid #222;border-radius:3px;color:#fff;
   padding:0.9rem;font-size:1.6rem;font-family:"Share Tech Mono",monospace;
   width:100%;box-sizing:border-box;text-align:center}
-.temp-input:focus{border-color:#444;outline:none}
+.temp-input:focus{border-color:#555;outline:none}
 .pbar-wrap{height:5px;background:#1a1a1a;border-radius:2px;margin-top:0.25rem}
 .pbar{height:100%;border-radius:2px;transition:width 0.5s}
 .sticky{position:sticky;top:0;background:#000;z-index:100;padding:0.75rem 1rem;
@@ -80,7 +81,7 @@ input[type=range]:disabled{opacity:0.3}
 .status-temp{font-family:"Share Tech Mono",monospace;font-size:3rem;font-weight:bold;line-height:1}
 .status-time{font-family:"Share Tech Mono",monospace;font-size:2rem;font-weight:bold;line-height:1;text-align:right}
 .status-detail{display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid #0f0f0f;font-size:0.78rem}
-.status-key{color:#444;font-size:0.65rem;letter-spacing:0.08em;font-weight:600;font-family:Inter,sans-serif}
+.status-key{color:#555;font-size:0.65rem;letter-spacing:0.08em;font-weight:600;font-family:Inter,sans-serif}
 .status-val{font-family:"Share Tech Mono",monospace;color:#ccc;text-align:right}
 .turn-icon{width:44px;height:44px;border-radius:50%;border:2px solid #ccc;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
@@ -90,17 +91,22 @@ input[type=range]:disabled{opacity:0.3}
 .export-menu{position:absolute;right:0;top:100%;background:#0a0a0a;border:1px solid #222;
   border-radius:3px;z-index:200;min-width:140px;box-shadow:0 4px 16px rgba(0,0,0,0.8)}
 .export-item{padding:0.65rem 1rem;cursor:pointer;font-size:0.8rem;font-family:"Share Tech Mono",monospace;
-  color:#888;border-bottom:1px solid #111;letter-spacing:0.05em}
+  color:#999;border-bottom:1px solid #111;letter-spacing:0.05em}
 .export-item:hover{background:#111;color:#fff}
+.toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:#1a1a1a;border:1px solid #555;border-radius:4px;padding:0.75rem 1rem;display:flex;align-items:center;gap:0.75rem;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.6);min-width:280px;max-width:90%;animation:toast-slide 0.25s ease-out}
+.toast-msg{font-size:0.85rem;color:#ccc;flex:1}
+.toast-btn{background:#f97316;color:#000;border:none;border-radius:3px;padding:0.35rem 0.85rem;font-family:Inter,sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;letter-spacing:0.05em}
+.toast-btn:hover{background:#fb923c}
+@keyframes toast-slide{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
 </style>
 </head>
 <body>
 
 <div id="view-home">
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
-    <img id="logo-img" src="icon-512.png" style="width:100%;max-width:240px;display:block;margin:0 auto;border-radius:8px"/>
+    <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#333;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.6 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.7 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -160,7 +166,7 @@ input[type=range]:disabled{opacity:0.3}
       <button onclick="showView('home')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.3rem">&larr;</button>
       <div>
         <div id="dash-name" class="hd" style="font-size:1.1rem;color:#fff;line-height:1"></div>
-        <div id="dash-sub" class="mono" style="font-size:0.58rem;color:#333"></div>
+        <div id="dash-sub" class="mono" style="font-size:0.58rem;color:#555"></div>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:0.5rem">
@@ -172,7 +178,7 @@ input[type=range]:disabled{opacity:0.3}
         </div>
       </div>
       <button id="unit-toggle" onclick="toggleUnit()" class="btn-sm" style="font-size:0.65rem;padding:0.25rem 0.5rem">&deg;F/&deg;C</button>
-      <div id="dash-core" class="mono" style="font-size:1.4rem;color:#333;font-weight:bold">&ndash;</div>
+      <div id="dash-core" class="mono" style="font-size:1.4rem;color:#555;font-weight:bold">&ndash;</div>
     </div>
   </div>
   <div class="wrap">
@@ -180,7 +186,7 @@ input[type=range]:disabled{opacity:0.3}
 
 <div class="card" id="status-card" style="border-left:3px solid #222;padding:0">
   <div style="padding:0.75rem 1rem 0.5rem">
-    <div class="hd" style="font-size:0.75rem;color:#444;letter-spacing:0.15em">TEMPERATURE STATUS</div>
+    <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em">TEMPERATURE STATUS</div>
   </div>
   <div id="status-hero-area"></div>
   <div id="status-details" style="padding:0 1rem 0.75rem"></div>
@@ -218,11 +224,11 @@ input[type=range]:disabled{opacity:0.3}
     <input type="range" id="f-moisture-slider" min="0" max="100" step="5" value="50"
       style="--rc:#1e88e5;--pct:50%" oninput="updateSlider(this)"/>
     <div style="display:flex;justify-content:space-between;margin-top:0.15rem">
-      <span class="mono" style="font-size:0.58rem;color:#333">0%</span>
+      <span class="mono" style="font-size:0.58rem;color:#555">0%</span>
       <span class="mono" style="font-size:0.58rem;color:#90caf9">40 DRY</span>
       <span class="mono" style="font-size:0.58rem;color:#1e88e5">50 IDEAL</span>
       <span class="mono" style="font-size:0.58rem;color:#1565c0">60 WET</span>
-      <span class="mono" style="font-size:0.58rem;color:#333">100%</span>
+      <span class="mono" style="font-size:0.58rem;color:#555">100%</span>
     </div>
   </div>
   <div style="margin-bottom:0.75rem;padding:0.75rem;background:#050505;border:1px solid #1a1a1a;border-radius:3px">
@@ -230,7 +236,7 @@ input[type=range]:disabled{opacity:0.3}
       <input type="checkbox" id="f-turned" style="width:22px;height:22px"/>
       <div>
         <div class="mono" style="font-size:0.9rem;color:#f97316">PILE TURNED</div>
-        <div style="font-size:0.7rem;color:#444;margin-top:0.1rem">Check if you turned the pile today</div>
+        <div style="font-size:0.7rem;color:#555;margin-top:0.1rem">Check if you turned the pile today</div>
       </div>
     </label>
   </div>
@@ -249,11 +255,11 @@ input[type=range]:disabled{opacity:0.3}
     </div>
     <canvas id="temp-chart"></canvas>
     <div style="display:flex;gap:1rem;margin-top:0.75rem;flex-wrap:wrap;align-items:center">
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#ff4444;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">CORE</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#4ade80;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">TOP</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#a855f7;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">BOTTOM</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">MOISTURE</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">TURN</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#ff4444;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">CORE</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#4ade80;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">TOP</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#a855f7;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">BOTTOM</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">MOISTURE</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">TURN</span></div>
     </div>
   </div>
 </div>
@@ -609,7 +615,7 @@ function renderHome(){
   updateDriveUI();
   var el=document.getElementById("pile-list");
   if(!piles.length){
-    el.innerHTML='<div style="text-align:center;padding:3rem 1rem;border:1px dashed #1a1a1a;border-radius:4px"><div style="font-size:2rem;margin-bottom:0.5rem">&#127793;</div><div class="hd" style="font-size:1.2rem;color:#333">NO PILES YET</div></div>';
+    el.innerHTML='<div style="text-align:center;padding:3rem 1rem;border:1px dashed #1a1a1a;border-radius:4px"><div style="font-size:2rem;margin-bottom:0.5rem">&#127793;</div><div class="hd" style="font-size:1.2rem;color:#555">NO PILES YET</div></div>';
     return;
   }
   el.innerHTML=piles.map(function(p){
@@ -632,15 +638,15 @@ function renderHome(){
       timerHtml='<div style="margin-top:0.75rem">'+
         '<div style="display:flex;justify-content:space-between;margin-bottom:0.3rem">'+
           '<span class="mono" style="font-size:0.65rem;color:'+t.band.color+'">'+t.band.label+'</span>'+
-          '<span class="mono" style="font-size:0.65rem;color:#666">'+label+'</span>'+
+          '<span class="mono" style="font-size:0.65rem;color:#999">'+label+'</span>'+
         '</div>'+
         '<div class="pbar-wrap"><div class="pbar" style="width:'+t.progress+'%;background:'+t.band.color+'"></div></div>'+
-        (nextDue?'<div class="mono" style="font-size:0.6rem;color:#444;margin-top:0.3rem">NEXT TURN: '+nextDue+'</div>':"")+
+        (nextDue?'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.3rem">NEXT TURN: '+nextDue+'</div>':"")+
       '</div>';
     }
     var sinceHtml=sinceMs!==null
-      ?'<div class="mono" style="font-size:0.6rem;color:#444;margin-top:0.2rem">LAST TURN: '+fmtHours(sinceMs)+' AGO &middot; TURNS: '+turnCount+'</div>'
-      :'<div class="mono" style="font-size:0.6rem;color:#333;margin-top:0.2rem">NO TURN RECORDED</div>';
+      ?'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.2rem">LAST TURN: '+fmtHours(sinceMs)+' AGO &middot; TURNS: '+turnCount+'</div>'
+      :'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.2rem">NO TURN RECORDED</div>';
     var statusPill=isCompleted
       ?'<span class="pill-status" style="background:#1a2a1a;color:#4ade80;border:1px solid #2a4a2a">MATURED</span>'
       :'<span class="pill-status" style="background:#1a1a00;color:#f59e0b;border:1px solid #2a2a00">ACTIVE</span>';
@@ -649,16 +655,17 @@ function renderHome(){
       '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
         '<div style="flex:1;min-width:0">'+
           '<div class="hd" style="font-size:1.3rem;color:#fff">'+p.name+turnNowBadge+statusPill+'</div>'+
-          '<div class="mono" style="font-size:0.62rem;color:#444;margin-top:0.15rem">DAY '+p.entries.length+' &middot; '+new Date(p.created).toLocaleDateString()+'</div>'+
+          '<div class="mono" style="font-size:0.62rem;color:#555;margin-top:0.15rem">DAY '+p.entries.length+' &middot; '+new Date(p.created).toLocaleDateString()+'</div>'+
           sinceHtml+
         '</div>'+
         '<div style="text-align:right;flex-shrink:0;margin-left:0.5rem">'+
           '<div class="mono" style="font-size:1.5rem;color:'+(isTurnNow?"#ff0000":band?band.color:"#333")+';font-weight:bold">'+(lat&&lat.core?disp(lat.core)+"\u00B0":"-")+'</div>'+
-          '<div style="font-size:0.58rem;color:#444;font-family:Share Tech Mono,monospace">CORE</div>'+
+          '<div style="font-size:0.58rem;color:#555;font-family:Share Tech Mono,monospace">CORE</div>'+
         '</div>'+
       '</div>'+
       timerHtml+
       '<div style="display:flex;gap:0.5rem;margin-top:0.75rem;border-top:1px solid #111;padding-top:0.6rem">'+
+        '<button onclick="event.stopPropagation();renamePile(\''+p.id+'\')" class="btn-sm" style="font-size:0.62rem">RENAME</button>'+
         '<button onclick="event.stopPropagation();togglePileStatus(\''+p.id+'\')" class="btn-sm" style="font-size:0.62rem">'+(isCompleted?"MARK ACTIVE":"MARK MATURED")+'</button>'+
         '<button onclick="event.stopPropagation();deletePile(\''+p.id+'\')" class="btn-sm" style="font-size:0.62rem;color:#9a4a4a;border-color:#3a1a1a">DELETE</button>'+
       '</div>'+
@@ -667,7 +674,62 @@ function renderHome(){
 }
 function openPile(id){activeId=id;showView("dashboard");}
 function togglePileStatus(id){var p=piles.find(function(x){return x.id===id;});if(!p)return;p.status=p.status==="completed"?"active":"completed";save();renderHome();}
-function deletePile(id){var p=piles.find(function(x){return x.id===id;});if(!p)return;if(!confirm('Delete "'+p.name+'"?'))return;piles=piles.filter(function(x){return x.id!==id;});save();renderHome();}
+function renamePile(id){
+  var p=piles.find(function(x){return x.id===id;});if(!p)return;
+  var newName=prompt("Rename pile:",p.name);
+  if(newName===null)return;
+  newName=newName.trim();
+  if(!newName){alert("Pile name cannot be empty");return;}
+  p.name=newName;
+  save();
+  renderHome();
+  if(activeId===id){
+    var dn=document.getElementById("dash-name");
+    if(dn)dn.textContent=newName;
+  }
+}
+// Toast / Undo system
+var undoState=null;
+var undoTimer=null;
+
+function showToast(msg,undoFn,duration){
+  duration=duration||6000;
+  hideToast();
+  var container=document.getElementById("toast-container");
+  if(!container)return;
+  var toast=document.createElement("div");
+  toast.className="toast";
+  toast.id="active-toast";
+  toast.innerHTML='<span class="toast-msg">'+msg+'</span><button class="toast-btn" id="toast-undo-btn">UNDO</button>';
+  container.appendChild(toast);
+  document.getElementById("toast-undo-btn").onclick=function(){
+    if(undoFn)undoFn();
+    hideToast();
+  };
+  if(undoTimer)clearTimeout(undoTimer);
+  undoTimer=setTimeout(hideToast,duration);
+}
+function hideToast(){
+  if(undoTimer){clearTimeout(undoTimer);undoTimer=null;}
+  var existing=document.getElementById("active-toast");
+  if(existing&&existing.parentNode)existing.parentNode.removeChild(existing);
+  undoState=null;
+}
+
+function deletePile(id){
+  var p=piles.find(function(x){return x.id===id;});if(!p)return;
+  if(!confirm('Delete "'+p.name+'"?'))return;
+  var idx=piles.indexOf(p);
+  var savedPile=JSON.parse(JSON.stringify(p));
+  piles.splice(idx,1);
+  save();
+  renderHome();
+  showToast('Deleted "'+p.name+'"',function(){
+    piles.splice(idx,0,savedPile);
+    save();
+    renderHome();
+  });
+}
 
 function renderSetup(){newMaterials=newMats();document.getElementById("new-pile-name").value="";document.getElementById("new-pile-name").classList.remove("error");document.getElementById("setup-error").classList.add("hidden");updateTotalVol();renderCatEditors("new");renderRecipesPanel();}
 
@@ -678,8 +740,8 @@ function renderCatEditors(mode){
     return '<div style="margin-bottom:1.5rem">'+
       '<div style="display:flex;justify-content:space-between;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:1px solid #111">'+
         '<div><span class="hd" style="font-size:1rem;color:'+cat.color+'">'+cat.label+'</span>'+
-        '<span style="font-size:0.7rem;color:#444;margin-left:0.5rem">'+cat.sub+'</span></div>'+
-        '<span class="mono" style="font-size:0.75rem;color:#444" id="'+prefix+'-vol-'+cat.key+'">0.0 gal</span>'+
+        '<span style="font-size:0.7rem;color:#555;margin-left:0.5rem">'+cat.sub+'</span></div>'+
+        '<span class="mono" style="font-size:0.75rem;color:#555" id="'+prefix+'-vol-'+cat.key+'">0.0 gal</span>'+
       '</div>'+
       '<div id="'+prefix+'-items-'+cat.key+'"></div>'+
       '<button onclick="addCatItem(\''+cat.key+'\',\''+mode+'\')" '+
@@ -712,14 +774,14 @@ function renderCatItems(cat,mode){
           '<input type="number" value="'+(item.volume||"")+'" placeholder="0" id="'+prefix+'-ivol-'+item.id+'" '+
             'oninput="updateIngItem(\''+cat.key+'\',\''+item.id+'\',\'volume\',this.value,\''+mode+'\')"/></div>'+
         '<button onclick="removeCatItem(\''+cat.key+'\',\''+item.id+'\',\''+mode+'\')" '+
-          'style="background:none;border:1px solid #222;color:#444;cursor:pointer;border-radius:3px;width:32px;height:38px;font-size:0.9rem;align-self:end">&times;</button>'+
+          'style="background:none;border:1px solid #222;color:#555;cursor:pointer;border-radius:3px;width:32px;height:38px;font-size:0.9rem;align-self:end">&times;</button>'+
       '</div>'+
       '<label class="lbl">NOTES</label>'+
       '<input value="'+(item.notes||"")+'" placeholder="Source, condition, smell..." id="'+prefix+'-inote-'+item.id+'" '+
         'style="margin-bottom:0.6rem" '+
         'oninput="updateIngItem(\''+cat.key+'\',\''+item.id+'\',\'notes\',this.value,\''+mode+'\')"/>'+
       '<div style="background:#000;border:1px solid #111;border-radius:3px;padding:0.5rem">'+
-        '<div style="font-size:0.58rem;color:#444;letter-spacing:0.1em;margin-bottom:0.4rem">N RATIO (total = 100%)</div>'+
+        '<div style="font-size:0.58rem;color:#555;letter-spacing:0.1em;margin-bottom:0.4rem">N RATIO (total = 100%)</div>'+
         renderRatioSliders(item,prefix,mode)+
         '<div style="display:flex;gap:2px;margin-top:0.35rem;height:4px;border-radius:2px;overflow:hidden" id="'+prefix+'-rbar-'+item.id+'">'+
           '<div style="flex:'+(item.fastN||0)+';background:#ef4444"></div>'+
@@ -836,7 +898,7 @@ function renderRecipesPanel(){
   document.getElementById("recipes-list").innerHTML=recipes.map(function(r){
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-top:1px solid #111">'+
       '<div><div style="font-size:0.85rem;color:#ccc">'+r.name+'</div>'+
-      '<div class="mono" style="font-size:0.62rem;color:#444">'+totVol(r.materials).toFixed(1)+' gal &middot; '+r.saved+'</div></div>'+
+      '<div class="mono" style="font-size:0.62rem;color:#555">'+totVol(r.materials).toFixed(1)+' gal &middot; '+r.saved+'</div></div>'+
       '<button class="btn-sm" onclick="loadRecipe(\''+r.id+'\')">LOAD</button>'+
     '</div>';
   }).join("");
@@ -1013,7 +1075,7 @@ function renderStatusCard(pile,sorted,lat,band){
   }
   if(!lat||!band){
     card.style.borderLeftColor="#222";
-    heroEl.innerHTML='<div style="padding:1.25rem;text-align:center"><div class="mono" style="color:#333;font-size:0.85rem">NO DATA YET - LOG YOUR FIRST ENTRY</div></div>';
+    heroEl.innerHTML='<div style="padding:1.25rem;text-align:center"><div class="mono" style="color:#555;font-size:0.85rem">NO DATA YET - LOG YOUR FIRST ENTRY</div></div>';
     detailEl.innerHTML="";return;
   }
 
@@ -1037,12 +1099,12 @@ function renderStatusCard(pile,sorted,lat,band){
   heroEl.innerHTML='<div style="padding:1rem 1.25rem;border-top:1px solid #111;border-bottom:1px solid #111">'+
     '<div style="display:flex;justify-content:space-between;align-items:center">'+
       '<div>'+
-        '<div style="font-size:0.62rem;color:#444;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">CORE TEMP</div>'+
+        '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">CORE TEMP</div>'+
         '<div class="mono" style="font-size:2.8rem;color:'+band.color+';font-weight:bold;line-height:1">'+dispStr(lat.core)+'</div>'+
         '<div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+band.label+' \u00B7 '+bandRange(band)+'</div>'+
       '</div>'+
       '<div style="text-align:right">'+
-        '<div style="font-size:0.62rem;color:#444;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">'+(isDone?"ACTION":"TIME LEFT")+'</div>'+
+        '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">'+(isDone?"ACTION":"TIME LEFT")+'</div>'+
         '<div class="mono" style="font-size:'+(isDone?"1.4rem":"2rem")+';color:'+timeColor+';font-weight:bold;line-height:1">'+timeLeft+'</div>'+
         '<div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+band.hours+'H REQUIRED</div>'+
       '</div>'+
@@ -1052,7 +1114,7 @@ function renderStatusCard(pile,sorted,lat,band){
         '<div class="pbar" style="width:'+(t?t.progress:0)+'%;background:'+(isDone?"#4ade80":band.color)+';height:6px"></div>'+
       '</div>'+
       '<div style="display:flex;justify-content:space-between;margin-top:0.35rem;align-items:center">'+
-        '<div style="font-size:0.62rem;color:#444;font-family:Share Tech Mono,monospace">'+(t?Math.round(t.progress):0)+'% COMPLETE</div>'+
+        '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace">'+(t?Math.round(t.progress):0)+'% COMPLETE</div>'+
         '<div style="display:flex;gap:0.75rem;align-items:center">'+stageDots+'</div>'+
       '</div>'+
     '</div>'+
@@ -1068,7 +1130,7 @@ function renderStatusCard(pile,sorted,lat,band){
 
 function renderTimer(pile){
   var card=document.getElementById("timer-card");var content=document.getElementById("timer-content");
-  if(!pile.entries.length){card.style.borderLeftColor="#222";content.innerHTML='<div class="mono" style="color:#333;font-size:0.78rem;text-align:center">LOG ENTRIES TO ACTIVATE</div>';return;}
+  if(!pile.entries.length){card.style.borderLeftColor="#222";content.innerHTML='<div class="mono" style="color:#555;font-size:0.78rem;text-align:center">LOG ENTRIES TO ACTIVATE</div>';return;}
   var sorted=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var lat=sorted[sorted.length-1];
   if(lat&&lat.core>=175){card.style.borderLeftColor="#ff0000";content.innerHTML='<div class="hd" style="color:#ff0000;font-size:2rem;text-align:center">TURN NOW!</div>';return;}
@@ -1122,8 +1184,8 @@ function renderTimer(pile){
         '</div>'+
         '<div class="pbar-wrap" style="height:8px"><div class="pbar" style="width:'+pct+'%;background:'+barColor+';height:8px"></div></div>'+
         '<div style="display:flex;justify-content:space-between;margin-top:0.2rem">'+
-          '<span class="mono" style="font-size:0.58rem;color:#444">'+Math.round(pct)+'% COMPLETE</span>'+
-          '<span class="mono" style="font-size:0.58rem;color:#444">CORE: '+dispStr(lat.core)+'</span>'+
+          '<span class="mono" style="font-size:0.58rem;color:#555">'+Math.round(pct)+'% COMPLETE</span>'+
+          '<span class="mono" style="font-size:0.58rem;color:#555">CORE: '+dispStr(lat.core)+'</span>'+
         '</div>'+
       '</div>';
     } else {
@@ -1151,8 +1213,8 @@ function renderTimer(pile){
         '</div>'+
         '<div class="pbar-wrap" style="height:8px"><div class="pbar" style="width:100%;background:'+barColor+';height:8px"></div></div>'+
         '<div style="display:flex;justify-content:space-between;margin-top:0.2rem">'+
-          '<span class="mono" style="font-size:0.58rem;color:#444">DURATION: '+elapsedStr+'</span>'+
-          '<span class="mono" style="font-size:0.58rem;color:#444">TURN: '+cycle.turnEntry.date+'</span>'+
+          '<span class="mono" style="font-size:0.58rem;color:#555">DURATION: '+elapsedStr+'</span>'+
+          '<span class="mono" style="font-size:0.58rem;color:#555">TURN: '+cycle.turnEntry.date+'</span>'+
         '</div>'+
       '</div>';
     }
@@ -1164,7 +1226,7 @@ function renderTimer(pile){
   content.innerHTML=
     '<div style="margin-bottom:1rem">'+
       '<span class="hd" style="color:#fff;font-size:1rem">TURN CYCLES</span>'+
-      '<span class="mono" style="color:#444;font-size:0.65rem;margin-left:0.6rem">'+cycles.length+' '+(cycles.length===1?"cycle":"cycles")+'</span>'+
+      '<span class="mono" style="color:#555;font-size:0.65rem;margin-left:0.6rem">'+cycles.length+' '+(cycles.length===1?"cycle":"cycles")+'</span>'+
     '</div>'+cycleRows+calBtn;
   var isDone=t&&(t.complete||t.stageDone);
   if(isDone&&"Notification"in window&&Notification.permission==="granted")
@@ -1251,8 +1313,8 @@ function renderTurnHistory(pile){
     var coreSpan=t.core?'<span class="mono" style="font-size:0.78rem;color:'+activeColor+'">'+dispStr(t.core)+'</span>':"";
     var bandSpan=t.activeBand?'<span class="mono" style="font-size:0.65rem;color:'+activeColor+'">'+t.activeBand.label+'</span>':"";
     var sinceLine=t.sinceMs!=null
-      ?'<div class="mono" style="font-size:0.65rem;color:#444">SINCE PREV TURN: '+fmtHours(t.sinceMs)+'</div>'
-      :'<div class="mono" style="font-size:0.65rem;color:#333">FIRST TURN</div>';
+      ?'<div class="mono" style="font-size:0.65rem;color:#555">SINCE PREV TURN: '+fmtHours(t.sinceMs)+'</div>'
+      :'<div class="mono" style="font-size:0.65rem;color:#555">FIRST TURN</div>';
     var bObj=BANDS.find(function(b){return b.label===t.highestSatisfied;});
     var satLine=t.highestSatisfied?'<div class="mono" style="font-size:0.65rem;color:#4ade80;margin-top:0.2rem">&#10003; SATISFIED: '+t.highestSatisfied+' ('+(bObj?bObj.hours:"")+'H)</div>':"";
     var warnLine=t.isWarning?'<div class="mono" style="font-size:0.65rem;color:#ef4444;margin-top:0.2rem">&#9888; TURNED WITHOUT SATISFYING STAGE REQUIREMENT</div>':"";
@@ -1307,11 +1369,11 @@ function renderRecipeSummary(pile){
       '<div onclick="toggleCat(\''+cat.key+'\')" style="display:flex;justify-content:space-between;align-items:center;padding:0.65rem 0.75rem;cursor:pointer">'+
         '<div style="display:flex;align-items:center;gap:0.5rem">'+
           '<span class="hd" style="font-size:0.95rem;color:'+cat.color+'">'+cat.label+'</span>'+
-          '<span style="font-size:0.65rem;color:#333">'+visItems.length+' item'+(visItems.length!==1?"s":"")+'</span>'+
+          '<span style="font-size:0.65rem;color:#555">'+visItems.length+' item'+(visItems.length!==1?"s":"")+'</span>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:0.75rem">'+
           '<span class="mono" style="font-size:0.72rem;color:#555">'+cv.toFixed(1)+' gal \u00B7 '+Math.round(pct)+'%</span>'+
-          '<span style="color:#444;font-size:0.9rem">'+(isExpanded?"\u25BE":"\u25B8")+'</span>'+
+          '<span style="color:#555;font-size:0.9rem">'+(isExpanded?"\u25BE":"\u25B8")+'</span>'+
         '</div>'+
       '</div>'+
       '<div style="height:3px;background:#111;margin:0 0.75rem">'+
@@ -1347,7 +1409,7 @@ function renderTempRef(){
         '<div style="width:7px;height:7px;border-radius:50%;background:'+b.color+'"></div>'+
         '<span class="mono" style="color:'+b.color+';font-size:0.78rem">'+bandRange(b)+'</span>'+
       '</div>'+
-      '<span class="mono" style="color:#444;font-size:0.78rem">'+(b.hours?b.hours+"H CONTINUOUS":"TURN NOW")+'</span>'+
+      '<span class="mono" style="color:#555;font-size:0.78rem">'+(b.hours?b.hours+"H CONTINUOUS":"TURN NOW")+'</span>'+
     '</div>';
   }).join("");
 }
@@ -1357,11 +1419,11 @@ function renderLogTable(sorted){
   var table=document.getElementById("log-table");
   if(!sorted.length){table.innerHTML="";return;}
   var headers=["DAY","DATE","CORE","TOP","BOT","MOIST","TURN",""];
-  var thead='<thead><tr>'+headers.map(function(h){return '<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#444;font-size:0.62rem;letter-spacing:0.05em">'+h+'</th>';}).join("")+'</tr></thead>';
+  var thead='<thead><tr>'+headers.map(function(h){return '<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#555;font-size:0.62rem;letter-spacing:0.05em">'+h+'</th>';}).join("")+'</tr></thead>';
   var tbody='<tbody>'+sorted.map(function(en,i){
     var moistCell=en.moisture!=null?'<span style="background:'+mColor(en.moisture)+';color:#fff;padding:0.05rem 0.25rem;border-radius:2px;font-family:Share Tech Mono,monospace;font-size:0.65rem">'+en.moisture+'%</span>':"-";
     return '<tr style="border-bottom:1px solid #080808">'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#444;font-size:0.7rem">'+(i+1)+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+(i+1)+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+en.date+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.7rem">'+(en.core!=null?dispStr(en.core):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.7rem">'+(en.top!=null?dispStr(en.top):"-")+'</td>'+
@@ -1404,6 +1466,21 @@ function validateEntry(){
   if(core==null&&top==null&&bottom==null){
     coreEl.classList.add("error");
     errors.push("Enter at least one temperature");
+  } else {
+    // Range check: F: 0-250, C: 0-120 (after conversion to F: 32-248)
+    var maxF=250,minF=0;
+    if(core!=null&&(core<minF||core>maxF)){
+      coreEl.classList.add("error");
+      errors.push("Core temperature out of range (0-250"+unitLbl()+")");
+    }
+    if(top!=null&&(top<minF||top>maxF)){
+      topEl.classList.add("error");
+      errors.push("Top temperature out of range (0-250"+unitLbl()+")");
+    }
+    if(bottom!=null&&(bottom<minF||bottom>maxF)){
+      botEl.classList.add("error");
+      errors.push("Bottom temperature out of range (0-250"+unitLbl()+")");
+    }
   }
   var errEl=document.getElementById("entry-error");
   if(errors.length){
@@ -1504,10 +1581,28 @@ function saveEdit(){
     return;
   }
   errEl.classList.add("hidden");
+  var eCore=fromInput(document.getElementById("e-core").value);
+  var eTop=fromInput(document.getElementById("e-top").value);
+  var eBot=fromInput(document.getElementById("e-bottom").value);
+  var coreElE=document.getElementById("e-core");
+  var topElE=document.getElementById("e-top");
+  var botElE=document.getElementById("e-bottom");
+  coreElE.classList.remove("error");
+  topElE.classList.remove("error");
+  botElE.classList.remove("error");
+  var rangeErrors=[];
+  if(eCore!=null&&(eCore<0||eCore>250)){coreElE.classList.add("error");rangeErrors.push("Core out of range");}
+  if(eTop!=null&&(eTop<0||eTop>250)){topElE.classList.add("error");rangeErrors.push("Top out of range");}
+  if(eBot!=null&&(eBot<0||eBot>250)){botElE.classList.add("error");rangeErrors.push("Bottom out of range");}
+  if(rangeErrors.length){
+    errEl.innerHTML=rangeErrors.join("<br>")+" (0-250"+unitLbl()+")";
+    errEl.classList.remove("hidden");
+    return;
+  }
   entry.date=newDate;entry.time=newTime;entry.ts=newTs.toISOString();
-  entry.core=fromInput(document.getElementById("e-core").value);
-  entry.top=fromInput(document.getElementById("e-top").value);
-  entry.bottom=fromInput(document.getElementById("e-bottom").value);
+  entry.core=eCore;
+  entry.top=eTop;
+  entry.bottom=eBot;
   entry.moisture=parseInt(document.getElementById("e-moisture").value);
   entry.turned=document.getElementById("e-turned").checked;
   entry.notes=document.getElementById("e-notes").value;
@@ -1516,8 +1611,19 @@ function saveEdit(){
 function deleteEntry(){
   if(!editingEntryId)return;if(!confirm("Delete this entry?"))return;
   var pile=getActivePile();if(!pile)return;
-  pile.entries=pile.entries.filter(function(e){return e.id!==editingEntryId;});
+  var entryId=editingEntryId;
+  var idx=pile.entries.findIndex(function(e){return e.id===entryId;});
+  if(idx<0)return;
+  var savedEntry=JSON.parse(JSON.stringify(pile.entries[idx]));
+  var pileId=pile.id;
+  pile.entries.splice(idx,1);
   save();closeEdit();renderDashboard();
+  showToast("Entry deleted",function(){
+    var p=piles.find(function(x){return x.id===pileId;});
+    if(!p)return;
+    p.entries.splice(idx,0,savedEntry);
+    save();renderDashboard();
+  });
 }
 
 function exportCSV(){
@@ -2046,5 +2152,6 @@ showView("home");
 initGoogleAuth();
 </script>
 
+<div id="toast-container"></div>
 </body>
 </html>

@@ -100,7 +100,7 @@ input[type=range]:disabled{opacity:0.3}
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:240px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#333;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.4 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#333;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.5 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -247,20 +247,20 @@ input[type=range]:disabled{opacity:0.3}
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#ff4444;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">CORE</span></div>
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#4ade80;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">TOP</span></div>
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#a855f7;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">BOTTOM</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:6px;background:#1e88e533;border:1px solid #1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">MOISTURE</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">MOISTURE</span></div>
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#777">TURN</span></div>
     </div>
   </div>
 </div>
 
-<div class="card">
-  <div id="log-count" class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">ENTRIES</div>
-  <div style="overflow-x:auto"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
-</div>
-
 <div class="card" id="turn-history-card" style="display:none">
   <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:1rem">TURN HISTORY</div>
   <div id="turn-history-content"></div>
+</div>
+
+<div class="card">
+  <div id="log-count" class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">ENTRIES</div>
+  <div style="overflow-x:auto"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
 </div>
 
 <div class="card">
@@ -1062,37 +1062,106 @@ function renderStatusCard(pile,sorted,lat,band){
 }
 
 function renderTimer(pile){
-  var t=calcSmartTimer(pile.entries);
   var card=document.getElementById("timer-card");var content=document.getElementById("timer-content");
-  if(!t){card.style.borderLeftColor="#222";content.innerHTML='<div class="mono" style="color:#333;font-size:0.78rem;text-align:center">LOG ENTRIES TO ACTIVATE</div>';return;}
-  if(t.turnNow){card.style.borderLeftColor="#ff0000";content.innerHTML='<div class="hd" style="color:#ff0000;font-size:2rem;text-align:center">TURN NOW!</div>';return;}
-  var isDone=t.complete||t.stageDone;
-  card.style.borderLeftColor=isDone?"#4ade80":t.band.color;
-  var timeLeft=isDone?"CLEAR TO TURN \u2713":Math.floor(t.remaining)+"h "+Math.round((t.remaining%1)*60)+"m";
-  // INDEPENDENT STAGES: show progress for each stage based on its own streak
-  var independentStages=t.independentStages||{};
-  var calBtn=t.deadline&&!isDone?'<button class="btn-sm" onclick="addToCalendar(\''+pile.name+'\','+t.deadline.getTime()+')" style="margin-top:0.75rem;width:100%;padding:0.55rem">CALENDAR REMINDER - '+fmtDate(t.deadline)+'</button>':"";
-  var bandHtml=BANDS.filter(function(b){return b.hours>0;}).map(function(band){
-    var s=independentStages[band.label];
-    var done=s&&s.satisfied;
-    var active=s&&s.active&&!done;
-    var pct=done?100:s?s.progress:0;
-    var barColor=done?"#4ade80":active?band.color:"#1e1e1e";
-    var lblColor=done?"#4ade80":active?band.color:"#2a2a2a";
-    return '<div style="margin-bottom:0.6rem">'+
-      '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
-        '<span class="mono" style="font-size:0.62rem;color:'+lblColor+'">'+band.label+' \u00B7 '+bandRange(band)+' \u00B7 '+band.hours+'H'+(done?" \u2713":"")+'</span>'+
-        '<span class="mono" style="font-size:0.62rem;color:'+lblColor+'">'+Math.round(pct)+'%</span>'+
-      '</div>'+
-      '<div class="pbar-wrap"><div class="pbar" style="width:'+pct+'%;background:'+barColor+'"></div></div>'+
-    '</div>';
+  if(!pile.entries.length){card.style.borderLeftColor="#222";content.innerHTML='<div class="mono" style="color:#333;font-size:0.78rem;text-align:center">LOG ENTRIES TO ACTIVATE</div>';return;}
+  var sorted=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  var lat=sorted[sorted.length-1];
+  if(lat&&lat.core>=175){card.style.borderLeftColor="#ff0000";content.innerHTML='<div class="hd" style="color:#ff0000;font-size:2rem;text-align:center">TURN NOW!</div>';return;}
+  // Build cycle data: each cycle is a sequence ending with a turn.
+  // For each cycle, compute the highest stage that was satisfied (for completed cycles)
+  // or the current stage progress (for the active cycle).
+  var cycles=buildCycles(sorted);
+  var t=calcSmartTimer(pile.entries);
+  var activeCycleColor=t&&t.band?t.band.color:"#f97316";
+  card.style.borderLeftColor=activeCycleColor;
+  var cycleRows=cycles.map(function(cycle,idx){
+    var isActive=cycle.turnEntry===null;
+    var cycleStartTs=idx>0&&cycles[idx-1].turnEntry?new Date(cycles[idx-1].turnEntry.ts):new Date(sorted[0].ts);
+    var cycleEndTs=isActive?new Date():new Date(cycle.turnEntry.ts);
+    var elapsedMs=cycleEndTs-cycleStartTs;
+    var elapsedH=elapsedMs/3600000;
+    if(isActive){
+      // Active cycle: show current band progress (independent stage of highest band reached)
+      var indep=computeIndependentStages(cycle.entries);
+      // Find the highest band that has been reached (everReached) but not yet satisfied
+      var targetBand=null;
+      var targetStage=null;
+      var orderHighFirst=["Stage 4","Stage 3","Stage 2","Stage 1"];
+      for(var i=0;i<orderHighFirst.length;i++){
+        var s=indep[orderHighFirst[i]];
+        if(s&&s.everReached){
+          targetBand=BANDS.find(function(b){return b.label===orderHighFirst[i];});
+          targetStage=s;
+          break;
+        }
+      }
+      if(!targetBand){
+        // No band reached yet (temp < 131)
+        return '<div style="margin-bottom:0.7rem">'+
+          '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
+            '<span class="mono" style="font-size:0.7rem;color:#f97316">CYCLE '+(idx+1)+' \u00B7 ACTIVE</span>'+
+            '<span class="mono" style="font-size:0.65rem;color:#555">WAITING FOR THERMOPHILIC TEMP</span>'+
+          '</div>'+
+          '<div class="pbar-wrap" style="height:8px"><div class="pbar" style="width:0%;background:#f97316;height:8px"></div></div>'+
+        '</div>';
+      }
+      var pct=targetStage.satisfied?100:targetStage.progress;
+      var remaining=targetStage.remaining;
+      var remainStr=targetStage.satisfied?"READY TO TURN \u2713":Math.floor(remaining)+"h "+Math.round((remaining%1)*60)+"m LEFT";
+      var barColor=targetStage.satisfied?"#4ade80":"#f97316";
+      var labelColor=targetStage.satisfied?"#4ade80":"#f97316";
+      return '<div style="margin-bottom:0.7rem">'+
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
+          '<span class="mono" style="font-size:0.7rem;color:'+labelColor+'">CYCLE '+(idx+1)+' \u00B7 '+targetBand.label+' \u00B7 '+targetBand.hours+'H</span>'+
+          '<span class="mono" style="font-size:0.65rem;color:'+labelColor+'">'+remainStr+'</span>'+
+        '</div>'+
+        '<div class="pbar-wrap" style="height:8px"><div class="pbar" style="width:'+pct+'%;background:'+barColor+';height:8px"></div></div>'+
+        '<div style="display:flex;justify-content:space-between;margin-top:0.2rem">'+
+          '<span class="mono" style="font-size:0.58rem;color:#444">'+Math.round(pct)+'% COMPLETE</span>'+
+          '<span class="mono" style="font-size:0.58rem;color:#444">CORE: '+dispStr(lat.core)+'</span>'+
+        '</div>'+
+      '</div>';
+    } else {
+      // Completed cycle: green bar, show highest satisfied stage
+      var satisfied=computeSatisfiedStages(cycle.entries);
+      var highest=getHighestSatisfied(satisfied);
+      var turnCore=cycle.turnEntry.core;
+      var turnBand=getBand(turnCore);
+      var label,subLabel;
+      if(highest){
+        var hsBand=BANDS.find(function(b){return b.label===highest;});
+        label="CYCLE "+(idx+1)+" \u00B7 "+highest+" SATISFIED \u00B7 "+(hsBand?hsBand.hours+"H":"");
+        subLabel="\u2713 COMPLETE";
+      } else {
+        label="CYCLE "+(idx+1)+" \u00B7 TURNED EARLY";
+        subLabel="\u26A0 NO STAGE SATISFIED";
+      }
+      var elapsedStr=Math.floor(elapsedH)+"h "+Math.round((elapsedH%1)*60)+"m";
+      var labelColor=highest?"#4ade80":"#ef4444";
+      var barColor=highest?"#4ade80":"#ef4444";
+      return '<div style="margin-bottom:0.7rem">'+
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
+          '<span class="mono" style="font-size:0.7rem;color:'+labelColor+'">'+label+'</span>'+
+          '<span class="mono" style="font-size:0.65rem;color:'+labelColor+'">'+subLabel+'</span>'+
+        '</div>'+
+        '<div class="pbar-wrap" style="height:8px"><div class="pbar" style="width:100%;background:'+barColor+';height:8px"></div></div>'+
+        '<div style="display:flex;justify-content:space-between;margin-top:0.2rem">'+
+          '<span class="mono" style="font-size:0.58rem;color:#444">DURATION: '+elapsedStr+'</span>'+
+          '<span class="mono" style="font-size:0.58rem;color:#444">TURN: '+cycle.turnEntry.date+'</span>'+
+        '</div>'+
+      '</div>';
+    }
   }).join("");
+  var calBtn="";
+  if(t&&t.deadline&&!(t.complete||t.stageDone)){
+    calBtn='<button class="btn-sm" onclick="addToCalendar(\''+pile.name+'\','+t.deadline.getTime()+')" style="margin-top:0.75rem;width:100%;padding:0.55rem">CALENDAR REMINDER - '+fmtDate(t.deadline)+'</button>';
+  }
   content.innerHTML=
-    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1rem">'+
-      '<div><span class="hd" style="color:'+t.band.color+';font-size:1.2rem">'+t.band.label+'</span>'+
-      '<span class="mono" style="color:#444;font-size:0.7rem;margin-left:0.5rem">'+bandRange(t.band)+'</span></div>'+
-      '<span class="'+(isDone?"hd":"mono")+'" style="color:'+(isDone?"#4ade80":"#fff")+';font-size:'+(isDone?"1rem":"0.95rem")+'">'+timeLeft+'</span>'+
-    '</div>'+bandHtml+calBtn;
+    '<div style="margin-bottom:1rem">'+
+      '<span class="hd" style="color:#fff;font-size:1rem">TURN CYCLES</span>'+
+      '<span class="mono" style="color:#444;font-size:0.65rem;margin-left:0.6rem">'+cycles.length+' '+(cycles.length===1?"cycle":"cycles")+'</span>'+
+    '</div>'+cycleRows+calBtn;
+  var isDone=t&&(t.complete||t.stageDone);
   if(isDone&&"Notification"in window&&Notification.permission==="granted")
     new Notification("Compost Academy",{body:pile.name+" is ready to turn!"});
 }

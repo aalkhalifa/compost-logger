@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.24 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.25 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -144,9 +144,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div class="wrap">
     <div class="card">
       <label class="lbl">PILE NAME</label>
-      <input id="new-pile-name" placeholder="e.g. Pile A - Spring 2025" style="margin-bottom:0.75rem"/>
-      <label class="lbl">PILE NOTES (optional)</label>
-      <textarea id="new-pile-notes" placeholder="Location, source, season, anything noteworthy..." style="height:60px;resize:none;margin-bottom:1.5rem"></textarea>
+      <input id="new-pile-name" placeholder="e.g. Pile A - Spring 2025" style="margin-bottom:1.5rem"/>
       <div class="hd" style="font-size:1.1rem;color:#fff;margin-bottom:1rem">MATERIAL RECIPE</div>
       <div id="cat-editors"></div>
       <div id="setup-error" class="error-msg hidden"></div>
@@ -186,14 +184,6 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   </div>
   <div class="wrap">
     <div id="warn-banner" class="warn-banner hidden">&#9888; TURN NOW - CORE TEMP TOO HIGH</div>
-
-<div id="pile-notes-card" class="card hidden" style="border-left:3px solid #555">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
-    <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em">PILE NOTES</div>
-    <button onclick="editPileNotes()" class="btn-sm" style="font-size:0.6rem">EDIT</button>
-  </div>
-  <div id="pile-notes-content" style="font-size:0.85rem;color:#ccc;white-space:pre-wrap;line-height:1.4"></div>
-</div>
 
 <div id="chart-section" class="hidden">
   <div class="card">
@@ -852,7 +842,7 @@ function deletePile(id){
   });
 }
 
-function renderSetup(){newMaterials=newMats();document.getElementById("new-pile-name").value="";var nt=document.getElementById("new-pile-notes");if(nt)nt.value="";document.getElementById("new-pile-name").classList.remove("error");document.getElementById("setup-error").classList.add("hidden");updateTotalVol();renderCatEditors("new");renderRecipesPanel();}
+function renderSetup(){newMaterials=newMats();document.getElementById("new-pile-name").value="";document.getElementById("new-pile-name").classList.remove("error");document.getElementById("setup-error").classList.add("hidden");updateTotalVol();renderCatEditors("new");renderRecipesPanel();}
 
 function renderCatEditors(mode){
   var prefix=mode==="edit"?"re":"cat";
@@ -1074,8 +1064,7 @@ function createPile(){
   CATS.forEach(function(cat){
     newMaterials[cat.key].forEach(function(i){if(i.name)addToHist(cat.key,i.name);});
   });
-  var notes=document.getElementById("new-pile-notes").value.trim();
-  var pile={id:uid(),name:name,notes:notes,created:new Date().toISOString(),status:"active",
+  var pile={id:uid(),name:name,created:new Date().toISOString(),status:"active",
     materials:JSON.parse(JSON.stringify(newMaterials)),entries:[]};
   piles.push(pile);activeId=pile.id;save();showView("dashboard");
 }
@@ -1138,7 +1127,6 @@ function renderDashboard(){
   var warn=document.getElementById("warn-banner");
   if(lat&&lat.core>=175)warn.classList.remove("hidden");else warn.classList.add("hidden");
 
-  renderPileNotes(pile);
   renderStatusCard(pile,sorted,lat,band);
   renderTimer(pile);
   renderChart(sorted);
@@ -1254,31 +1242,6 @@ function renderStatusCard(pile,sorted,lat,band){
     '<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>'+
     '<div class="status-detail"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>'+
     '<div class="status-detail" style="border-bottom:none"><span class="status-key">THERMOPHILIC START</span><span class="status-val" style="color:'+thermoColor+'">'+thermoStr+'</span></div>';
-}
-
-function renderPileNotes(pile){
-  var card=document.getElementById("pile-notes-card");
-  var content=document.getElementById("pile-notes-content");
-  if(!card||!content)return;
-  card.classList.remove("hidden");
-  if(pile.notes&&pile.notes.trim()){
-    content.textContent=pile.notes;
-    content.style.color="#ccc";
-    content.style.fontStyle="normal";
-  } else {
-    content.textContent="No notes yet. Tap EDIT to add location, source, or other details.";
-    content.style.color="#555";
-    content.style.fontStyle="italic";
-  }
-}
-
-function editPileNotes(){
-  var pile=getActivePile();if(!pile)return;
-  var newNotes=prompt("Pile notes (location, source, season, etc):",pile.notes||"");
-  if(newNotes===null)return;
-  pile.notes=newNotes.trim();
-  save();
-  renderPileNotes(pile);
 }
 
 function renderTimer(pile){
@@ -1479,6 +1442,10 @@ function renderChart(sorted){
       }
     }
   });
+  setTimeout(function(){
+    var wrap=document.getElementById("chart-scroll-wrap");
+    if(wrap)wrap.scrollLeft=wrap.scrollWidth;
+  },50);
 }
 function toggleChart(){
   tempMode=tempMode==="three"?"average":"three";

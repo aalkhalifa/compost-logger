@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.20 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.21 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -1374,7 +1374,7 @@ function renderChart(sorted){
   sorted.forEach(function(e,i){
     var dLabel="D"+(i+1);
     if(turnDays.indexOf(dLabel)>=0)return;
-    dayAnnotations["day"+i]={type:"line",xMin:dLabel,xMax:dLabel,borderColor:"#22222244",borderWidth:0.5,borderDash:[1,4]};
+    dayAnnotations["day"+i]={type:"line",xMin:dLabel,xMax:dLabel,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
   });
   var tempDatasets=tempMode==="three"?[
     {label:"Core",data:sorted.map(function(e){return e.core!=null?disp(e.core):null;}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
@@ -1403,7 +1403,7 @@ function renderChart(sorted){
         },dayAnnotations,turnAnnotations)}
       },
       scales:{
-        x:{ticks:{color:"#555",font:{size:11}},grid:{color:"#111"}},
+        x:{ticks:{color:"#555",font:{size:11}},grid:{display:false}},
         y:{min:cMin,max:cMax,position:"left",ticks:{color:"#888",font:{size:11}},grid:{color:"#111"},
           title:{display:true,text:"\u00B0"+tempUnit,color:"#555",font:{size:11}}},
         y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:11},callback:function(v){return v+"%";}},

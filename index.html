@@ -106,7 +106,7 @@ input[type=range]:disabled{opacity:0.3}
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.10 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.11 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -199,12 +199,12 @@ input[type=range]:disabled{opacity:0.3}
 
 <div class="card">
   <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.9rem">LOG ENTRY</div>
-  <div style="display:flex;justify-content:flex-end;margin-bottom:0.5rem">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:0.5rem;width:100%">
     <button onclick="quickLog()" style="background:none;border:1px solid #f97316;color:#f97316;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;padding:0.4rem 0.75rem;border-radius:3px;font-weight:600">USE CURRENT TIME</button>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.75rem">
-    <div><label class="lbl">DATE</label><input type="date" id="f-date"/></div>
-    <div><label class="lbl">TIME</label><input type="time" id="f-time"/></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.75rem;width:100%">
+    <div style="width:100%"><label class="lbl">DATE</label><input type="date" id="f-date" style="width:100%"/></div>
+    <div style="width:100%"><label class="lbl">TIME</label><input type="time" id="f-time" style="width:100%"/></div>
   </div>
   <div id="entry-error" class="error-msg hidden"></div>
   <div style="margin-bottom:0.6rem">
@@ -1221,7 +1221,7 @@ function renderStatusCard(pile,sorted,lat,band){
   var thermoColor=t&&t.thermophilicStart?"#ccc":"#999";
   detailEl.innerHTML=
     '<div class="status-detail"><span class="status-key">COMPLETED</span><span class="status-val" style="color:'+(isDone?"#4ade80":"#ccc")+'">'+timeComp+'</span></div>'+
-    '<div class="status-detail"><span class="status-key">NEXT TURN DUE</span><span class="status-val" style="color:'+(isDone?"#4ade80":"#999")+'">'+nextDue+'</span></div>'+
+    '<div class="status-detail"><span class="status-key" style="color:#f97316">NEXT TURN DUE</span><span class="status-val" style="color:'+(isDone?"#4ade80":"#f97316")+';font-weight:600">'+nextDue+'</span></div>'+
     '<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>'+
     '<div class="status-detail"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>'+
     '<div class="status-detail" style="border-bottom:none"><span class="status-key">THERMOPHILIC START</span><span class="status-val" style="color:'+thermoColor+'">'+thermoStr+'</span></div>';
@@ -1337,7 +1337,7 @@ function renderTimer(pile){
   content.innerHTML=
     '<div style="margin-bottom:1rem;display:flex;align-items:baseline;gap:0.7rem">'+
       '<span class="hd" style="color:#fff;font-size:1rem">TURN CYCLES</span>'+
-      '<span class="mono" style="color:#ccc;font-size:0.85rem;font-weight:600">'+cycles.length+' '+(cycles.length===1?"CYCLE":"CYCLES")+'</span>'+
+      '<span class="mono" style="color:#ccc;font-size:0.85rem;font-weight:600">'+displayCycles.length+' '+(displayCycles.length===1?"CYCLE":"CYCLES")+'</span>'+
     '</div>'+cycleRows+calBtn;
   var isDone=t&&(t.complete||t.stageDone);
   if(isDone&&"Notification"in window&&Notification.permission==="granted")

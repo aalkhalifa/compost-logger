@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.18 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.19 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -185,6 +185,21 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div class="wrap">
     <div id="warn-banner" class="warn-banner hidden">&#9888; TURN NOW - CORE TEMP TOO HIGH</div>
 
+<div id="chart-section" class="hidden">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem">
+      <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMP + MOISTURE</div>
+      <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
+    </div>
+    <canvas id="temp-chart"></canvas>
+    <div style="display:flex;gap:1rem;margin-top:0.75rem;flex-wrap:wrap;align-items:center">
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#ff4444;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">CORE</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#4ade80;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">TOP</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#a855f7;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">BOTTOM</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">MOISTURE</span></div>
+      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">TURN</span></div>
+    </div>
+
 <div class="card" id="status-card" style="border-left:3px solid #222;padding:0">
   <div style="padding:0.75rem 1rem 0.5rem">
     <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em">TEMPERATURE STATUS</div>
@@ -217,15 +232,15 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="margin-bottom:0.75rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
     <div>
       <label class="lbl" style="color:#ff4444">CORE <span id="unit-lbl-core"></span></label>
-      <input type="number" class="temp-input" id="f-core" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" onchange="autoAdvance('f-core','f-top')"/>
+      <input type="number" class="temp-input" id="f-core" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" onchange="autoAdvance('f-core','f-top')" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('f-top').focus();}"/>
     </div>
     <div>
       <label class="lbl" style="color:#4ade80">TOP <span id="unit-lbl-top"></span></label>
-      <input type="number" class="temp-input" id="f-top" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" onchange="autoAdvance('f-top','f-bottom')"/>
+      <input type="number" class="temp-input" id="f-top" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" onchange="autoAdvance('f-top','f-bottom')" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('f-bottom').focus();}"/>
     </div>
     <div>
       <label class="lbl" style="color:#a855f7">BOTTOM <span id="unit-lbl-bot"></span></label>
-      <input type="number" class="temp-input" id="f-bottom" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" onchange="autoAdvance('f-bottom','f-moisture-slider')"/>
+      <input type="number" class="temp-input" id="f-bottom" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" onchange="autoAdvance('f-bottom','f-moisture-slider')" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('f-bottom').blur();}"/>
     </div>
   </div>
   <div style="margin-bottom:0.75rem">
@@ -258,20 +273,12 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <button class="btn" onclick="addEntry()">+ LOG ENTRY</button>
 </div>
 
-<div id="chart-section" class="hidden">
-  <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem">
-      <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMP + MOISTURE</div>
-      <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
-    </div>
-    <canvas id="temp-chart"></canvas>
-    <div style="display:flex;gap:1rem;margin-top:0.75rem;flex-wrap:wrap;align-items:center">
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#ff4444;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">CORE</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#4ade80;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">TOP</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#a855f7;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">BOTTOM</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">MOISTURE</span></div>
-      <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">TURN</span></div>
-    </div>
+<div class="card">
+  <div id="log-count" class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">ENTRIES</div>
+  <div style="overflow-x:auto"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
+</div>
+
+
   </div>
 </div>
 
@@ -279,13 +286,6 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:1rem">TURN HISTORY</div>
   <div id="turn-history-content"></div>
 </div>
-
-<div class="card">
-  <div id="log-count" class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">ENTRIES</div>
-  <div style="overflow-x:auto"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
-</div>
-
-
 
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
@@ -1125,7 +1125,7 @@ function renderDashboard(){
   renderStatusCard(pile,sorted,lat,band);
   renderTimer(pile);
   renderChart(sorted);
-  renderLogTable(sorted);
+  renderLogTable(sorted,pile);
   renderTurnHistory(pile);
   renderRecipeSummary(pile);
   renderTempRef();
@@ -1368,7 +1368,13 @@ function renderChart(sorted){
   function cr(f){return tempUnit==="C"?Math.round(toC(f)):f;}
   var turnAnnotations={};
   turnDays.forEach(function(d,i){
-    turnAnnotations["turn"+i]={type:"line",xMin:d,xMax:d,borderColor:"#f97316",borderWidth:2};
+    turnAnnotations["turn"+i]={type:"line",xMin:d,xMax:d,borderColor:"#f97316",borderWidth:2.5};
+  });
+  var dayAnnotations={};
+  sorted.forEach(function(e,i){
+    var dLabel="D"+(i+1);
+    if(turnDays.indexOf(dLabel)>=0)return;
+    dayAnnotations["day"+i]={type:"line",xMin:dLabel,xMax:dLabel,borderColor:"#33333388",borderWidth:1,borderDash:[2,3]};
   });
   var tempDatasets=tempMode==="three"?[
     {label:"Core",data:sorted.map(function(e){return e.core!=null?disp(e.core):null;}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
@@ -1394,7 +1400,7 @@ function renderChart(sorted){
           r131:{type:"line",yMin:cr(131),yMax:cr(131),borderColor:"#f59e0b77",borderWidth:1,borderDash:[5,4],yScaleID:"y"},
           r175:{type:"line",yMin:cr(175),yMax:cr(175),borderColor:"#ff000055",borderWidth:1,borderDash:[3,3],yScaleID:"y"},
           danger:{type:"box",yMin:cr(175),yMax:cMax+5,backgroundColor:"rgba(255,0,0,0.04)",borderColor:"rgba(255,0,0,0.15)",borderWidth:1,yScaleID:"y"}
-        },turnAnnotations)}
+        },dayAnnotations,turnAnnotations)}
       },
       scales:{
         x:{ticks:{color:"#555",font:{size:11}},grid:{color:"#111"}},
@@ -1537,17 +1543,25 @@ function renderTempRef(){
   }).join("");
 }
 
-function renderLogTable(sorted){
+function renderLogTable(sorted,pile){
+  if(!pile)pile=getActivePile();
+  if(!pile){document.getElementById("log-count").textContent="ENTRIES";return;}
   document.getElementById("log-count").textContent="ALL ENTRIES ("+sorted.length+")";
   var table=document.getElementById("log-table");
   if(!sorted.length){table.innerHTML="";return;}
-  var headers=["DAY","DATE","CORE","TOP","BOT","MOIST","TURN",""];
+  var headers=["DAY","DATE","TIME","CORE","TOP","BOT","MOIST","TURN",""];
   var thead='<thead><tr>'+headers.map(function(h){return '<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#555;font-size:0.62rem;letter-spacing:0.05em">'+h+'</th>';}).join("")+'</tr></thead>';
   var tbody='<tbody>'+sorted.map(function(en,i){
     var moistCell=en.moisture!=null?'<span style="background:'+mColor(en.moisture)+';color:#fff;padding:0.05rem 0.25rem;border-radius:2px;font-family:Share Tech Mono,monospace;font-size:0.65rem">'+en.moisture+'%</span>':"-";
+    var pileBuilt=new Date(pile.created);
+    var pileBuiltDay=new Date(pileBuilt.getFullYear(),pileBuilt.getMonth(),pileBuilt.getDate());
+    var entryDate=new Date(en.ts);
+    var entryDayOnly=new Date(entryDate.getFullYear(),entryDate.getMonth(),entryDate.getDate());
+    var dayNum=Math.floor((entryDayOnly-pileBuiltDay)/86400000)+1;
     return '<tr style="border-bottom:1px solid #080808">'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+(i+1)+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+dayNum+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+en.date+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+(en.time||"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.7rem">'+(en.core!=null?dispStr(en.core):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.7rem">'+(en.top!=null?dispStr(en.top):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.7rem">'+(en.bottom!=null?dispStr(en.bottom):"-")+'</td>'+

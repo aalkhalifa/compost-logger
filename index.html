@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.22 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.23 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -201,7 +201,12 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMP + MOISTURE</div>
       <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
     </div>
-    <canvas id="temp-chart"></canvas>
+    <div id="chart-scroll-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative">
+      <div id="chart-inner" style="min-width:100%;position:relative">
+        <canvas id="temp-chart" style="height:260px;max-height:260px"></canvas>
+      </div>
+    </div>
+    <div id="chart-scroll-hint" class="mono" style="font-size:0.6rem;color:#555;text-align:center;margin-top:0.4rem;display:none">SWIPE CHART LEFT/RIGHT TO SCROLL</div>
     <div style="display:flex;gap:1rem;margin-top:0.75rem;flex-wrap:wrap;align-items:center">
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#ff4444;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">CORE</span></div>
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#4ade80;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">TOP</span></div>
@@ -1400,6 +1405,20 @@ function renderChart(sorted){
   var labels=sorted.map(function(_,i){return"D"+(i+1);});
   var turnDays=sorted.map(function(e,i){return e.turned?"D"+(i+1):null;}).filter(Boolean);
   if(tempChart){tempChart.destroy();tempChart=null;}
+  // Adjust chart width based on entry count for horizontal scrolling
+  var chartInner=document.getElementById("chart-inner");
+  var hintEl=document.getElementById("chart-scroll-hint");
+  if(chartInner){
+    var n=sorted.length;
+    if(n>14){
+      var pxPerEntry=Math.max(35,Math.min(60,Math.floor(800/Math.min(n,30))));
+      chartInner.style.width=(n*pxPerEntry)+"px";
+      if(hintEl)hintEl.style.display="block";
+    } else {
+      chartInner.style.width="100%";
+      if(hintEl)hintEl.style.display="none";
+    }
+  }
   var cMin=tempUnit==="C"?Math.round(toC(80)):80;
   var cMax=tempUnit==="C"?Math.round(toC(180)):180;
   function cr(f){return tempUnit==="C"?Math.round(toC(f)):f;}
@@ -1429,7 +1448,7 @@ function renderChart(sorted){
         pointRadius:3,pointBackgroundColor:"#1e88e5",spanGaps:true,yAxisID:"y2",order:10}
     ])},
     options:{
-      responsive:true,animation:false,
+      responsive:true,maintainAspectRatio:false,animation:false,
       interaction:{mode:"index",intersect:false},
       plugins:{
         legend:{display:false},

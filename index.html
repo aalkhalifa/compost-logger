@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.19 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.20 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -232,15 +232,15 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="margin-bottom:0.75rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
     <div>
       <label class="lbl" style="color:#ff4444">CORE <span id="unit-lbl-core"></span></label>
-      <input type="number" class="temp-input" id="f-core" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" onchange="autoAdvance('f-core','f-top')" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('f-top').focus();}"/>
+      <input type="number" class="temp-input" id="f-core" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" />
     </div>
     <div>
       <label class="lbl" style="color:#4ade80">TOP <span id="unit-lbl-top"></span></label>
-      <input type="number" class="temp-input" id="f-top" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" onchange="autoAdvance('f-top','f-bottom')" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('f-bottom').focus();}"/>
+      <input type="number" class="temp-input" id="f-top" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" />
     </div>
     <div>
       <label class="lbl" style="color:#a855f7">BOTTOM <span id="unit-lbl-bot"></span></label>
-      <input type="number" class="temp-input" id="f-bottom" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" onchange="autoAdvance('f-bottom','f-moisture-slider')" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('f-bottom').blur();}"/>
+      <input type="number" class="temp-input" id="f-bottom" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" />
     </div>
   </div>
   <div style="margin-bottom:0.75rem">
@@ -1374,7 +1374,7 @@ function renderChart(sorted){
   sorted.forEach(function(e,i){
     var dLabel="D"+(i+1);
     if(turnDays.indexOf(dLabel)>=0)return;
-    dayAnnotations["day"+i]={type:"line",xMin:dLabel,xMax:dLabel,borderColor:"#33333388",borderWidth:1,borderDash:[2,3]};
+    dayAnnotations["day"+i]={type:"line",xMin:dLabel,xMax:dLabel,borderColor:"#22222244",borderWidth:0.5,borderDash:[1,4]};
   });
   var tempDatasets=tempMode==="three"?[
     {label:"Core",data:sorted.map(function(e){return e.core!=null?disp(e.core):null;}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
@@ -1553,11 +1553,12 @@ function renderLogTable(sorted,pile){
   var thead='<thead><tr>'+headers.map(function(h){return '<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#555;font-size:0.62rem;letter-spacing:0.05em">'+h+'</th>';}).join("")+'</tr></thead>';
   var tbody='<tbody>'+sorted.map(function(en,i){
     var moistCell=en.moisture!=null?'<span style="background:'+mColor(en.moisture)+';color:#fff;padding:0.05rem 0.25rem;border-radius:2px;font-family:Share Tech Mono,monospace;font-size:0.65rem">'+en.moisture+'%</span>':"-";
-    var pileBuilt=new Date(pile.created);
-    var pileBuiltDay=new Date(pileBuilt.getFullYear(),pileBuilt.getMonth(),pileBuilt.getDate());
+    // Day 1 = earliest entry date (not pile.created, which is when pile was tapped in the app)
+    var earliestTs=sorted.length?new Date(sorted[0].ts):new Date(pile.created);
+    var earliestDay=new Date(earliestTs.getFullYear(),earliestTs.getMonth(),earliestTs.getDate());
     var entryDate=new Date(en.ts);
     var entryDayOnly=new Date(entryDate.getFullYear(),entryDate.getMonth(),entryDate.getDate());
-    var dayNum=Math.floor((entryDayOnly-pileBuiltDay)/86400000)+1;
+    var dayNum=Math.floor((entryDayOnly-earliestDay)/86400000)+1;
     return '<tr style="border-bottom:1px solid #080808">'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+dayNum+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+en.date+'</td>'+

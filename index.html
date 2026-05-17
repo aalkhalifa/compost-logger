@@ -106,7 +106,7 @@ input[type=range]:disabled{opacity:0.3}
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.12 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.13 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -213,17 +213,19 @@ input[type=range]:disabled{opacity:0.3}
     </div>
   </div>
   <div id="entry-error" class="error-msg hidden"></div>
-  <div style="margin-bottom:0.6rem">
-    <label class="lbl" style="color:#ff4444">CORE <span id="unit-lbl-core"></span></label>
-    <input type="number" class="temp-input" id="f-core" placeholder="-" inputmode="decimal" onchange="autoAdvance('f-core','f-top')"/>
-  </div>
-  <div style="margin-bottom:0.6rem">
-    <label class="lbl" style="color:#4ade80">TOP <span id="unit-lbl-top"></span></label>
-    <input type="number" class="temp-input" id="f-top" placeholder="-" inputmode="decimal" onchange="autoAdvance('f-top','f-bottom')"/>
-  </div>
-  <div style="margin-bottom:0.75rem">
-    <label class="lbl" style="color:#a855f7">BOTTOM <span id="unit-lbl-bot"></span></label>
-    <input type="number" class="temp-input" id="f-bottom" placeholder="-" inputmode="decimal" onchange="autoAdvance('f-bottom','f-moisture-slider')"/>
+  <div style="margin-bottom:0.75rem;display:grid;grid-template-columns:1fr 1fr 1fr">
+    <div style="padding-right:0.2rem">
+      <label class="lbl" style="color:#ff4444">CORE <span id="unit-lbl-core"></span></label>
+      <input type="number" class="temp-input" id="f-core" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" onchange="autoAdvance('f-core','f-top')"/>
+    </div>
+    <div style="padding-left:0.2rem;padding-right:0.2rem">
+      <label class="lbl" style="color:#4ade80">TOP <span id="unit-lbl-top"></span></label>
+      <input type="number" class="temp-input" id="f-top" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" onchange="autoAdvance('f-top','f-bottom')"/>
+    </div>
+    <div style="padding-left:0.2rem">
+      <label class="lbl" style="color:#a855f7">BOTTOM <span id="unit-lbl-bot"></span></label>
+      <input type="number" class="temp-input" id="f-bottom" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" onchange="autoAdvance('f-bottom','f-moisture-slider')"/>
+    </div>
   </div>
   <div style="margin-bottom:0.75rem">
     <label class="lbl" style="display:flex;justify-content:space-between">

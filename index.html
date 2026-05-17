@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.15 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.16 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -406,6 +406,7 @@ function catVol(items){return items.reduce(function(s,i){return s+(parseFloat(i.
 function getBand(f){if(!f||f<131)return null;return BANDS.find(function(b){return f>=b.min&&f<=b.max;})||null;}
 function mColor(p){if(!p)return"#222";if(p>=60)return"#1565c0";if(p>=50)return"#1e88e5";if(p>=40)return"#4a90d9";return"#7ab3e0";}
 function fmtHours(ms){if(ms<0)return"0h 0m";var h=Math.floor(ms/3600000);var m=Math.round((ms%3600000)/60000);return h+"h "+m+"m";}
+function localDateStr(d){var y=d.getFullYear();var m=d.getMonth()+1;var dd=d.getDate();return y+"-"+(m<10?"0":"")+m+"-"+(dd<10?"0":"")+dd;}
 function fmtDate(d){return d.toLocaleDateString()+" "+d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
 function fmtShortDate(d){
   if(typeof d==="string"){
@@ -1106,7 +1107,7 @@ function renderDashboard(){
 
   // FUTURE DATE PREVENTION: set max attribute to today
   var now=new Date();
-  var todayStr=now.toISOString().split("T")[0];
+  var todayStr=localDateStr(now);
   var nowTimeStr=now.toTimeString().slice(0,5);
   var dateEl=document.getElementById("f-date");
   var timeEl=document.getElementById("f-time");
@@ -1150,7 +1151,7 @@ function updateEditSlider(el){
 }
 function quickLog(){
   var now=new Date();
-  document.getElementById("f-date").value=now.toISOString().split("T")[0];
+  document.getElementById("f-date").value=localDateStr(now);
   document.getElementById("f-time").value=now.toTimeString().slice(0,5);
   document.getElementById("f-core").focus();
 }
@@ -1667,7 +1668,7 @@ function openEdit(entryId){
   var pile=getActivePile();if(!pile)return;
   var entry=pile.entries.find(function(e){return e.id===entryId;});if(!entry)return;
   editingEntryId=entryId;
-  var todayStr=new Date().toISOString().split("T")[0];
+  var todayStr=localDateStr(new Date());
   var dateEl=document.getElementById("e-date");
   dateEl.value=entry.date;
   dateEl.setAttribute("max",todayStr);
@@ -2094,7 +2095,7 @@ function downloadCSVTemplate(){
   var lines=[
     "[PILE]",
     "Name,My New Pile",
-    "Created,"+new Date().toISOString().split("T")[0],
+    "Created,"+localDateStr(new Date()),
     "",
     "[RECIPE]",
     "Category,Ingredient,Volume,Notes",

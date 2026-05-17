@@ -202,13 +202,15 @@ input[type=range]:disabled{opacity:0.3}
   <div style="display:flex;justify-content:flex-end;margin-bottom:0.5rem;width:100%">
     <button onclick="quickLog()" style="background:none;border:1px solid #f97316;color:#f97316;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;padding:0.4rem 0.75rem;border-radius:3px;font-weight:600">USE CURRENT TIME</button>
   </div>
-  <div style="margin-bottom:0.6rem">
-    <label class="lbl">DATE</label>
-    <input type="date" class="temp-input" id="f-date" style="font-size:1rem;padding:0.7rem"/>
-  </div>
-  <div style="margin-bottom:0.75rem">
-    <label class="lbl">TIME</label>
-    <input type="time" class="temp-input" id="f-time" style="font-size:1rem;padding:0.7rem"/>
+  <div style="margin-bottom:0.75rem;display:flex;gap:0.5rem">
+    <div style="flex:1;min-width:0">
+      <label class="lbl">DATE</label>
+      <input type="date" class="temp-input" id="f-date" style="font-size:1rem;padding:0.7rem"/>
+    </div>
+    <div style="flex:1;min-width:0">
+      <label class="lbl">TIME</label>
+      <input type="time" class="temp-input" id="f-time" style="font-size:1rem;padding:0.7rem"/>
+    </div>
   </div>
   <div id="entry-error" class="error-msg hidden"></div>
   <div style="margin-bottom:0.6rem">

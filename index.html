@@ -106,7 +106,7 @@ input[type=range]:disabled{opacity:0.3}
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.9 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.10 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -515,6 +515,49 @@ function computeIndependentStages(cycleEntries){
   return result;
 }
 
+// CYCLE HIGHEST STAGE STATUS:
+// For a cycle's entries, determine the highest stage CURRENTLY being tracked
+// (live streak, not reset). Returns the stage we should evaluate for completion.
+// Stage tracking rules:
+//   - Each stage has independent streak based on its own min temp
+//   - When pile drops below 131F, all stages reset
+//   - When pile is in Stage N, the "highest active" is N (Stage N streak is what we track)
+//   - When pile drops from Stage 2 to Stage 1, Stage 2's streak resets, Stage 1's continues
+//   - When pile climbs from Stage 1 to Stage 2, Stage 2's streak starts fresh
+function cycleHighestStageStatus(cycleEntries){
+  var indep=computeIndependentStages(cycleEntries);
+  // The "highest currently active stage" = highest band whose streak is still alive
+  var order=["Stage 4","Stage 3","Stage 2","Stage 1"];
+  var highestActive=null;
+  for(var i=0;i<order.length;i++){
+    var s=indep[order[i]];
+    if(s&&s.active){highestActive=order[i];break;}
+  }
+  // Also track highest ever reached for satisfaction history
+  var highestReached=null;
+  for(var j=0;j<order.length;j++){
+    var s2=indep[order[j]];
+    if(s2&&s2.everReached){highestReached=order[j];break;}
+  }
+  // Highest satisfied stage in this cycle
+  var highestSatisfied=null;
+  for(var k=0;k<order.length;k++){
+    var s3=indep[order[k]];
+    if(s3&&s3.satisfied){highestSatisfied=order[k];break;}
+  }
+  // Thermophilic start = Stage 1's streak start (since Stage 1 is the lowest threshold >=131F)
+  // If Stage 1 not active, no thermophilic streak active
+  var stage1=indep["Stage 1"];
+  var thermophilicStart=stage1&&stage1.streakStart?stage1.streakStart:null;
+  return{
+    independentStages:indep,
+    highestActive:highestActive,
+    highestReached:highestReached,
+    highestSatisfied:highestSatisfied,
+    thermophilicStart:thermophilicStart
+  };
+}
+
 function getHighestSatisfied(satisfiedStages){
   var order=["Stage 4","Stage 3","Stage 2","Stage 1"];
   for(var i=0;i<order.length;i++){if(satisfiedStages[order[i]])return order[i];}
@@ -525,27 +568,61 @@ function calcSmartTimer(entries){
   if(!entries.length)return null;
   var sorted=entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var lat=sorted[sorted.length-1];
-  var currentBand=getBand(lat.core);
-  if(!currentBand)return null;
+  // 175F+ = turn now (overheat)
+  if(lat&&lat.core>=175){
+    var turnNowBand=BANDS[BANDS.length-1];
+    return{band:turnNowBand,turnNow:true,deadline:null,progress:100,remaining:0,elapsed:0,satisfiedStages:{},independentStages:{},thermophilicStart:null};
+  }
   var cycles=buildCycles(sorted);
   var currentCycle=cycles[cycles.length-1];
-  var independentStages=computeIndependentStages(currentCycle.entries);
-  if(currentBand.hours===0)return{band:currentBand,turnNow:true,deadline:null,progress:100,remaining:0,elapsed:0,satisfiedStages:{},independentStages:independentStages};
+  var status=cycleHighestStageStatus(currentCycle.entries);
+  var independentStages=status.independentStages;
+  // Build satisfiedStages mapping
   var satisfiedStages={};
   for(var bi=0;bi<BANDS.length;bi++){
     var b=BANDS[bi];
     if(independentStages[b.label])satisfiedStages[b.label]=independentStages[b.label].satisfied;
   }
-  if(independentStages[currentBand.label]&&independentStages[currentBand.label].satisfied){
-    return{band:currentBand,elapsed:currentBand.hours,remaining:0,progress:100,complete:true,turnNow:false,deadline:null,satisfiedStages:satisfiedStages,independentStages:independentStages,stageDone:true};
+  // If no stage is currently active (pile cold or no readings), nothing to track
+  if(!status.highestActive){
+    return null;
   }
-  var indep=independentStages[currentBand.label];
-  var elapsed=indep?indep.elapsed:0;
-  var remaining=indep?indep.remaining:currentBand.hours;
-  var streakStart=indep&&indep.streakStart?indep.streakStart:new Date();
-  var deadline=new Date(streakStart.getTime()+currentBand.hours*3600000);
-  return{band:currentBand,elapsed:elapsed,remaining:remaining,progress:Math.min(100,elapsed/currentBand.hours*100),
-    complete:elapsed>=currentBand.hours,turnNow:false,deadline:deadline,satisfiedStages:satisfiedStages,independentStages:independentStages};
+  var activeBand=BANDS.find(function(b){return b.label===status.highestActive;});
+  var activeStage=independentStages[status.highestActive];
+  // Cycle is "complete" when highest active stage is satisfied
+  if(activeStage.satisfied){
+    return{
+      band:activeBand,
+      elapsed:activeBand.hours,
+      remaining:0,
+      progress:100,
+      complete:true,
+      stageDone:true,
+      turnNow:false,
+      deadline:null,
+      satisfiedStages:satisfiedStages,
+      independentStages:independentStages,
+      thermophilicStart:status.thermophilicStart,
+      highestActive:status.highestActive
+    };
+  }
+  var elapsed=activeStage.elapsed;
+  var remaining=activeStage.remaining;
+  var streakStart=activeStage.streakStart||new Date();
+  var deadline=new Date(streakStart.getTime()+activeBand.hours*3600000);
+  return{
+    band:activeBand,
+    elapsed:elapsed,
+    remaining:remaining,
+    progress:Math.min(100,elapsed/activeBand.hours*100),
+    complete:elapsed>=activeBand.hours,
+    turnNow:false,
+    deadline:deadline,
+    satisfiedStages:satisfiedStages,
+    independentStages:independentStages,
+    thermophilicStart:status.thermophilicStart,
+    highestActive:status.highestActive
+  };
 }
 
 function hoursSinceLastTurn(entries){
@@ -1080,6 +1157,8 @@ function renderStatusCard(pile,sorted,lat,band){
   var sinceStr=sinceMs!==null?fmtHours(sinceMs):"No turn yet";
   var t=calcSmartTimer(pile.entries);
   var isDone=t&&(t.complete||t.stageDone);
+  // Use highest active stage band for status display (not latest temp band)
+  if(t&&t.band&&!t.turnNow)band=t.band;
 
   if(lat&&lat.core>=175){
     card.style.borderLeftColor="#ff0000";
@@ -1137,10 +1216,15 @@ function renderStatusCard(pile,sorted,lat,band){
 
   var nextDue=t&&t.deadline?fmtDate(t.deadline):"-";
   var timeComp=t?fmtHours(t.elapsed*3600000):"-";
+  var pileBuilt=fmtDate(new Date(pile.created));
+  var thermoStr=t&&t.thermophilicStart?fmtDate(t.thermophilicStart):"NOT STARTED";
+  var thermoColor=t&&t.thermophilicStart?"#ccc":"#999";
   detailEl.innerHTML=
     '<div class="status-detail"><span class="status-key">COMPLETED</span><span class="status-val" style="color:'+(isDone?"#4ade80":"#ccc")+'">'+timeComp+'</span></div>'+
-    '<div class="status-detail"><span class="status-key">NEXT TURN DUE</span><span class="status-val" style="color:'+(isDone?"#4ade80":"#888")+'">'+nextDue+'</span></div>'+
-    '<div class="status-detail" style="border-bottom:none"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>';
+    '<div class="status-detail"><span class="status-key">NEXT TURN DUE</span><span class="status-val" style="color:'+(isDone?"#4ade80":"#999")+'">'+nextDue+'</span></div>'+
+    '<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>'+
+    '<div class="status-detail"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>'+
+    '<div class="status-detail" style="border-bottom:none"><span class="status-key">THERMOPHILIC START</span><span class="status-val" style="color:'+thermoColor+'">'+thermoStr+'</span></div>';
 }
 
 function renderTimer(pile){

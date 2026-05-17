@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.16 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.17 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -125,6 +125,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
         <button onclick="downloadCSVTemplate()" class="btn-sm" style="font-size:0.7rem;padding:0.5rem 0.75rem">CSV TEMPLATE</button>
         <button onclick="document.getElementById('csv-import-input').click()" class="btn-sm" style="font-size:0.7rem;padding:0.5rem 0.75rem">IMPORT CSV</button>
+        <button onclick="showDiagnostic()" class="btn-sm" style="font-size:0.7rem;padding:0.5rem 0.75rem;color:#f59e0b;border-color:#3a2a08">DIAG</button>
         <button onclick="showView('setup')" class="btn" style="width:auto;padding:0.5rem 1.1rem">+ NEW PILE</button>
       </div>
     </div>
@@ -2090,6 +2091,27 @@ window.addEventListener("beforeunload",function(e){
 // ============================================================
 // CSV IMPORT + TEMPLATE
 // ============================================================
+
+function showDiagnostic(){
+  // Show raw entry data for the most-recently-modified pile
+  if(!piles.length){alert("No piles");return;}
+  // Use the first non-completed pile, or just the first pile
+  var p=piles.find(function(x){return x.status!=="completed";})||piles[0];
+  var lines=["PILE: "+p.name,"CREATED: "+p.created,"","ENTRIES:"];
+  var sorted=p.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  sorted.forEach(function(e,i){
+    lines.push("");
+    lines.push("#"+(i+1)+" "+(e.turned?"[TURN]":""));
+    lines.push("  date="+e.date+" time="+e.time);
+    lines.push("  ts="+e.ts);
+    lines.push("  parsed="+new Date(e.ts).toString().slice(0,33));
+    lines.push("  core="+e.core);
+  });
+  lines.push("");
+  lines.push("NOW: "+new Date().toString().slice(0,33));
+  lines.push("TZ offset: "+new Date().getTimezoneOffset()+" min");
+  alert(lines.join("\n"));
+}
 
 function downloadCSVTemplate(){
   var lines=[

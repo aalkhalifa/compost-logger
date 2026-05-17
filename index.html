@@ -106,7 +106,7 @@ input[type=range]:disabled{opacity:0.3}
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.8 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.9 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -199,8 +199,8 @@ input[type=range]:disabled{opacity:0.3}
 
 <div class="card">
   <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.9rem">LOG ENTRY</div>
-  <div style="display:flex;justify-content:flex-end;margin-bottom:0.4rem">
-    <button onclick="quickLog()" style="background:none;border:none;color:#f97316;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.7rem;letter-spacing:0.08em;padding:0.2rem 0.4rem;text-decoration:underline">USE CURRENT TIME</button>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:0.5rem">
+    <button onclick="quickLog()" style="background:none;border:1px solid #f97316;color:#f97316;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;padding:0.4rem 0.75rem;border-radius:3px;font-weight:600">USE CURRENT TIME</button>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.75rem">
     <div><label class="lbl">DATE</label><input type="date" id="f-date"/></div>
@@ -1156,9 +1156,19 @@ function renderTimer(pile){
   var t=calcSmartTimer(pile.entries);
   var activeCycleColor=t&&t.band?t.band.color:"#f97316";
   card.style.borderLeftColor=activeCycleColor;
-  var cycleRows=cycles.map(function(cycle,idx){
+  // Exclude the initial heating phase (pile start -> first turn) from the cycle list.
+  // Cycles[0] represents pile-start to first turn. If there is at least one turn (cycles.length > 1),
+  // skip cycles[0]. Active cycle (no turn yet) is always shown.
+  var displayCycles=cycles;
+  var displayOffset=0;
+  if(cycles.length>1){
+    displayCycles=cycles.slice(1);
+    displayOffset=1;
+  }
+  var cycleRows=displayCycles.map(function(cycle,idx){
+    var displayIdx=idx+1;
     var isActive=cycle.turnEntry===null;
-    var cycleStartTs=idx>0&&cycles[idx-1].turnEntry?new Date(cycles[idx-1].turnEntry.ts):new Date(sorted[0].ts);
+    var origIdx=idx+displayOffset;var cycleStartTs=origIdx>0&&cycles[origIdx-1].turnEntry?new Date(cycles[origIdx-1].turnEntry.ts):new Date(sorted[0].ts);
     var cycleEndTs=isActive?new Date():new Date(cycle.turnEntry.ts);
     var elapsedMs=cycleEndTs-cycleStartTs;
     var elapsedH=elapsedMs/3600000;
@@ -1181,7 +1191,7 @@ function renderTimer(pile){
         // No band reached yet (temp < 131)
         return '<div style="margin-bottom:0.7rem">'+
           '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
-            '<span class="mono" style="font-size:0.7rem;color:#f97316">CYCLE '+(idx+1)+' \u00B7 ACTIVE</span>'+
+            '<span class="mono" style="font-size:0.7rem;color:#f97316">CYCLE '+displayIdx+' \u00B7 ACTIVE</span>'+
             '<span class="mono" style="font-size:0.65rem;color:#555">WAITING FOR THERMOPHILIC TEMP</span>'+
           '</div>'+
           '<div class="pbar-wrap" style="height:8px"><div class="pbar" style="width:0%;background:#f97316;height:8px"></div></div>'+
@@ -1194,7 +1204,7 @@ function renderTimer(pile){
       var labelColor=targetStage.satisfied?"#4ade80":"#f97316";
       return '<div style="margin-bottom:0.7rem">'+
         '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
-          '<span class="mono" style="font-size:0.7rem;color:'+labelColor+'">CYCLE '+(idx+1)+' \u00B7 '+targetBand.label+' \u00B7 '+targetBand.hours+'H</span>'+
+          '<span class="mono" style="font-size:0.7rem;color:'+labelColor+'">CYCLE '+displayIdx+' \u00B7 '+targetBand.label+' \u00B7 '+targetBand.hours+'H</span>'+
           '<span class="mono" style="font-size:0.65rem;color:'+labelColor+'">'+remainStr+'</span>'+
         '</div>'+
         '<div class="pbar-wrap" style="height:8px"><div class="pbar" style="width:'+pct+'%;background:'+barColor+';height:8px"></div></div>'+
@@ -1212,16 +1222,16 @@ function renderTimer(pile){
       var label,subLabel;
       if(highest){
         var hsBand=BANDS.find(function(b){return b.label===highest;});
-        label="CYCLE "+(idx+1)+" \u00B7 "+highest+" SATISFIED \u00B7 "+(hsBand?hsBand.hours+"H":"");
+        label="CYCLE "+displayIdx+" \u00B7 "+highest+" SATISFIED \u00B7 "+(hsBand?hsBand.hours+"H":"");
         subLabel="\u2713 COMPLETE";
       } else {
-        label="CYCLE "+(idx+1)+" \u00B7 TURNED EARLY";
+        label="CYCLE "+displayIdx+" \u00B7 TURNED EARLY";
         subLabel="\u26A0 NO STAGE SATISFIED";
       }
       var elapsedStr=Math.floor(elapsedH)+"h "+Math.round((elapsedH%1)*60)+"m";
       var labelColor=highest?"#4ade80":"#ef4444";
       var barColor=highest?"#4ade80":"#ef4444";
-      var isFirstTurn=(idx===0);
+      var isFirstTurn=false;
       var durationDisplay=isFirstTurn?"FIRST TURN":"DURATION: "+elapsedStr;
       return '<div style="margin-bottom:0.7rem">'+
         '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+

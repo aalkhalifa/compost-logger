@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.23 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.24 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -1407,15 +1407,27 @@ function renderChart(sorted){
   if(tempChart){tempChart.destroy();tempChart=null;}
   // Adjust chart width based on entry count for horizontal scrolling
   var chartInner=document.getElementById("chart-inner");
+  var chartCanvas=document.getElementById("temp-chart");
   var hintEl=document.getElementById("chart-scroll-hint");
-  if(chartInner){
+  if(chartInner&&chartCanvas){
     var n=sorted.length;
-    if(n>14){
-      var pxPerEntry=Math.max(35,Math.min(60,Math.floor(800/Math.min(n,30))));
-      chartInner.style.width=(n*pxPerEntry)+"px";
+    if(n>10){
+      // Each entry gets a fixed width for readability
+      var pxPerEntry=45;
+      var totalW=Math.max(500,n*pxPerEntry);
+      chartInner.style.width=totalW+"px";
+      chartCanvas.style.width=totalW+"px";
+      chartCanvas.width=totalW;
+      chartCanvas.height=280;
       if(hintEl)hintEl.style.display="block";
     } else {
-      chartInner.style.width="100%";
+      var wrap=document.getElementById("chart-scroll-wrap");
+      var w=wrap?wrap.clientWidth:600;
+      if(w<100)w=600;
+      chartInner.style.width=w+"px";
+      chartCanvas.style.width=w+"px";
+      chartCanvas.width=w;
+      chartCanvas.height=280;
       if(hintEl)hintEl.style.display="none";
     }
   }
@@ -1448,7 +1460,7 @@ function renderChart(sorted){
         pointRadius:3,pointBackgroundColor:"#1e88e5",spanGaps:true,yAxisID:"y2",order:10}
     ])},
     options:{
-      responsive:true,maintainAspectRatio:false,animation:false,
+      responsive:false,maintainAspectRatio:false,animation:false,
       interaction:{mode:"index",intersect:false},
       plugins:{
         legend:{display:false},

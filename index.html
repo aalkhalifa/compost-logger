@@ -106,7 +106,7 @@ input[type=range]:disabled{opacity:0.3}
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.7 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.8 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -199,10 +199,12 @@ input[type=range]:disabled{opacity:0.3}
 
 <div class="card">
   <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.9rem">LOG ENTRY</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0.5rem;margin-bottom:0.75rem;align-items:end">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:0.4rem">
+    <button onclick="quickLog()" style="background:none;border:none;color:#f97316;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.7rem;letter-spacing:0.08em;padding:0.2rem 0.4rem;text-decoration:underline">USE CURRENT TIME</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.75rem">
     <div><label class="lbl">DATE</label><input type="date" id="f-date"/></div>
     <div><label class="lbl">TIME</label><input type="time" id="f-time"/></div>
-    <button onclick="quickLog()" class="btn-now">NOW</button>
   </div>
   <div id="entry-error" class="error-msg hidden"></div>
   <div style="margin-bottom:0.6rem">
@@ -394,6 +396,21 @@ function getBand(f){if(!f||f<131)return null;return BANDS.find(function(b){retur
 function mColor(p){if(!p)return"#222";if(p>=60)return"#1565c0";if(p>=50)return"#1e88e5";if(p>=40)return"#4a90d9";return"#7ab3e0";}
 function fmtHours(ms){if(ms<0)return"0h 0m";var h=Math.floor(ms/3600000);var m=Math.round((ms%3600000)/60000);return h+"h "+m+"m";}
 function fmtDate(d){return d.toLocaleDateString()+" "+d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
+function fmtShortDate(d){
+  if(typeof d==="string"){
+    // d is like "2026-05-11" - parse and reformat
+    var parts=d.split("-");
+    if(parts.length===3){
+      var year=parseInt(parts[0]);
+      var month=parseInt(parts[1])-1;
+      var day=parseInt(parts[2]);
+      var dt=new Date(year,month,day);
+      return dt.toLocaleDateString([],{month:"short",day:"numeric"});
+    }
+    return d;
+  }
+  return d.toLocaleDateString([],{month:"short",day:"numeric"});
+}
 function getPreset(name){if(!name)return null;return N_PRESETS[name.toLowerCase().trim()]||null;}
 
 function toC(f){return +((f-32)*5/9).toFixed(1);}
@@ -1082,19 +1099,7 @@ function renderStatusCard(pile,sorted,lat,band){
   card.style.borderLeftColor=isDone?"#4ade80":band.color;
   var timeLeft=isDone?"TURN NOW":t?Math.floor(t.remaining)+"h "+Math.round((t.remaining%1)*60)+"m":band.hours+"h";
   var timeColor=isDone?"#4ade80":band.color;
-  // INDEPENDENT STAGE DOTS: show stages that are active/satisfied independently
   var independentStages=t?t.independentStages||{}:{};
-  var stageDots=BANDS.filter(function(b){return b.hours>0;}).map(function(b){
-    var s=independentStages[b.label];
-    var done=s&&s.satisfied;
-    var active=s&&s.active&&!done;
-    var color=done?"#4ade80":active?b.color:"#222";
-    var textColor=done?"#4ade80":active?b.color:"#333";
-    return '<div style="display:flex;flex-direction:column;align-items:center;gap:0.2rem">'+
-      '<div style="width:8px;height:8px;border-radius:50%;background:'+color+';border:1px solid '+color+'"></div>'+
-      '<span class="mono" style="font-size:0.5rem;color:'+textColor+'">'+b.hours+'H</span>'+
-    '</div>';
-  }).join("");
 
   heroEl.innerHTML='<div style="padding:1rem 1.25rem;border-top:1px solid #111;border-bottom:1px solid #111">'+
     '<div style="display:flex;justify-content:space-between;align-items:center">'+
@@ -1110,13 +1115,23 @@ function renderStatusCard(pile,sorted,lat,band){
       '</div>'+
     '</div>'+
     '<div style="margin-top:0.85rem">'+
-      '<div class="pbar-wrap" style="height:6px">'+
-        '<div class="pbar" style="width:'+(t?t.progress:0)+'%;background:'+(isDone?"#4ade80":band.color)+';height:6px"></div>'+
-      '</div>'+
-      '<div style="display:flex;justify-content:space-between;margin-top:0.35rem;align-items:center">'+
-        '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace">'+(t?Math.round(t.progress):0)+'% COMPLETE</div>'+
-        '<div style="display:flex;gap:0.75rem;align-items:center">'+stageDots+'</div>'+
-      '</div>'+
+      // Show all active stage bars (multi-bar layout)
+      BANDS.filter(function(b){return b.hours>0;}).map(function(b){
+        var s=independentStages[b.label];
+        var done=s&&s.satisfied;
+        var active=s&&s.active&&!done;
+        var pct=done?100:s?s.progress:0;
+        var barColor=done?"#4ade80":active?b.color:"#222";
+        var lblColor=done?"#4ade80":active?b.color:"#3a3a3a";
+        var stateText=done?"\u2713 SATISFIED":active?Math.round(pct)+"%":"\u2014";
+        return '<div style="margin-bottom:0.4rem">'+
+          '<div style="display:flex;justify-content:space-between;margin-bottom:0.15rem">'+
+            '<span class="mono" style="font-size:0.58rem;color:'+lblColor+';letter-spacing:0.05em">'+b.label+' \u00B7 '+b.hours+'H</span>'+
+            '<span class="mono" style="font-size:0.58rem;color:'+lblColor+'">'+stateText+'</span>'+
+          '</div>'+
+          '<div class="pbar-wrap" style="height:4px"><div class="pbar" style="width:'+pct+'%;background:'+barColor+';height:4px"></div></div>'+
+        '</div>';
+      }).join("")+
     '</div>'+
   '</div>';
 
@@ -1206,6 +1221,8 @@ function renderTimer(pile){
       var elapsedStr=Math.floor(elapsedH)+"h "+Math.round((elapsedH%1)*60)+"m";
       var labelColor=highest?"#4ade80":"#ef4444";
       var barColor=highest?"#4ade80":"#ef4444";
+      var isFirstTurn=(idx===0);
+      var durationDisplay=isFirstTurn?"FIRST TURN":"DURATION: "+elapsedStr;
       return '<div style="margin-bottom:0.7rem">'+
         '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
           '<span class="mono" style="font-size:0.7rem;color:'+labelColor+'">'+label+'</span>'+
@@ -1213,20 +1230,20 @@ function renderTimer(pile){
         '</div>'+
         '<div class="pbar-wrap" style="height:8px"><div class="pbar" style="width:100%;background:'+barColor+';height:8px"></div></div>'+
         '<div style="display:flex;justify-content:space-between;margin-top:0.2rem">'+
-          '<span class="mono" style="font-size:0.58rem;color:#555">DURATION: '+elapsedStr+'</span>'+
-          '<span class="mono" style="font-size:0.58rem;color:#555">TURN: '+cycle.turnEntry.date+'</span>'+
+          '<span class="mono" style="font-size:0.58rem;color:#555">'+durationDisplay+'</span>'+
+          '<span class="mono" style="font-size:0.58rem;color:#555">TURN: '+fmtShortDate(cycle.turnEntry.date)+'</span>'+
         '</div>'+
       '</div>';
     }
   }).join("");
   var calBtn="";
   if(t&&t.deadline&&!(t.complete||t.stageDone)){
-    calBtn='<button class="btn-sm" onclick="addToCalendar(\''+pile.name+'\','+t.deadline.getTime()+')" style="margin-top:0.75rem;width:100%;padding:0.55rem">CALENDAR REMINDER - '+fmtDate(t.deadline)+'</button>';
+    calBtn='<button onclick="addToCalendar(\''+pile.name+'\','+t.deadline.getTime()+')" style="margin-top:0.75rem;width:100%;padding:0.65rem;background:none;border:1px solid #f97316;color:#f97316;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.05em">\u23F0 SET CALENDAR REMINDER \u00B7 '+fmtDate(t.deadline)+'</button>';
   }
   content.innerHTML=
-    '<div style="margin-bottom:1rem">'+
+    '<div style="margin-bottom:1rem;display:flex;align-items:baseline;gap:0.7rem">'+
       '<span class="hd" style="color:#fff;font-size:1rem">TURN CYCLES</span>'+
-      '<span class="mono" style="color:#555;font-size:0.65rem;margin-left:0.6rem">'+cycles.length+' '+(cycles.length===1?"cycle":"cycles")+'</span>'+
+      '<span class="mono" style="color:#ccc;font-size:0.85rem;font-weight:600">'+cycles.length+' '+(cycles.length===1?"CYCLE":"CYCLES")+'</span>'+
     '</div>'+cycleRows+calBtn;
   var isDone=t&&(t.complete||t.stageDone);
   if(isDone&&"Notification"in window&&Notification.permission==="granted")

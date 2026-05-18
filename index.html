@@ -1406,14 +1406,17 @@ function renderStatusCard(pile,sorted,lat,band){
     detailEl.innerHTML='<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>';
     return;
   }
-  if(!lat||!band){
+  if(!lat){
     card.style.borderLeftColor="#222";
     heroEl.innerHTML='<div style="padding:1.25rem;text-align:center"><div class="mono" style="color:#555;font-size:0.85rem">NO DATA YET - LOG YOUR FIRST ENTRY</div></div>';
     detailEl.innerHTML="";return;
   }
+  if(!band){
+    band={label:"COOLING",color:"#60a5fa",hours:0,min:0,max:130};
+  }
 
   card.style.borderLeftColor=isDone?"#4ade80":band.color;
-  var timeLeft=isDone?"TURN NOW":t?Math.floor(t.remaining)+"h "+Math.round((t.remaining%1)*60)+"m":band.hours+"h";
+  var timeLeft=isDone?"TURN NOW":t&&t.remaining!=null&&band.hours>0?Math.floor(t.remaining)+"h "+Math.round((t.remaining%1)*60)+"m":band.hours>0?band.hours+"h":"\u2014";
   var timeColor=isDone?"#4ade80":band.color;
   var independentStages=t?t.independentStages||{}:{};
 
@@ -1422,12 +1425,12 @@ function renderStatusCard(pile,sorted,lat,band){
       '<div>'+
         '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">CORE TEMP</div>'+
         '<div class="mono" style="font-size:2.8rem;color:'+band.color+';font-weight:bold;line-height:1">'+dispStr(lat.core)+'</div>'+
-        '<div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+band.label+' \u00B7 '+bandRange(band)+'</div>'+
+        '<div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+band.label+(band.hours>0?' \u00B7 '+bandRange(band):' \u00B7 BELOW 131\u00B0F')+'</div>'+
       '</div>'+
       '<div style="text-align:right">'+
         '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">'+(isDone?"ACTION":"TIME LEFT")+'</div>'+
         '<div class="mono" style="font-size:'+(isDone?"1.4rem":"2rem")+';color:'+timeColor+';font-weight:bold;line-height:1">'+timeLeft+'</div>'+
-        '<div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+band.hours+'H REQUIRED</div>'+
+        '<div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+(band.hours>0?band.hours+'H REQUIRED':'WAITING FOR HEAT')+'</div>'+
       '</div>'+
     '</div>'+
     '<div style="margin-top:0.85rem">'+

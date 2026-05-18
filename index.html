@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.25 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.28 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -280,7 +280,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 
 <div class="card">
   <div id="log-count" class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">ENTRIES</div>
-  <div style="overflow-x:auto"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
+  <div style="overflow:auto;max-height:230px"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
 </div>
 
 
@@ -288,8 +288,14 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 </div>
 
 <div class="card" id="turn-history-card" style="display:none">
-  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:1rem">TURN HISTORY</div>
-  <div id="turn-history-content"></div>
+  <div onclick="toggleTurnHistory()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:0.1rem 0">
+    <div style="display:flex;align-items:baseline;gap:0.5rem">
+      <span class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TURN HISTORY</span>
+      <span id="turn-history-count" class="mono" style="font-size:0.7rem;color:#888"></span>
+    </div>
+    <span id="turn-history-arrow" style="color:#555;font-size:0.9rem">&#9656;</span>
+  </div>
+  <div id="turn-history-content" style="margin-top:1rem;display:none"></div>
 </div>
 
 <div class="card">
@@ -399,7 +405,7 @@ var driveToken=null,driveFileId=null,driveStatus="disconnected";
 var tokenClient=null,timerInterval=null;
 var newMaterials={},editMaterials={};
 var editingEntryId=null;
-var expandedCats=new Set(["highN","greens","browns"]);
+var expandedCats=new Set();
 var pendingSave=false;
 var syncInProgress=false;
 
@@ -530,6 +536,220 @@ function computeIndependentStages(cycleEntries){
     };
   }
   return result;
+}
+
+
+// CLASSIFY CYCLE TIME: For a cycle's entries, compute time spent in each phase
+// per stage. Returns:
+// {
+//   stages: {
+//     "Stage 1": {mesoMs, thermoMs, readyMs, satisfied, everReached, totalMs}
+//     "Stage 2": {...}
+//   }
+// }
+// Phase classification per interval:
+//   - Interval start temp < stage.min: MESO time (under that stage's threshold)
+//   - Interval start temp >= stage.min, stage not yet satisfied: THERMO building
+//   - Stage satisfied at moment of interval: READY time (delayed turn)
+function classifyCycleTime(cycleEntries){
+  var rel=cycleEntries.filter(function(e){return e.core!=null;});
+  if(!rel.length)return {stages:{}};
+  var sorted=rel.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  var now=new Date();
+  // For each stage, walk through entries and accumulate phase times
+  var stages={};
+  var bandList=BANDS.filter(function(b){return b.hours>0;});
+  for(var bi=0;bi<bandList.length;bi++){
+    var band=bandList[bi];
+    var mesoMs=0,thermoMs=0,readyMs=0,totalMs=0;
+    var everReached=false;
+    var satisfied=false;
+    var streakStart=null;
+    // Walk intervals: from each entry to the next (or to now for the last)
+    for(var i=0;i<sorted.length;i++){
+      var startTs=new Date(sorted[i].ts);
+      var endTs=i<sorted.length-1?new Date(sorted[i+1].ts):now;
+      var intervalMs=endTs-startTs;
+      if(intervalMs<=0)continue;
+      var temp=sorted[i].core;
+      var aboveFloor=temp>=band.min;
+      if(aboveFloor){
+        everReached=true;
+        if(streakStart===null)streakStart=startTs;
+        var streakSoFar=endTs-streakStart;
+        // Check if satisfaction was reached during this interval
+        var requiredMs=band.hours*3600000;
+        if(!satisfied&&streakSoFar>=requiredMs){
+          // Find moment of satisfaction
+          var satMoment=new Date(streakStart.getTime()+requiredMs);
+          if(satMoment<startTs){
+            // Already satisfied before this interval start
+            readyMs+=intervalMs;
+          } else if(satMoment<endTs){
+            // Satisfaction happens during this interval
+            var beforeSat=satMoment-startTs;
+            var afterSat=endTs-satMoment;
+            thermoMs+=beforeSat;
+            readyMs+=afterSat;
+          } else {
+            // Satisfaction at or after interval end - count as thermo for now
+            thermoMs+=intervalMs;
+          }
+          satisfied=true;
+        } else if(satisfied){
+          readyMs+=intervalMs;
+        } else {
+          thermoMs+=intervalMs;
+        }
+      } else {
+        // Below this stage's min temp
+        streakStart=null;
+        mesoMs+=intervalMs;
+      }
+      totalMs+=intervalMs;
+    }
+    stages[band.label]={
+      mesoMs:mesoMs,
+      thermoMs:thermoMs,
+      readyMs:readyMs,
+      totalMs:totalMs,
+      satisfied:satisfied,
+      everReached:everReached
+    };
+  }
+  return {stages:stages};
+}
+
+// Render one multicolor segmented stage bar for the ACTIVE cycle
+// stage param: BAND object (with .label, .hours, .color, .min)
+// times: {mesoMs, thermoMs, readyMs, satisfied}
+// showCore: latest core temp to display in bottom-right
+function renderStageBarActive(stage,times,showCore){
+  var refMs=stage.hours*3600000;
+  var totalAccountedMs=times.mesoMs+times.thermoMs+times.readyMs;
+  // Fill % = totalAccountedMs / refMs, capped at 100
+  var fillPct=Math.min(100,(totalAccountedMs/refMs)*100);
+  // Within the filled area, segments are proportional to their share of total time
+  // But scaled to fillPct (so segments span fillPct of bar width, not 100%)
+  var segPct=function(ms){
+    if(totalAccountedMs<=0)return 0;
+    return (ms/totalAccountedMs)*fillPct;
+  };
+  var mesoPct=segPct(times.mesoMs);
+  var thermoPct=segPct(times.thermoMs);
+  var readyPct=segPct(times.readyMs);
+  // If satisfied, the bar is fully GREEN with optional RED segment on right for delay time
+  // Otherwise: BLUE + ORANGE + (no red usually unless we mark recently-satisfied?)
+  var barHTML="";
+  if(times.satisfied){
+    // Green fill = fillPct minus the ready portion (which is RED)
+    var greenPct=fillPct-readyPct;
+    if(greenPct>0)barHTML+='<div style="width:'+greenPct+'%;background:#4ade80;height:12px"></div>';
+    if(readyPct>0)barHTML+='<div style="width:'+readyPct+'%;background:#ef4444;height:12px"></div>';
+  } else {
+    if(mesoPct>0)barHTML+='<div style="width:'+mesoPct+'%;background:#60a5fa;height:12px"></div>';
+    if(thermoPct>0)barHTML+='<div style="width:'+thermoPct+'%;background:#f97316;height:12px"></div>';
+  }
+  // Time breakdown text
+  var msToH=function(ms){return ms/3600000;};
+  var fmtH=function(h){if(h<1)return Math.round(h*60)+"m";return Math.floor(h)+"h"+(Math.round((h%1)*60)>0?" "+Math.round((h%1)*60)+"m":"");};
+  var parts=[];
+  if(times.mesoMs>0)parts.push("MESO "+fmtH(msToH(times.mesoMs)));
+  if(times.thermoMs>0)parts.push("THERMO "+fmtH(msToH(times.thermoMs)));
+  if(times.readyMs>0)parts.push("READY "+fmtH(msToH(times.readyMs)));
+  var breakdownStr=parts.length?parts.join(" · "):"0h";
+  var stateText;
+  var labelColor;
+  if(times.satisfied){
+    if(times.readyMs>0){
+      stateText="✓ SATISFIED · TURN PILE";
+      labelColor="#ef4444";
+    } else {
+      stateText="✓ SATISFIED";
+      labelColor="#4ade80";
+    }
+  } else {
+    // Calculate remaining (thermo time toward this stage)
+    var remainingMs=refMs-times.thermoMs;
+    if(remainingMs<0)remainingMs=0;
+    var remH=msToH(remainingMs);
+    stateText=fmtH(remH)+" LEFT";
+    labelColor=stage.color;
+  }
+  return '<div style="margin-bottom:0.5rem">'+
+    '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
+      '<span class="mono" style="font-size:0.65rem;color:'+labelColor+';letter-spacing:0.05em">'+stage.label+' · '+stage.hours+'H</span>'+
+      '<span class="mono" style="font-size:0.6rem;color:'+labelColor+'">'+stateText+'</span>'+
+    '</div>'+
+    '<div class="pbar-wrap" style="height:12px;display:flex;background:#1a1a1a">'+barHTML+'</div>'+
+    '<div style="display:flex;justify-content:space-between;margin-top:0.2rem">'+
+      '<span class="mono" style="font-size:0.55rem;color:#555">'+breakdownStr+'</span>'+
+      '<span class="mono" style="font-size:0.55rem;color:#555">CORE: '+(showCore!=null?dispStr(showCore):"-")+'</span>'+
+    '</div>'+
+  '</div>';
+}
+
+// Render a multicolor segmented bar for a COMPLETED cycle (turn timer card)
+// Uses BLUE/ORANGE/RED for the whole cycle's time breakdown, NO GREEN
+function renderCompletedCycleBar(cycleEntries,turnEntry,displayIdx){
+  // Use Stage 1's classification for the time breakdown (Stage 1 includes all thermo time)
+  var classified=classifyCycleTime(cycleEntries);
+  var s1=classified.stages["Stage 1"]||{mesoMs:0,thermoMs:0,readyMs:0,totalMs:0,satisfied:false};
+  var totalMs=s1.mesoMs+s1.thermoMs+s1.readyMs;
+  if(totalMs<=0)totalMs=1;
+  var mesoPct=(s1.mesoMs/totalMs)*100;
+  var thermoPct=(s1.thermoMs/totalMs)*100;
+  var readyPct=(s1.readyMs/totalMs)*100;
+  // Determine if any stage was satisfied (for label)
+  var anySatisfied=false;
+  var highestSatLabel=null;
+  var hsHours=0;
+  var orderHighFirst=["Stage 4","Stage 3","Stage 2","Stage 1"];
+  for(var i=0;i<orderHighFirst.length;i++){
+    var st=classified.stages[orderHighFirst[i]];
+    if(st&&st.satisfied){
+      anySatisfied=true;
+      highestSatLabel=orderHighFirst[i];
+      var hsBand=BANDS.find(function(b){return b.label===orderHighFirst[i];});
+      hsHours=hsBand?hsBand.hours:0;
+      break;
+    }
+  }
+  var label,subLabel,labelColor;
+  if(anySatisfied){
+    label="CYCLE "+displayIdx+" · "+highestSatLabel+" SATISFIED · "+hsHours+"H";
+    subLabel="✓ COMPLETE";
+    labelColor="#4ade80";
+  } else {
+    label="CYCLE "+displayIdx+" · TURNED EARLY";
+    subLabel="⚠ NO STAGE SATISFIED";
+    labelColor="#ef4444";
+  }
+  var totalH=totalMs/3600000;
+  var elapsedStr=Math.floor(totalH)+"h "+Math.round((totalH%1)*60)+"m";
+  // Build segmented bar
+  var barHTML="";
+  if(mesoPct>0)barHTML+='<div style="width:'+mesoPct+'%;background:#60a5fa;height:12px"></div>';
+  if(thermoPct>0)barHTML+='<div style="width:'+thermoPct+'%;background:#f97316;height:12px"></div>';
+  if(readyPct>0)barHTML+='<div style="width:'+readyPct+'%;background:#ef4444;height:12px"></div>';
+  var msToH=function(ms){return ms/3600000;};
+  var fmtH=function(h){if(h<1)return Math.round(h*60)+"m";return Math.floor(h)+"h"+(Math.round((h%1)*60)>0?" "+Math.round((h%1)*60)+"m":"");};
+  var parts=[];
+  if(s1.mesoMs>0)parts.push("MESO "+fmtH(msToH(s1.mesoMs)));
+  if(s1.thermoMs>0)parts.push("THERMO "+fmtH(msToH(s1.thermoMs)));
+  if(s1.readyMs>0)parts.push("READY "+fmtH(msToH(s1.readyMs)));
+  var breakdownStr=parts.join(" · ");
+  return '<div style="margin-bottom:0.7rem">'+
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
+      '<span class="mono" style="font-size:0.7rem;color:'+labelColor+'">'+label+'</span>'+
+      '<span class="mono" style="font-size:0.65rem;color:'+labelColor+'">'+subLabel+'</span>'+
+    '</div>'+
+    '<div class="pbar-wrap" style="height:12px;display:flex;background:#1a1a1a">'+barHTML+'</div>'+
+    '<div style="display:flex;justify-content:space-between;margin-top:0.2rem">'+
+      '<span class="mono" style="font-size:0.55rem;color:#555">'+breakdownStr+'</span>'+
+      '<span class="mono" style="font-size:0.58rem;color:#555">TURN: '+fmtShortDate(turnEntry.date)+'</span>'+
+    '</div>'+
+  '</div>';
 }
 
 // CYCLE HIGHEST STAGE STATUS:
@@ -1211,23 +1431,21 @@ function renderStatusCard(pile,sorted,lat,band){
       '</div>'+
     '</div>'+
     '<div style="margin-top:0.85rem">'+
-      // Show all active stage bars (multi-bar layout)
-      BANDS.filter(function(b){return b.hours>0;}).map(function(b){
-        var s=independentStages[b.label];
-        var done=s&&s.satisfied;
-        var active=s&&s.active&&!done;
-        var pct=done?100:s?s.progress:0;
-        var barColor=done?"#4ade80":active?b.color:"#222";
-        var lblColor=done?"#4ade80":active?b.color:"#3a3a3a";
-        var stateText=done?"\u2713 SATISFIED":active?Math.round(pct)+"%":"\u2014";
-        return '<div style="margin-bottom:0.4rem">'+
-          '<div style="display:flex;justify-content:space-between;margin-bottom:0.15rem">'+
-            '<span class="mono" style="font-size:0.58rem;color:'+lblColor+';letter-spacing:0.05em">'+b.label+' \u00B7 '+b.hours+'H</span>'+
-            '<span class="mono" style="font-size:0.58rem;color:'+lblColor+'">'+stateText+'</span>'+
-          '</div>'+
-          '<div class="pbar-wrap" style="height:4px"><div class="pbar" style="width:'+pct+'%;background:'+barColor+';height:4px"></div></div>'+
-        '</div>';
-      }).join("")+
+      // Multicolor segmented bars per stage reached in current cycle
+      (function(){
+        var cycles2=buildCycles(sorted);
+        var activeCycle=cycles2[cycles2.length-1];
+        var cycleEntries=activeCycle?activeCycle.entries:[];
+        var classified=classifyCycleTime(cycleEntries);
+        var reachedStages=BANDS.filter(function(b){return b.hours>0&&classified.stages[b.label]&&classified.stages[b.label].everReached;});
+        if(reachedStages.length===0){
+          // Nothing reached yet - show simple "waiting" message
+          return '<div class="mono" style="font-size:0.6rem;color:#555;padding:0.5rem 0;text-align:center">PILE NOT YET THERMOPHILIC</div>';
+        }
+        return reachedStages.map(function(b){
+          return renderStageBarActive(b,classified.stages[b.label],lat.core);
+        }).join("");
+      })()+
     '</div>'+
   '</div>';
 
@@ -1269,93 +1487,52 @@ function renderTimer(pile){
   var cycleRows=displayCycles.map(function(cycle,idx){
     var displayIdx=idx+1;
     var isActive=cycle.turnEntry===null;
-    var origIdx=idx+displayOffset;var cycleStartTs=origIdx>0&&cycles[origIdx-1].turnEntry?new Date(cycles[origIdx-1].turnEntry.ts):new Date(sorted[0].ts);
-    var cycleEndTs=isActive?new Date():new Date(cycle.turnEntry.ts);
-    var elapsedMs=cycleEndTs-cycleStartTs;
-    var elapsedH=elapsedMs/3600000;
     if(isActive){
-      // Active cycle: show current band progress (independent stage of highest band reached)
-      var indep=computeIndependentStages(cycle.entries);
-      // Find the highest band that has been reached (everReached) but not yet satisfied
-      var targetBand=null;
-      var targetStage=null;
-      var orderHighFirst=["Stage 4","Stage 3","Stage 2","Stage 1"];
-      for(var i=0;i<orderHighFirst.length;i++){
-        var s=indep[orderHighFirst[i]];
-        if(s&&s.everReached){
-          targetBand=BANDS.find(function(b){return b.label===orderHighFirst[i];});
-          targetStage=s;
-          break;
-        }
-      }
-      if(!targetBand){
-        // No band reached yet (temp < 131)
+      // Active cycle: show the SINGLE bar for the stage closest to completion
+      var classified=classifyCycleTime(cycle.entries);
+      var reachedStages=BANDS.filter(function(b){return b.hours>0&&classified.stages[b.label]&&classified.stages[b.label].everReached;});
+      if(reachedStages.length===0){
+        // No stage reached - show heating message
         return '<div style="margin-bottom:0.7rem">'+
           '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
-            '<span class="mono" style="font-size:0.7rem;color:#f97316">CYCLE '+displayIdx+' \u00B7 ACTIVE</span>'+
-            '<span class="mono" style="font-size:0.65rem;color:#555">WAITING FOR THERMOPHILIC TEMP</span>'+
+            '<span class="mono" style="font-size:0.7rem;color:#60a5fa">CYCLE '+displayIdx+' \u00B7 HEATING UP</span>'+
+            '<span class="mono" style="font-size:0.65rem;color:#60a5fa">UNDER 131\u00B0F</span>'+
           '</div>'+
-          '<div class="pbar-wrap" style="height:8px"><div class="pbar" style="width:0%;background:#f97316;height:8px"></div></div>'+
+          '<div class="pbar-wrap" style="height:12px"><div class="pbar" style="width:5%;background:#60a5fa;height:12px"></div></div>'+
         '</div>';
       }
-      var pct=targetStage.satisfied?100:targetStage.progress;
-      var remaining=targetStage.remaining;
-      var remainStr=targetStage.satisfied?"READY TO TURN \u2713":Math.floor(remaining)+"h "+Math.round((remaining%1)*60)+"m LEFT";
-      var barColor=targetStage.satisfied?"#4ade80":"#f97316";
-      var labelColor=targetStage.satisfied?"#4ade80":"#f97316";
-      return '<div style="margin-bottom:0.7rem">'+
-        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
-          '<span class="mono" style="font-size:0.7rem;color:'+labelColor+'">CYCLE '+displayIdx+' \u00B7 '+targetBand.label+' \u00B7 '+targetBand.hours+'H</span>'+
-          '<span class="mono" style="font-size:0.65rem;color:'+labelColor+'">'+remainStr+'</span>'+
-        '</div>'+
-        '<div class="pbar-wrap" style="height:8px"><div class="pbar" style="width:'+pct+'%;background:'+barColor+';height:8px"></div></div>'+
-        '<div style="display:flex;justify-content:space-between;margin-top:0.2rem">'+
-          '<span class="mono" style="font-size:0.58rem;color:#555">'+Math.round(pct)+'% COMPLETE</span>'+
-          '<span class="mono" style="font-size:0.58rem;color:#555">CORE: '+dispStr(lat.core)+'</span>'+
-        '</div>'+
-      '</div>';
+      // Find stage with highest fill % (closest to completion)
+      var bestBand=null;var bestPct=-1;var bestTimes=null;
+      reachedStages.forEach(function(b){
+        var t=classified.stages[b.label];
+        var refMs=b.hours*3600000;
+        var totalMs=t.mesoMs+t.thermoMs+t.readyMs;
+        var pct=t.satisfied?100:Math.min(100,(totalMs/refMs)*100);
+        if(pct>bestPct){bestPct=pct;bestBand=b;bestTimes=t;}
+      });
+      // Render that one bar with CYCLE N prefix
+      var stageBarHTML=renderStageBarActive(bestBand,bestTimes,lat.core);
+      // Inject CYCLE N label by prepending in the wrapping div
+      stageBarHTML=stageBarHTML.replace(bestBand.label+' \u00B7 '+bestBand.hours+'H','CYCLE '+displayIdx+' \u00B7 '+bestBand.label+' \u00B7 '+bestBand.hours+'H');
+      return stageBarHTML;
     } else {
-      // Completed cycle: green bar, show highest satisfied stage
-      var satisfied=computeSatisfiedStages(cycle.entries);
-      var highest=getHighestSatisfied(satisfied);
-      var turnCore=cycle.turnEntry.core;
-      var turnBand=getBand(turnCore);
-      var label,subLabel;
-      if(highest){
-        var hsBand=BANDS.find(function(b){return b.label===highest;});
-        label="CYCLE "+displayIdx+" \u00B7 "+highest+" SATISFIED \u00B7 "+(hsBand?hsBand.hours+"H":"");
-        subLabel="\u2713 COMPLETE";
-      } else {
-        label="CYCLE "+displayIdx+" \u00B7 TURNED EARLY";
-        subLabel="\u26A0 NO STAGE SATISFIED";
-      }
-      var elapsedStr=Math.floor(elapsedH)+"h "+Math.round((elapsedH%1)*60)+"m";
-      var labelColor=highest?"#4ade80":"#ef4444";
-      var barColor=highest?"#4ade80":"#ef4444";
-      var isFirstTurn=false;
-      var durationDisplay=isFirstTurn?"FIRST TURN":"DURATION: "+elapsedStr;
-      return '<div style="margin-bottom:0.7rem">'+
-        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
-          '<span class="mono" style="font-size:0.7rem;color:'+labelColor+'">'+label+'</span>'+
-          '<span class="mono" style="font-size:0.65rem;color:'+labelColor+'">'+subLabel+'</span>'+
-        '</div>'+
-        '<div class="pbar-wrap" style="height:8px"><div class="pbar" style="width:100%;background:'+barColor+';height:8px"></div></div>'+
-        '<div style="display:flex;justify-content:space-between;margin-top:0.2rem">'+
-          '<span class="mono" style="font-size:0.58rem;color:#555">'+durationDisplay+'</span>'+
-          '<span class="mono" style="font-size:0.58rem;color:#555">TURN: '+fmtShortDate(cycle.turnEntry.date)+'</span>'+
-        '</div>'+
-      '</div>';
+      // Completed cycle: multicolor segmented (BLUE/ORANGE/RED), no green
+      return renderCompletedCycleBar(cycle.entries,cycle.turnEntry,displayIdx);
     }
   }).join("");
   var calBtn="";
   if(t&&t.deadline&&!(t.complete||t.stageDone)){
     calBtn='<button onclick="addToCalendar(\''+pile.name+'\','+t.deadline.getTime()+')" style="margin-top:0.75rem;width:100%;padding:0.65rem;background:none;border:1px solid #f97316;color:#f97316;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.05em">\u23F0 SET CALENDAR REMINDER \u00B7 '+fmtDate(t.deadline)+'</button>';
   }
+  // Wrap cycle rows in scrollable container if more than 5 cycles
+  var cyclesWrap=displayCycles.length>5
+    ?'<div style="max-height:340px;overflow-y:auto;padding-right:0.4rem">'+cycleRows+'</div>'
+    :cycleRows;
   content.innerHTML=
     '<div style="margin-bottom:1rem;display:flex;align-items:baseline;gap:0.7rem">'+
       '<span class="hd" style="color:#fff;font-size:1rem">TURN CYCLES</span>'+
       '<span class="mono" style="color:#ccc;font-size:0.85rem;font-weight:600">'+displayCycles.length+' '+(displayCycles.length===1?"CYCLE":"CYCLES")+'</span>'+
-    '</div>'+cycleRows+calBtn;
+    '</div>'+cyclesWrap+calBtn;
   var isDone=t&&(t.complete||t.stageDone);
   if(isDone&&"Notification"in window&&Notification.permission==="granted")
     new Notification("Compost Academy",{body:pile.name+" is ready to turn!"});
@@ -1365,8 +1542,20 @@ function renderChart(sorted){
   var section=document.getElementById("chart-section");
   if(!sorted.length){section.classList.add("hidden");return;}
   section.classList.remove("hidden");
-  var labels=sorted.map(function(_,i){return"D"+(i+1);});
-  var turnDays=sorted.map(function(e,i){return e.turned?"D"+(i+1):null;}).filter(Boolean);
+  // Date-based labels: show "Apr 1" on first entry of each day, blank on others
+  var monthNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var lastDate="";
+  var labels=sorted.map(function(e,i){
+    var d=new Date(e.ts);
+    var thisDate=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();
+    if(thisDate!==lastDate){
+      lastDate=thisDate;
+      return monthNames[d.getMonth()]+" "+d.getDate();
+    }
+    return "";
+  });
+  // Turn markers: use unique entry index since labels can repeat as blanks
+  var turnDays=sorted.map(function(e,i){return e.turned?i:null;}).filter(function(v){return v!==null;});
   if(tempChart){tempChart.destroy();tempChart=null;}
   // Adjust chart width based on entry count for horizontal scrolling
   var chartInner=document.getElementById("chart-inner");
@@ -1398,14 +1587,19 @@ function renderChart(sorted){
   var cMax=tempUnit==="C"?Math.round(toC(180)):180;
   function cr(f){return tempUnit==="C"?Math.round(toC(f)):f;}
   var turnAnnotations={};
-  turnDays.forEach(function(d,i){
-    turnAnnotations["turn"+i]={type:"line",xMin:d,xMax:d,borderColor:"#f97316",borderWidth:2.5};
+  turnDays.forEach(function(idx,i){
+    turnAnnotations["turn"+i]={type:"line",xMin:idx,xMax:idx,borderColor:"#f97316",borderWidth:2.5};
   });
+  // Day vertical lines: one per day (on first entry of each day)
   var dayAnnotations={};
+  var seenDay={};
   sorted.forEach(function(e,i){
-    var dLabel="D"+(i+1);
-    if(turnDays.indexOf(dLabel)>=0)return;
-    dayAnnotations["day"+i]={type:"line",xMin:dLabel,xMax:dLabel,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
+    var d=new Date(e.ts);
+    var dayKey=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();
+    if(seenDay[dayKey])return;
+    seenDay[dayKey]=true;
+    if(turnDays.indexOf(i)>=0)return; // skip turn entries
+    dayAnnotations["day"+i]={type:"line",xMin:i,xMax:i,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
   });
   var tempDatasets=tempMode==="three"?[
     {label:"Core",data:sorted.map(function(e){return e.core!=null?disp(e.core):null;}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
@@ -1458,8 +1652,10 @@ function renderTurnHistory(pile){
   var history=buildTurnHistory(pile.entries);
   var card=document.getElementById("turn-history-card");
   var content=document.getElementById("turn-history-content");
+  var countEl=document.getElementById("turn-history-count");
   if(!history.length){card.style.display="none";return;}
   card.style.display="block";
+  if(countEl)countEl.textContent=history.length+(history.length===1?" TURN":" TURNS");
   content.innerHTML='<div style="display:flex;flex-direction:column;gap:0.75rem">'+
   history.map(function(t){
     var iconHtml,iconClass="turn-icon";
@@ -1493,6 +1689,19 @@ function renderTurnHistory(pile){
       '</div>'+
     '</div>';
   }).join("")+'</div>';
+}
+
+function toggleTurnHistory(){
+  var content=document.getElementById("turn-history-content");
+  var arrow=document.getElementById("turn-history-arrow");
+  if(!content||!arrow)return;
+  if(content.style.display==="none"){
+    content.style.display="block";
+    arrow.innerHTML="\u25BE";
+  } else {
+    content.style.display="none";
+    arrow.innerHTML="\u25B8";
+  }
 }
 
 function renderRecipeSummary(pile){

@@ -545,6 +545,10 @@ function classifyCycleTime(cycleEntries){
   if(!rel.length)return {stages:{}};
   var sorted=rel.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var now=new Date();
+  // Detect if this is a COMPLETED cycle (last entry is a turn).
+  // For completed cycles, the cycle ends at the turn timestamp - no extension to now.
+  var lastEntry=sorted[sorted.length-1];
+  var isCompletedCycle=lastEntry&&lastEntry.turned;
   // For each stage, walk through entries and accumulate phase times
   var stages={};
   var bandList=BANDS.filter(function(b){return b.hours>0;});
@@ -554,10 +558,21 @@ function classifyCycleTime(cycleEntries){
     var everReached=false;
     var satisfied=false;
     var streakStart=null;
-    // Walk intervals: from each entry to the next (or to now for the last)
+    // Walk intervals: from each entry to the next.
+    // For the last entry: extend to now ONLY if this is the ACTIVE cycle.
+    // For COMPLETED cycles (last entry is the turn), no extension after the turn.
     for(var i=0;i<sorted.length;i++){
       var startTs=new Date(sorted[i].ts);
-      var endTs=i<sorted.length-1?new Date(sorted[i+1].ts):now;
+      var endTs;
+      if(i<sorted.length-1){
+        endTs=new Date(sorted[i+1].ts);
+      } else if(isCompletedCycle){
+        // Last entry IS the turn - no interval after it
+        endTs=startTs;
+      } else {
+        // Active cycle: extend last interval to now
+        endTs=now;
+      }
       var intervalMs=endTs-startTs;
       if(intervalMs<=0)continue;
       var temp=sorted[i].core;

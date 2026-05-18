@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.28 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.29 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -1452,17 +1452,23 @@ function renderStatusCard(pile,sorted,lat,band){
     '</div>'+
   '</div>';
 
-  var nextDue=t&&t.deadline?fmtDate(t.deadline):"-";
-  var timeComp=t?fmtHours(t.elapsed*3600000):"-";
+  var nextDue=t&&t.deadline?fmtDate(t.deadline):"WAITING FOR HEAT";
+  var nextDueColor=t&&t.deadline?(isDone?"#4ade80":"#f97316"):"#60a5fa";
   var pileBuilt=fmtDate(new Date(pile.created));
-  var thermoStr=t&&t.thermophilicStart?fmtDate(t.thermophilicStart):"NOT STARTED";
-  var thermoColor=t&&t.thermophilicStart?"#ccc":"#999";
+  // Since thermophilic start: duration from start of current streak to now
+  var thermoSinceStr;var thermoSinceColor;
+  if(t&&t.thermophilicStart){
+    thermoSinceStr=fmtHours(Date.now()-new Date(t.thermophilicStart).getTime());
+    thermoSinceColor="#ccc";
+  } else {
+    thermoSinceStr="WAITING FOR HEAT";
+    thermoSinceColor="#60a5fa";
+  }
   detailEl.innerHTML=
-    '<div class="status-detail"><span class="status-key">COMPLETED</span><span class="status-val" style="color:'+(isDone?"#4ade80":"#ccc")+'">'+timeComp+'</span></div>'+
-    '<div class="status-detail"><span class="status-key" style="color:#f97316">NEXT TURN DUE</span><span class="status-val" style="color:'+(isDone?"#4ade80":"#f97316")+';font-weight:600">'+nextDue+'</span></div>'+
+    '<div class="status-detail"><span class="status-key" style="color:#f97316">NEXT TURN DUE</span><span class="status-val" style="color:'+nextDueColor+';font-weight:600">'+nextDue+'</span></div>'+
     '<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>'+
-    '<div class="status-detail"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>'+
-    '<div class="status-detail" style="border-bottom:none"><span class="status-key">THERMOPHILIC START</span><span class="status-val" style="color:'+thermoColor+'">'+thermoStr+'</span></div>';
+    '<div class="status-detail"><span class="status-key">SINCE THERMOPHILIC START</span><span class="status-val" style="color:'+thermoSinceColor+'">'+thermoSinceStr+'</span></div>'+
+    '<div class="status-detail" style="border-bottom:none"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>';
 }
 
 function renderTimer(pile){
@@ -1573,7 +1579,8 @@ function renderChart(sorted){
       chartInner.style.width=totalW+"px";
       chartCanvas.style.width=totalW+"px";
       chartCanvas.width=totalW;
-      chartCanvas.height=280;
+      var isLandscape=window.innerWidth>window.innerHeight;
+      chartCanvas.height=isLandscape?380:280;
       if(hintEl)hintEl.style.display="block";
     } else {
       var wrap=document.getElementById("chart-scroll-wrap");
@@ -1582,7 +1589,8 @@ function renderChart(sorted){
       chartInner.style.width=w+"px";
       chartCanvas.style.width=w+"px";
       chartCanvas.width=w;
-      chartCanvas.height=280;
+      var isLandscape2=window.innerWidth>window.innerHeight;
+      chartCanvas.height=isLandscape2?380:280;
       if(hintEl)hintEl.style.display="none";
     }
   }
@@ -2558,6 +2566,19 @@ load();
 renderHome();
 showView("home");
 initGoogleAuth();
+
+// Re-render chart on orientation change so canvas height adapts
+var __resizeTimer=null;
+window.addEventListener("resize",function(){
+  if(__resizeTimer)clearTimeout(__resizeTimer);
+  __resizeTimer=setTimeout(function(){
+    var pile=getActivePile();
+    if(pile&&pile.entries.length){
+      var sorted=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+      renderChart(sorted);
+    }
+  },300);
+});
 </script>
 
 <div id="toast-container"></div>

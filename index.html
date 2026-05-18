@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.30 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.31 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -129,6 +129,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       </div>
     </div>
     <input type="file" id="csv-import-input" accept=".csv,text/csv" style="display:none" onchange="handleCSVImport(event)"/>
+    <div id="pile-sort" style="margin-bottom:0.75rem;display:none"></div>
     <div id="pile-list"></div>
   </div>
 </div>
@@ -387,6 +388,8 @@ var N_PRESETS={
   "hay":{fastN:5,slowN:15,brown:80},"paper":{fastN:0,slowN:0,brown:100}
 };
 
+var pilesSortMode=localStorage.getItem("ca_pilesSort")||"recent";
+var entriesSortMode=localStorage.getItem("ca_entriesSort")||"newest";
 var piles=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
 var activeId=null,tempMode="three",tempUnit="F";
 var tempChart=null;
@@ -540,6 +543,36 @@ function computeIndependentStages(cycleEntries){
 //   - Interval start temp < stage.min: MESO time (under that stage's threshold)
 //   - Interval start temp >= stage.min, stage not yet satisfied: THERMO building
 //   - Stage satisfied at moment of interval: READY time (delayed turn)
+
+function getHeatStateLabel(pile,sorted){
+  if(!sorted||!sorted.length)return "HEATING UP";
+  var now=Date.now();
+  var lastTurn=null;
+  for(var i=sorted.length-1;i>=0;i--){
+    if(sorted[i].turned){lastTurn=sorted[i];break;}
+  }
+  var everThermo=sorted.some(function(e){return e.core!=null&&e.core>=131;});
+  var lastThermoTs=null;
+  for(var j=sorted.length-1;j>=0;j--){
+    if(sorted[j].core!=null&&sorted[j].core>=131){
+      lastThermoTs=new Date(sorted[j].ts).getTime();break;
+    }
+  }
+  var pileBuiltMs=new Date(pile.created).getTime();
+  var ageDays=(now-pileBuiltMs)/86400000;
+  if(lastTurn){
+    var sinceTurnH=(now-new Date(lastTurn.ts).getTime())/3600000;
+    if(sinceTurnH<24)return "REBUILDING HEAT";
+  }
+  if(everThermo&&lastThermoTs){
+    var sinceThermoH=(now-lastThermoTs)/3600000;
+    if(sinceThermoH>=120)return "STABLE / MATURING";
+    return "REBUILDING HEAT";
+  }
+  if(ageDays>=5)return "NOT HEATING - CHECK PILE";
+  return "HEATING UP";
+}
+
 function classifyCycleTime(cycleEntries){
   var rel=cycleEntries.filter(function(e){return e.core!=null;});
   if(!rel.length)return {stages:{}};
@@ -933,9 +966,32 @@ function save(){
   localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit}));
   if(driveToken&&driveFileId)driveSaveNow();
 }
+
+var SAMPLE_CSV="[PILE]\nName,30-Day Test Pile (5 Cycles)\nCreated,2026-04-01\n\n[RECIPE]\nCategory,Ingredient,Volume,Notes\nHIGH NITROGEN,Chicken manure,8,Coop cleanout aged 1 week\nHIGH NITROGEN,Horse manure,7,Local stable fresh\nGREENS,Alfalfa,15,Bagged from feed store\nGREENS,Grass clippings,15,Lawn cuttings first mow\nBROWNS,Wood chips,45,Arborist drop mixed hardwoods\nBROWNS,Dry leaves,10,Last fall collection\n\n[ENTRIES]\nDate,Time,Core,Top,Bottom,Moisture,Turned,Notes\n2026-04-01,08:10,92,89,89,49,NO,\n2026-04-01,14:20,115,111,110,44,NO,\n2026-04-01,19:30,128,125,126,49,NO,\n2026-04-02,08:15,158,155,155,55,NO,\n2026-04-02,19:35,161,156,156,42,NO,\n2026-04-03,08:20,162,159,159,50,NO,\n2026-04-03,09:45,158,152,155,44,YES,Turn 1 - Stage 3 satisfied\n2026-04-03,13:30,118,114,115,50,NO,\n2026-04-03,19:40,128,123,125,54,NO,\n2026-04-04,08:15,152,148,148,53,NO,\n2026-04-04,19:30,154,149,152,49,NO,\n2026-04-05,08:20,153,147,149,45,NO,\n2026-04-05,19:35,152,148,147,47,NO,\n2026-04-06,08:18,151,147,148,44,NO,\n2026-04-06,09:30,150,147,146,47,YES,Turn 2 - Stage 2 satisfied\n2026-04-06,13:45,120,116,115,49,NO,\n2026-04-06,19:40,128,123,124,49,NO,\n2026-04-07,08:15,138,133,135,44,NO,\n2026-04-07,19:30,141,135,136,52,NO,\n2026-04-08,08:20,142,137,137,56,NO,\n2026-04-08,19:35,141,137,136,50,NO,\n2026-04-09,08:18,140,136,136,53,NO,\n2026-04-09,19:40,139,133,135,44,NO,\n2026-04-10,08:22,138,133,136,47,NO,\n2026-04-10,09:50,137,133,135,54,YES,Turn 3 - Stage 1 satisfied\n2026-04-10,13:30,120,116,117,42,NO,\n2026-04-10,19:40,128,125,124,50,NO,\n2026-04-11,08:15,138,134,135,47,NO,\n2026-04-11,19:30,140,134,135,50,NO,\n2026-04-12,08:20,139,134,136,45,NO,\n2026-04-12,19:35,138,134,134,48,NO,\n2026-04-13,08:18,137,131,133,58,NO,\n2026-04-13,19:40,136,132,133,45,NO,\n2026-04-14,08:20,135,130,131,51,NO,\n2026-04-14,09:30,134,130,130,44,YES,Turn 4 - Stage 1 satisfied\n2026-04-14,13:45,119,114,116,46,NO,\n2026-04-14,19:30,128,123,124,50,NO,\n2026-04-15,08:15,136,131,131,48,NO,\n2026-04-15,19:30,135,131,131,53,NO,\n2026-04-16,08:20,134,129,132,49,NO,\n2026-04-16,19:35,133,130,129,49,NO,\n2026-04-17,08:18,132,126,129,44,NO,\n2026-04-17,19:40,132,127,130,49,NO,\n2026-04-18,08:22,132,127,128,57,NO,\n2026-04-18,10:15,131,126,128,45,YES,Turn 5 - Stage 1 satisfied\n2026-04-18,14:00,119,114,115,56,NO,\n2026-04-18,19:40,128,125,124,45,NO,\n2026-04-19,08:18,126,120,121,45,NO,\n2026-04-19,19:30,125,121,121,55,NO,\n2026-04-20,08:18,124,119,119,44,NO,\n2026-04-20,19:30,123,117,119,43,NO,\n2026-04-21,08:18,122,118,120,44,NO,\n2026-04-21,19:30,121,116,119,57,NO,\n2026-04-22,08:18,120,114,115,47,NO,\n2026-04-22,19:30,119,113,116,56,NO,\n2026-04-23,08:18,118,113,114,57,NO,\n2026-04-23,19:30,117,113,112,43,NO,\n2026-04-24,08:18,116,113,112,58,NO,\n2026-04-24,19:30,115,111,113,58,NO,\n2026-04-25,08:18,114,110,110,49,NO,\n2026-04-25,19:30,113,107,109,43,NO,\n2026-04-26,08:18,112,108,108,58,NO,\n2026-04-26,19:30,111,107,107,52,NO,\n2026-04-27,08:18,110,106,106,51,NO,\n2026-04-27,19:30,109,103,104,42,NO,\n2026-04-28,08:18,108,102,103,44,NO,\n2026-04-28,19:30,107,103,105,53,NO,\n2026-04-29,08:18,106,101,103,47,NO,\n2026-04-29,19:30,105,100,102,58,NO,\n2026-04-30,08:18,104,98,101,45,NO,\n2026-04-30,19:30,103,100,101,45,NO,\n\n# 30-DAY PILE - REALISTIC BIOLOGY\n# Turns happen 1-2h after stage satisfaction\n# Each turn entry shows PRE-turn (hot) temp\n# Post-turn drops below 131F then quickly rebuilds in next cycle";
+
+function loadSamplePileIfFirstRun(){
+  if(localStorage.getItem("ca_v5"))return;
+  if(localStorage.getItem("ca_v4"))return;
+  try{
+    var parsed=parseCSV(SAMPLE_CSV);
+    if(!parsed||!parsed.pile||!parsed.pile.name)return;
+    var samplePile={
+      id:uid(),
+      name:parsed.pile.name,
+      created:parsed.pile.created?new Date(parsed.pile.created).toISOString():new Date().toISOString(),
+      status:"active",
+      materials:parsed.materials||{highN:[],greens:[],browns:[]},
+      entries:parsed.entries||[]
+    };
+    piles.push(samplePile);
+    save();
+  }catch(e){console.error("Sample pile load failed:",e);}
+}
+
 function load(){
   var s=localStorage.getItem("ca_v5")||localStorage.getItem("ca_v4");
   if(s){try{var d=JSON.parse(s);piles=d.piles||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;if(d.tempUnit)tempUnit=d.tempUnit;}catch(e){}}
+  else{loadSamplePileIfFirstRun();}
 }
 
 function showView(v){
@@ -946,14 +1002,51 @@ function showView(v){
   if(v==="dashboard")renderDashboard();
 }
 
+function setPilesSort(mode){
+  pilesSortMode=mode;
+  localStorage.setItem("ca_pilesSort",mode);
+  renderHome();
+}
+function sortPilesByMode(arr){
+  var a=arr.slice();
+  if(pilesSortMode==="newest"){a.sort(function(x,y){return new Date(y.created)-new Date(x.created);});}
+  else if(pilesSortMode==="oldest"){a.sort(function(x,y){return new Date(x.created)-new Date(y.created);});}
+  else if(pilesSortMode==="name_az"){a.sort(function(x,y){return x.name.localeCompare(y.name);});}
+  else if(pilesSortMode==="name_za"){a.sort(function(x,y){return y.name.localeCompare(x.name);});}
+  else{
+    a.sort(function(x,y){
+      var xT=x.entries.length?Math.max.apply(null,x.entries.map(function(e){return new Date(e.ts).getTime();})):new Date(x.created).getTime();
+      var yT=y.entries.length?Math.max.apply(null,y.entries.map(function(e){return new Date(e.ts).getTime();})):new Date(y.created).getTime();
+      return yT-xT;
+    });
+  }
+  return a;
+}
+function renderSortDropdown(){
+  var sortEl=document.getElementById("pile-sort");
+  if(!sortEl)return;
+  if(piles.length<=1){sortEl.style.display="none";return;}
+  sortEl.style.display="block";
+  var opts=[
+    {v:"recent",l:"RECENT ACTIVITY"},
+    {v:"newest",l:"NEWEST BUILT"},
+    {v:"oldest",l:"OLDEST BUILT"},
+    {v:"name_az",l:"NAME A-Z"},
+    {v:"name_za",l:"NAME Z-A"}
+  ];
+  var sel=opts.map(function(o){return '<option value="'+o.v+'"'+(o.v===pilesSortMode?' selected':'')+'>'+o.l+'</option>';}).join("");
+  sortEl.innerHTML='<label class="mono" style="font-size:0.6rem;color:#555;margin-right:0.5rem">SORT:</label>'+
+    '<select onchange="setPilesSort(this.value)" class="mono" style="background:#0a0a0a;color:#ccc;border:1px solid #222;padding:0.25rem 0.4rem;font-size:0.65rem;font-family:Share Tech Mono,monospace;border-radius:2px">'+sel+'</select>';
+}
 function renderHome(){
   updateDriveUI();
+  renderSortDropdown();
   var el=document.getElementById("pile-list");
   if(!piles.length){
     el.innerHTML='<div style="text-align:center;padding:3rem 1rem;border:1px dashed #1a1a1a;border-radius:4px"><div style="font-size:2rem;margin-bottom:0.5rem">&#127793;</div><div class="hd" style="font-size:1.2rem;color:#555">NO PILES YET</div></div>';
     return;
   }
-  el.innerHTML=piles.map(function(p){
+  el.innerHTML=sortPilesByMode(piles).map(function(p){
     var sorted=p.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
     var lat=sorted[sorted.length-1];
     var t=calcSmartTimer(p.entries);
@@ -1455,24 +1548,24 @@ function renderStatusCard(pile,sorted,lat,band){
     '</div>'+
   '</div>';
 
-  // NEXT TURN DUE: show duration remaining instead of timestamp
+  // NEXT TURN DUE with smart heat label
+  var heatLabel=getHeatStateLabel(pile,sorted);
+  var heatColor=heatLabel==="NOT HEATING - CHECK PILE"?"#ef4444":heatLabel==="STABLE / MATURING"?"#999":"#60a5fa";
   var nextDue,nextDueColor;
   if(isDone){
     nextDue="TURN NOW";nextDueColor="#ef4444";
   } else if(t&&t.deadline&&t.remaining!=null){
     nextDue=fmtHours(t.remaining*3600000);nextDueColor="#f97316";
   } else {
-    nextDue="WAITING FOR HEAT";nextDueColor="#60a5fa";
+    nextDue=heatLabel;nextDueColor=heatColor;
   }
   var pileBuilt=fmtDate(new Date(pile.created));
-  // Since thermophilic start: duration from start of current streak to now
   var thermoSinceStr;var thermoSinceColor;
   if(t&&t.thermophilicStart){
     thermoSinceStr=fmtHours(Date.now()-new Date(t.thermophilicStart).getTime());
     thermoSinceColor="#ccc";
   } else {
-    thermoSinceStr="WAITING FOR HEAT";
-    thermoSinceColor="#60a5fa";
+    thermoSinceStr=heatLabel;thermoSinceColor=heatColor;
   }
   detailEl.innerHTML=
     '<div class="status-detail"><span class="status-key" style="color:#f97316">NEXT TURN DUE</span><span class="status-val" style="color:'+nextDueColor+';font-weight:600">'+nextDue+'</span></div>'+
@@ -1520,13 +1613,14 @@ function renderTimer(pile){
       var classified=classifyCycleTime(cycle.entries);
       var reachedStages=BANDS.filter(function(b){return b.hours>0&&classified.stages[b.label]&&classified.stages[b.label].everReached;});
       if(reachedStages.length===0){
-        // No stage reached - show heating message
+        var heatLabel2=getHeatStateLabel(pile,sorted);
+        var heatColor2=heatLabel2==="NOT HEATING - CHECK PILE"?"#ef4444":heatLabel2==="STABLE / MATURING"?"#999":"#60a5fa";
         return '<div style="margin-bottom:0.7rem">'+
           '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
-            '<span class="mono" style="font-size:0.7rem;color:#60a5fa">CYCLE '+displayIdx+' \u00B7 HEATING UP</span>'+
-            '<span class="mono" style="font-size:0.65rem;color:#60a5fa">UNDER 131\u00B0F</span>'+
+            '<span class="mono" style="font-size:0.7rem;color:'+heatColor2+'">CYCLE '+displayIdx+' \u00B7 '+heatLabel2+'</span>'+
+            '<span class="mono" style="font-size:0.65rem;color:'+heatColor2+'">UNDER 131\u00B0F</span>'+
           '</div>'+
-          '<div class="pbar-wrap" style="height:12px"><div class="pbar" style="width:5%;background:#60a5fa;height:12px"></div></div>'+
+          '<div class="pbar-wrap" style="height:12px"><div class="pbar" style="width:5%;background:'+heatColor2+';height:12px"></div></div>'+
         '</div>';
       }
       // Find stage with highest fill % (closest to completion)
@@ -1757,15 +1851,28 @@ function renderTempRef(){
   }).join("");
 }
 
+function toggleEntriesSort(){
+  entriesSortMode=entriesSortMode==="newest"?"oldest":"newest";
+  localStorage.setItem("ca_entriesSort",entriesSortMode);
+  var pile=getActivePile();
+  if(!pile)return;
+  var sortedEntries=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  renderLogTable(sortedEntries,pile);
+}
 function renderLogTable(sorted,pile){
   if(!pile)pile=getActivePile();
   if(!pile){document.getElementById("log-count").textContent="ENTRIES";return;}
-  document.getElementById("log-count").textContent="ALL ENTRIES ("+sorted.length+")";
+  var hdrEl=document.getElementById("log-count");
+  if(hdrEl){
+    var sortLabel=entriesSortMode==="oldest"?"OLDEST FIRST":"NEWEST FIRST";
+    hdrEl.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><span>ALL ENTRIES ('+sorted.length+')</span><button onclick="toggleEntriesSort()" class="btn-sm" style="font-size:0.55rem">'+sortLabel+'</button></div>';
+  }
   var table=document.getElementById("log-table");
   if(!sorted.length){table.innerHTML="";return;}
   var headers=["DAY","DATE","TIME","CORE","TOP","BOT","MOIST","TURN",""];
   var thead='<thead><tr>'+headers.map(function(h){return '<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#555;font-size:0.62rem;letter-spacing:0.05em">'+h+'</th>';}).join("")+'</tr></thead>';
-  var tbody='<tbody>'+sorted.map(function(en,i){
+  var sortedDisplay=entriesSortMode==="oldest"?sorted.slice():sorted.slice().reverse();
+  var tbody='<tbody>'+sortedDisplay.map(function(en,i){
     var moistCell=en.moisture!=null?'<span style="background:'+mColor(en.moisture)+';color:#fff;padding:0.05rem 0.25rem;border-radius:2px;font-family:Share Tech Mono,monospace;font-size:0.65rem">'+en.moisture+'%</span>':"-";
     // Day 1 = earliest entry date (not pile.created, which is when pile was tapped in the app)
     var earliestTs=sorted.length?new Date(sorted[0].ts):new Date(pile.created);
@@ -2039,14 +2146,35 @@ function exportPDF(){
     doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
     doc.text("TURN HISTORY",M,y);y+=5;
     doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
-    history.forEach(function(t){
+    // Compute peak temp per cycle: from previous turn (or pile start) to this turn
+    var cycleBoundaries=[];
+    var prevTurnIdx=-1;
+    var sortedAll=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+    for(var hi=0;hi<sortedAll.length;hi++){
+      if(sortedAll[hi].turned){
+        cycleBoundaries.push({from:prevTurnIdx+1,to:hi});
+        prevTurnIdx=hi;
+      }
+    }
+    history.forEach(function(t,turnIdx){
       check(14);
       doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(60,60,60);
       var hsBand=BANDS.find(function(b){return b.label===t.highestSatisfied;});
       var icon=t.highestSatisfied?(hsBand?hsBand.hours+"H":"")+" SATISFIED":t.isWarning?"WARNING":"TURN "+t.num;
       doc.text("Turn "+t.num+" - "+icon,M,y);y+=4;
       doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(100,100,100);
-      doc.text("Date: "+t.date+" "+t.time+(t.core?" | Core: "+t.core+"F":"")+(t.activeBand?" | "+t.activeBand.label:""),M+4,y);y+=4;
+      // Compute peak for this cycle
+      var peakStr="";
+      if(cycleBoundaries[turnIdx]){
+        var cb=cycleBoundaries[turnIdx];
+        var peak=null;
+        for(var pi=cb.from;pi<=cb.to;pi++){
+          var c=sortedAll[pi]&&sortedAll[pi].core;
+          if(c!=null&&(peak===null||c>peak))peak=c;
+        }
+        if(peak!=null)peakStr=" | Peak: "+Math.round(peak)+"F";
+      }
+      doc.text("Date: "+t.date+" "+t.time+(t.core?" | Core at turn: "+t.core+"F":"")+peakStr+(t.activeBand?" | "+t.activeBand.label:""),M+4,y);y+=4;
       if(t.sinceMs!=null){doc.text("Since previous turn: "+fmtHours(t.sinceMs),M+4,y);y+=4;}
       if(t.highestSatisfied){doc.text("Stage satisfied: "+t.highestSatisfied,M+4,y);y+=4;}
       if(t.isWarning){doc.setTextColor(200,60,60);doc.text("Warning: turned without satisfying stage requirement",M+4,y);doc.setTextColor(100,100,100);y+=4;}

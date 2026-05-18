@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.29 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.30 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -285,17 +285,6 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 
 
   </div>
-</div>
-
-<div class="card" id="turn-history-card" style="display:none">
-  <div onclick="toggleTurnHistory()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:0.1rem 0">
-    <div style="display:flex;align-items:baseline;gap:0.5rem">
-      <span class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TURN HISTORY</span>
-      <span id="turn-history-count" class="mono" style="font-size:0.7rem;color:#888"></span>
-    </div>
-    <span id="turn-history-arrow" style="color:#555;font-size:0.9rem">&#9656;</span>
-  </div>
-  <div id="turn-history-content" style="margin-top:1rem;display:none"></div>
 </div>
 
 <div class="card">
@@ -1351,7 +1340,6 @@ function renderDashboard(){
   renderTimer(pile);
   renderChart(sorted);
   renderLogTable(sorted,pile);
-  renderTurnHistory(pile);
   renderRecipeSummary(pile);
   renderTempRef();
 
@@ -1452,8 +1440,15 @@ function renderStatusCard(pile,sorted,lat,band){
     '</div>'+
   '</div>';
 
-  var nextDue=t&&t.deadline?fmtDate(t.deadline):"WAITING FOR HEAT";
-  var nextDueColor=t&&t.deadline?(isDone?"#4ade80":"#f97316"):"#60a5fa";
+  // NEXT TURN DUE: show duration remaining instead of timestamp
+  var nextDue,nextDueColor;
+  if(isDone){
+    nextDue="TURN NOW";nextDueColor="#ef4444";
+  } else if(t&&t.deadline&&t.remaining!=null){
+    nextDue=fmtHours(t.remaining*3600000);nextDueColor="#f97316";
+  } else {
+    nextDue="WAITING FOR HEAT";nextDueColor="#60a5fa";
+  }
   var pileBuilt=fmtDate(new Date(pile.created));
   // Since thermophilic start: duration from start of current streak to now
   var thermoSinceStr;var thermoSinceColor;
@@ -1469,6 +1464,15 @@ function renderStatusCard(pile,sorted,lat,band){
     '<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>'+
     '<div class="status-detail"><span class="status-key">SINCE THERMOPHILIC START</span><span class="status-val" style="color:'+thermoSinceColor+'">'+thermoSinceStr+'</span></div>'+
     '<div class="status-detail" style="border-bottom:none"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>';
+  // Append calendar reminder button (active or grayed)
+  var canSchedule=t&&t.deadline&&!isDone;
+  var calBtnHTML;
+  if(canSchedule){
+    calBtnHTML='<button onclick="addToCalendar(\''+pile.name.replace(/\x27/g,"\\\\x27")+'\','+t.deadline.getTime()+')" style="margin-top:0.9rem;width:100%;padding:0.65rem;background:none;border:1px solid #f97316;color:#f97316;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.05em">\u23F0 SET CALENDAR REMINDER \u00B7 '+fmtDate(t.deadline)+'</button>';
+  } else {
+    calBtnHTML='<button disabled style="margin-top:0.9rem;width:100%;padding:0.65rem;background:none;border:1px solid #222;color:#333;border-radius:3px;cursor:not-allowed;font-family:Inter,sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.05em">\u23F0 SET CALENDAR REMINDER</button>';
+  }
+  detailEl.innerHTML+=calBtnHTML;
 }
 
 function renderTimer(pile){
@@ -1529,10 +1533,6 @@ function renderTimer(pile){
       return renderCompletedCycleBar(cycle.entries,cycle.turnEntry,displayIdx);
     }
   }).join("");
-  var calBtn="";
-  if(t&&t.deadline&&!(t.complete||t.stageDone)){
-    calBtn='<button onclick="addToCalendar(\''+pile.name+'\','+t.deadline.getTime()+')" style="margin-top:0.75rem;width:100%;padding:0.65rem;background:none;border:1px solid #f97316;color:#f97316;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.05em">\u23F0 SET CALENDAR REMINDER \u00B7 '+fmtDate(t.deadline)+'</button>';
-  }
   // Wrap cycle rows in scrollable container if more than 5 cycles
   var cyclesWrap=displayCycles.length>5
     ?'<div style="max-height:340px;overflow-y:auto;padding-right:0.4rem">'+cycleRows+'</div>'
@@ -1541,7 +1541,7 @@ function renderTimer(pile){
     '<div style="margin-bottom:1rem;display:flex;align-items:baseline;gap:0.7rem">'+
       '<span class="hd" style="color:#fff;font-size:1rem">TURN CYCLES</span>'+
       '<span class="mono" style="color:#ccc;font-size:0.85rem;font-weight:600">'+displayCycles.length+' '+(displayCycles.length===1?"CYCLE":"CYCLES")+'</span>'+
-    '</div>'+cyclesWrap+calBtn;
+    '</div>'+cyclesWrap;
   var isDone=t&&(t.complete||t.stageDone);
   if(isDone&&"Notification"in window&&Notification.permission==="granted")
     new Notification("Compost Academy",{body:pile.name+" is ready to turn!"});
@@ -1657,62 +1657,6 @@ function toggleChart(){
   document.getElementById("btn-toggle-chart").textContent=tempMode==="three"?"SHOW AVG":"SHOW 3 LINES";
   var pile=getActivePile();if(!pile)return;
   renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
-}
-
-function renderTurnHistory(pile){
-  var history=buildTurnHistory(pile.entries);
-  var card=document.getElementById("turn-history-card");
-  var content=document.getElementById("turn-history-content");
-  var countEl=document.getElementById("turn-history-count");
-  if(!history.length){card.style.display="none";return;}
-  card.style.display="block";
-  if(countEl)countEl.textContent=history.length+(history.length===1?" TURN":" TURNS");
-  content.innerHTML='<div style="display:flex;flex-direction:column;gap:0.75rem">'+
-  history.map(function(t){
-    var iconHtml,iconClass="turn-icon";
-    if(t.isWarning){
-      iconHtml='<span style="font-size:1rem">&#9888;</span>';
-      iconClass="turn-icon warn";
-    } else if(t.highestSatisfied){
-      var bandObj=BANDS.find(function(b){return b.label===t.highestSatisfied;});
-      iconHtml='<span style="font-size:0.7rem;font-weight:bold">'+(bandObj?bandObj.hours+"h":"")+'</span>';
-    } else {
-      iconHtml='<span style="font-size:0.62rem;color:#555">'+t.num+'</span>';
-      iconClass="turn-icon";
-    }
-    var activeColor=t.activeBand?t.activeBand.color:"#555";
-    var coreSpan=t.core?'<span class="mono" style="font-size:0.78rem;color:'+activeColor+'">'+dispStr(t.core)+'</span>':"";
-    var bandSpan=t.activeBand?'<span class="mono" style="font-size:0.65rem;color:'+activeColor+'">'+t.activeBand.label+'</span>':"";
-    var sinceLine=t.sinceMs!=null
-      ?'<div class="mono" style="font-size:0.65rem;color:#555">SINCE PREV TURN: '+fmtHours(t.sinceMs)+'</div>'
-      :'<div class="mono" style="font-size:0.65rem;color:#555">FIRST TURN</div>';
-    var bObj=BANDS.find(function(b){return b.label===t.highestSatisfied;});
-    var satLine=t.highestSatisfied?'<div class="mono" style="font-size:0.65rem;color:#4ade80;margin-top:0.2rem">&#10003; SATISFIED: '+t.highestSatisfied+' ('+(bObj?bObj.hours:"")+'H)</div>':"";
-    var warnLine=t.isWarning?'<div class="mono" style="font-size:0.65rem;color:#ef4444;margin-top:0.2rem">&#9888; TURNED WITHOUT SATISFYING STAGE REQUIREMENT</div>':"";
-    return '<div style="display:flex;gap:0.85rem;align-items:flex-start;padding:0.75rem;background:#050505;border:1px solid #111;border-radius:3px">'+
-      '<div class="'+iconClass+'" style="margin-top:0.1rem">'+iconHtml+'</div>'+
-      '<div style="flex:1;min-width:0">'+
-        '<div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;margin-bottom:0.3rem">'+
-          '<span class="mono" style="font-size:0.82rem;color:#ccc">'+t.date+' '+t.time+'</span>'+
-          coreSpan+bandSpan+
-        '</div>'+
-        sinceLine+satLine+warnLine+
-      '</div>'+
-    '</div>';
-  }).join("")+'</div>';
-}
-
-function toggleTurnHistory(){
-  var content=document.getElementById("turn-history-content");
-  var arrow=document.getElementById("turn-history-arrow");
-  if(!content||!arrow)return;
-  if(content.style.display==="none"){
-    content.style.display="block";
-    arrow.innerHTML="\u25BE";
-  } else {
-    content.style.display="none";
-    arrow.innerHTML="\u25B8";
-  }
 }
 
 function renderRecipeSummary(pile){

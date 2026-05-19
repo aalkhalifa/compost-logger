@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.32 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.33 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -1410,30 +1410,7 @@ function autoAdvance(fromId,toId){
   if(val&&val.length>=2){var next=document.getElementById(toId);if(next)next.focus();}
 }
 
-// ============================================================
-// STALE DATA NOTICE (Option B companion)
-// Shows a warning badge when the last logged entry is >12h old.
-// Because we no longer extrapolate time to "now", the MESO/THERMO/READY
-// bars reflect only what has actually been measured. This badge tells the
-// user they need to log again to get updated times.
-// ============================================================
-function getStaleNotice(sorted){
-  if(!sorted||!sorted.length)return"";
-  var lastTs=new Date(sorted[sorted.length-1].ts).getTime();
-  var ageMs=Date.now()-lastTs;
-  var ageH=ageMs/3600000;
-  if(ageH<12)return"";
-  var ageStr;
-  if(ageH>=48){
-    ageStr=Math.round(ageH/24)+"d "+Math.floor(ageH%24)+"h";
-  } else {
-    ageStr=Math.floor(ageH)+"h "+Math.round((ageH%1)*60)+"m";
-  }
-  return'<div style="background:#1a1200;border:1px solid #3a2800;border-radius:3px;padding:0.45rem 0.75rem;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.5rem">'+
-    '<span style="color:#f59e0b;font-size:0.85rem">\u26a0\ufe0f</span>'+
-    '<span class="mono" style="font-size:0.62rem;color:#f59e0b;letter-spacing:0.05em">LAST ENTRY '+ageStr+' AGO \u00B7 LOG NOW TO UPDATE TIMES</span>'+
-    '</div>';
-}
+// getStaleNotice removed per user preference (v3.33)
 
 function renderStatusCard(pile,sorted,lat,band){
   var heroEl=document.getElementById("status-hero-area");
@@ -1489,6 +1466,16 @@ function renderStatusCard(pile,sorted,lat,band){
         var classified=classifyCycleTime(cycleEntries);
         var reachedStages=BANDS.filter(function(b){return b.hours>0&&classified.stages[b.label]&&classified.stages[b.label].everReached;});
         if(reachedStages.length===0){
+          // Current cycle below 131°F — show previous completed cycle's bars if available
+          if(cycles2.length>1){
+            var prevCycle=cycles2[cycles2.length-2];
+            var prevClassified=classifyCycleTime(prevCycle.entries);
+            var prevReached=BANDS.filter(function(b){return b.hours>0&&prevClassified.stages[b.label]&&prevClassified.stages[b.label].everReached;});
+            if(prevReached.length>0){
+              return '<div class="mono" style="font-size:0.55rem;color:#555;margin-bottom:0.5rem;text-align:center;letter-spacing:0.08em">PREV CYCLE · COOLING / MATURING</div>'+
+                prevReached.map(function(b){return renderStageBarActive(b,prevClassified.stages[b.label],lat.core);}).join("");
+            }
+          }
           return '<div class="mono" style="font-size:0.6rem;color:#555;padding:0.5rem 0;text-align:center">PILE NOT YET THERMOPHILIC</div>';
         }
         return reachedStages.map(function(b){
@@ -1517,7 +1504,6 @@ function renderStatusCard(pile,sorted,lat,band){
     thermoSinceStr=heatLabel;thermoSinceColor=heatColor;
   }
   detailEl.innerHTML=
-    getStaleNotice(sorted)+
     '<div class="status-detail"><span class="status-key" style="color:#f97316">NEXT TURN DUE</span><span class="status-val" style="color:'+nextDueColor+';font-weight:600">'+nextDue+'</span></div>'+
     '<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>'+
     '<div class="status-detail"><span class="status-key">SINCE THERMOPHILIC START</span><span class="status-val" style="color:'+thermoSinceColor+'">'+thermoSinceStr+'</span></div>'+
@@ -1613,7 +1599,6 @@ function renderTimer(pile){
     ?'<div style="max-height:340px;overflow-y:auto;padding-right:0.4rem">'+cycleRows+'</div>'
     :cycleRows;
   content.innerHTML=
-    getStaleNotice(sorted)+
     '<div style="margin-bottom:1rem;display:flex;align-items:baseline;gap:0.7rem">'+
       '<span class="hd" style="color:#fff;font-size:1rem">TURN CYCLES</span>'+
       '<span class="mono" style="color:#ccc;font-size:0.85rem;font-weight:600">'+displayCycles.length+' '+(displayCycles.length===1?"CYCLE":"CYCLES")+'</span>'+
@@ -1646,7 +1631,7 @@ function renderChart(sorted){
   if(chartInner&&chartCanvas){
     var n=sorted.length;
     if(n>10){
-      var pxPerEntry=45;
+      var pxPerEntry=22;
       var totalW=Math.max(500,n*pxPerEntry);
       chartInner.style.width=totalW+"px";
       chartCanvas.style.width=totalW+"px";

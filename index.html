@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div style="padding:1.25rem 1rem 0.75rem;text-align:center;border-bottom:1px solid #111">
     <img id="logo-img" src="icon-512.png" style="width:100%;max-width:120px;display:block;margin:0 auto;border-radius:8px"/>
     <div class="hd" style="font-size:1.6rem;color:#fff;margin-top:0.5rem;letter-spacing:0.15em">COMPOST LOGGER</div>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.31 &middot; COMPOST ACADEMY</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;margin-top:0.1rem">FIELD LOGGER v3.32 &middot; COMPOST ACADEMY</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -413,7 +413,6 @@ function localDateStr(d){var y=d.getFullYear();var m=d.getMonth()+1;var dd=d.get
 function fmtDate(d){return d.toLocaleDateString()+" "+d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
 function fmtShortDate(d){
   if(typeof d==="string"){
-    // d is like "2026-05-11" - parse and reformat
     var parts=d.split("-");
     if(parts.length===3){
       var year=parseInt(parts[0]);
@@ -491,11 +490,15 @@ function computeSatisfiedStages(cycleEntries){
 }
 
 // INDEPENDENT STAGES: tracks each stage's streak based on its own min temp floor.
-// If pile is at 153F (Stage 2), Stage 1 also counts because temp >= 131F.
-// Stage only resets when temp drops below ITS OWN min.
+// Option B: for the active cycle's last entry, the interval does NOT extend to now.
+// This prevents wildly inflated MESO/THERMO/READY times when no entries are logged
+// for days or weeks. A stale-data badge is shown separately instead.
 function computeIndependentStages(cycleEntries){
   var result={};
   var rel=cycleEntries.filter(function(e){return e.core!=null;});
+  // Detect completed cycle (last entry is a turn)
+  var lastEntry=rel[rel.length-1];
+  var isCompletedCycle=lastEntry&&lastEntry.turned;
   for(var bi=0;bi<BANDS.length;bi++){
     var band=BANDS[bi];
     if(band.hours===0)continue;
@@ -509,7 +512,8 @@ function computeIndependentStages(cycleEntries){
       if(aboveFloor){
         everReached=true;
         if(streakStart===null)streakStart=new Date(rel[i].ts);
-        var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):new Date();
+        // Option B: for active cycle last entry, use entry timestamp (not now)
+        var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?new Date(rel[i].ts):new Date(rel[i].ts)); // Option B: no extrapolation
         streakElapsed=(streakEnd-streakStart)/3600000;
         if(streakElapsed>=band.hours)satisfied=true;
       } else {
@@ -539,39 +543,9 @@ function computeIndependentStages(cycleEntries){
 //     "Stage 2": {...}
 //   }
 // }
-// Phase classification per interval:
-//   - Interval start temp < stage.min: MESO time (under that stage's threshold)
-//   - Interval start temp >= stage.min, stage not yet satisfied: THERMO building
-//   - Stage satisfied at moment of interval: READY time (delayed turn)
-
-function getHeatStateLabel(pile,sorted){
-  if(!sorted||!sorted.length)return "HEATING UP";
-  var now=Date.now();
-  var lastTurn=null;
-  for(var i=sorted.length-1;i>=0;i--){
-    if(sorted[i].turned){lastTurn=sorted[i];break;}
-  }
-  var everThermo=sorted.some(function(e){return e.core!=null&&e.core>=131;});
-  var lastThermoTs=null;
-  for(var j=sorted.length-1;j>=0;j--){
-    if(sorted[j].core!=null&&sorted[j].core>=131){
-      lastThermoTs=new Date(sorted[j].ts).getTime();break;
-    }
-  }
-  var pileBuiltMs=new Date(pile.created).getTime();
-  var ageDays=(now-pileBuiltMs)/86400000;
-  if(lastTurn){
-    var sinceTurnH=(now-new Date(lastTurn.ts).getTime())/3600000;
-    if(sinceTurnH<24)return "REBUILDING HEAT";
-  }
-  if(everThermo&&lastThermoTs){
-    var sinceThermoH=(now-lastThermoTs)/3600000;
-    if(sinceThermoH>=120)return "STABLE / MATURING";
-    return "REBUILDING HEAT";
-  }
-  if(ageDays>=5)return "NOT HEATING - CHECK PILE";
-  return "HEATING UP";
-}
+// Option B: active cycle last entry does NOT extend to now.
+// This means MESO/THERMO/READY times reflect only what has been measured.
+// A separate stale-data badge tells the user when logging is overdue.
 
 function classifyCycleTime(cycleEntries){
   var rel=cycleEntries.filter(function(e){return e.core!=null;});
@@ -579,10 +553,8 @@ function classifyCycleTime(cycleEntries){
   var sorted=rel.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var now=new Date();
   // Detect if this is a COMPLETED cycle (last entry is a turn).
-  // For completed cycles, the cycle ends at the turn timestamp - no extension to now.
   var lastEntry=sorted[sorted.length-1];
   var isCompletedCycle=lastEntry&&lastEntry.turned;
-  // For each stage, walk through entries and accumulate phase times
   var stages={};
   var bandList=BANDS.filter(function(b){return b.hours>0;});
   for(var bi=0;bi<bandList.length;bi++){
@@ -591,9 +563,6 @@ function classifyCycleTime(cycleEntries){
     var everReached=false;
     var satisfied=false;
     var streakStart=null;
-    // Walk intervals: from each entry to the next.
-    // For the last entry: extend to now ONLY if this is the ACTIVE cycle.
-    // For COMPLETED cycles (last entry is the turn), no extension after the turn.
     for(var i=0;i<sorted.length;i++){
       var startTs=new Date(sorted[i].ts);
       var endTs;
@@ -603,8 +572,9 @@ function classifyCycleTime(cycleEntries){
         // Last entry IS the turn - no interval after it
         endTs=startTs;
       } else {
-        // Active cycle: extend last interval to now
-        endTs=now;
+        // Active cycle: Option B — no extrapolation past last logged entry.
+        // Stale-data badge (rendered separately) flags when logging is overdue.
+        endTs=startTs;
       }
       var intervalMs=endTs-startTs;
       if(intervalMs<=0)continue;
@@ -614,22 +584,17 @@ function classifyCycleTime(cycleEntries){
         everReached=true;
         if(streakStart===null)streakStart=startTs;
         var streakSoFar=endTs-streakStart;
-        // Check if satisfaction was reached during this interval
         var requiredMs=band.hours*3600000;
         if(!satisfied&&streakSoFar>=requiredMs){
-          // Find moment of satisfaction
           var satMoment=new Date(streakStart.getTime()+requiredMs);
           if(satMoment<startTs){
-            // Already satisfied before this interval start
             readyMs+=intervalMs;
           } else if(satMoment<endTs){
-            // Satisfaction happens during this interval
             var beforeSat=satMoment-startTs;
             var afterSat=endTs-satMoment;
             thermoMs+=beforeSat;
             readyMs+=afterSat;
           } else {
-            // Satisfaction at or after interval end - count as thermo for now
             thermoMs+=intervalMs;
           }
           satisfied=true;
@@ -639,7 +604,6 @@ function classifyCycleTime(cycleEntries){
           thermoMs+=intervalMs;
         }
       } else {
-        // Below this stage's min temp
         streakStart=null;
         mesoMs+=intervalMs;
       }
@@ -658,16 +622,10 @@ function classifyCycleTime(cycleEntries){
 }
 
 // Render one multicolor segmented stage bar for the ACTIVE cycle
-// stage param: BAND object (with .label, .hours, .color, .min)
-// times: {mesoMs, thermoMs, readyMs, satisfied}
-// showCore: latest core temp to display in bottom-right
 function renderStageBarActive(stage,times,showCore){
   var refMs=stage.hours*3600000;
   var totalAccountedMs=times.mesoMs+times.thermoMs+times.readyMs;
-  // Fill % = totalAccountedMs / refMs, capped at 100
   var fillPct=Math.min(100,(totalAccountedMs/refMs)*100);
-  // Within the filled area, segments are proportional to their share of total time
-  // But scaled to fillPct (so segments span fillPct of bar width, not 100%)
   var segPct=function(ms){
     if(totalAccountedMs<=0)return 0;
     return (ms/totalAccountedMs)*fillPct;
@@ -675,11 +633,8 @@ function renderStageBarActive(stage,times,showCore){
   var mesoPct=segPct(times.mesoMs);
   var thermoPct=segPct(times.thermoMs);
   var readyPct=segPct(times.readyMs);
-  // If satisfied, the bar is fully GREEN with optional RED segment on right for delay time
-  // Otherwise: BLUE + ORANGE + (no red usually unless we mark recently-satisfied?)
   var barHTML="";
   if(times.satisfied){
-    // Green fill = fillPct minus the ready portion (which is RED)
     var greenPct=fillPct-readyPct;
     if(greenPct>0)barHTML+='<div style="width:'+greenPct+'%;background:#4ade80;height:12px"></div>';
     if(readyPct>0)barHTML+='<div style="width:'+readyPct+'%;background:#ef4444;height:12px"></div>';
@@ -687,7 +642,6 @@ function renderStageBarActive(stage,times,showCore){
     if(mesoPct>0)barHTML+='<div style="width:'+mesoPct+'%;background:#60a5fa;height:12px"></div>';
     if(thermoPct>0)barHTML+='<div style="width:'+thermoPct+'%;background:#f97316;height:12px"></div>';
   }
-  // Time breakdown text
   var msToH=function(ms){return ms/3600000;};
   var fmtH=function(h){if(h<1)return Math.round(h*60)+"m";return Math.floor(h)+"h"+(Math.round((h%1)*60)>0?" "+Math.round((h%1)*60)+"m":"");};
   var parts=[];
@@ -706,7 +660,6 @@ function renderStageBarActive(stage,times,showCore){
       labelColor="#4ade80";
     }
   } else {
-    // Calculate remaining (thermo time toward this stage)
     var remainingMs=refMs-times.thermoMs;
     if(remainingMs<0)remainingMs=0;
     var remH=msToH(remainingMs);
@@ -727,9 +680,7 @@ function renderStageBarActive(stage,times,showCore){
 }
 
 // Render a multicolor segmented bar for a COMPLETED cycle (turn timer card)
-// Uses BLUE/ORANGE/RED for the whole cycle's time breakdown, NO GREEN
 function renderCompletedCycleBar(cycleEntries,turnEntry,displayIdx){
-  // Use Stage 1's classification for the time breakdown (Stage 1 includes all thermo time)
   var classified=classifyCycleTime(cycleEntries);
   var s1=classified.stages["Stage 1"]||{mesoMs:0,thermoMs:0,readyMs:0,totalMs:0,satisfied:false};
   var totalMs=s1.mesoMs+s1.thermoMs+s1.readyMs;
@@ -737,7 +688,6 @@ function renderCompletedCycleBar(cycleEntries,turnEntry,displayIdx){
   var mesoPct=(s1.mesoMs/totalMs)*100;
   var thermoPct=(s1.thermoMs/totalMs)*100;
   var readyPct=(s1.readyMs/totalMs)*100;
-  // Determine if any stage was satisfied (for label)
   var anySatisfied=false;
   var highestSatLabel=null;
   var hsHours=0;
@@ -764,7 +714,6 @@ function renderCompletedCycleBar(cycleEntries,turnEntry,displayIdx){
   }
   var totalH=totalMs/3600000;
   var elapsedStr=Math.floor(totalH)+"h "+Math.round((totalH%1)*60)+"m";
-  // Build segmented bar
   var barHTML="";
   if(mesoPct>0)barHTML+='<div style="width:'+mesoPct+'%;background:#60a5fa;height:12px"></div>';
   if(thermoPct>0)barHTML+='<div style="width:'+thermoPct+'%;background:#f97316;height:12px"></div>';
@@ -789,38 +738,24 @@ function renderCompletedCycleBar(cycleEntries,turnEntry,displayIdx){
   '</div>';
 }
 
-// CYCLE HIGHEST STAGE STATUS:
-// For a cycle's entries, determine the highest stage CURRENTLY being tracked
-// (live streak, not reset). Returns the stage we should evaluate for completion.
-// Stage tracking rules:
-//   - Each stage has independent streak based on its own min temp
-//   - When pile drops below 131F, all stages reset
-//   - When pile is in Stage N, the "highest active" is N (Stage N streak is what we track)
-//   - When pile drops from Stage 2 to Stage 1, Stage 2's streak resets, Stage 1's continues
-//   - When pile climbs from Stage 1 to Stage 2, Stage 2's streak starts fresh
 function cycleHighestStageStatus(cycleEntries){
   var indep=computeIndependentStages(cycleEntries);
-  // The "highest currently active stage" = highest band whose streak is still alive
   var order=["Stage 4","Stage 3","Stage 2","Stage 1"];
   var highestActive=null;
   for(var i=0;i<order.length;i++){
     var s=indep[order[i]];
     if(s&&s.active){highestActive=order[i];break;}
   }
-  // Also track highest ever reached for satisfaction history
   var highestReached=null;
   for(var j=0;j<order.length;j++){
     var s2=indep[order[j]];
     if(s2&&s2.everReached){highestReached=order[j];break;}
   }
-  // Highest satisfied stage in this cycle
   var highestSatisfied=null;
   for(var k=0;k<order.length;k++){
     var s3=indep[order[k]];
     if(s3&&s3.satisfied){highestSatisfied=order[k];break;}
   }
-  // Thermophilic start = Stage 1's streak start (since Stage 1 is the lowest threshold >=131F)
-  // If Stage 1 not active, no thermophilic streak active
   var stage1=indep["Stage 1"];
   var thermophilicStart=stage1&&stage1.streakStart?stage1.streakStart:null;
   return{
@@ -842,7 +777,6 @@ function calcSmartTimer(entries){
   if(!entries.length)return null;
   var sorted=entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var lat=sorted[sorted.length-1];
-  // 175F+ = turn now (overheat)
   if(lat&&lat.core>=175){
     var turnNowBand=BANDS[BANDS.length-1];
     return{band:turnNowBand,turnNow:true,deadline:null,progress:100,remaining:0,elapsed:0,satisfiedStages:{},independentStages:{},thermophilicStart:null};
@@ -851,19 +785,16 @@ function calcSmartTimer(entries){
   var currentCycle=cycles[cycles.length-1];
   var status=cycleHighestStageStatus(currentCycle.entries);
   var independentStages=status.independentStages;
-  // Build satisfiedStages mapping
   var satisfiedStages={};
   for(var bi=0;bi<BANDS.length;bi++){
     var b=BANDS[bi];
     if(independentStages[b.label])satisfiedStages[b.label]=independentStages[b.label].satisfied;
   }
-  // If no stage is currently active (pile cold or no readings), nothing to track
   if(!status.highestActive){
     return null;
   }
   var activeBand=BANDS.find(function(b){return b.label===status.highestActive;});
   var activeStage=independentStages[status.highestActive];
-  // Cycle is "complete" when highest active stage is satisfied
   if(activeStage.satisfied){
     return{
       band:activeBand,
@@ -1337,14 +1268,12 @@ function loadRecipe(id){
   CATS.forEach(function(cat){renderCatItems(cat,"new");});updateTotalVol();
 }
 
-// REQUIRED FIELD VALIDATION
 function validatePileSetup(){
   var errors=[];
   var nameEl=document.getElementById("new-pile-name");
   var name=nameEl.value.trim();
   nameEl.classList.remove("error");
   if(!name){nameEl.classList.add("error");errors.push("Pile name is required");}
-  // Check ingredient/volume mutual requirement
   for(var ci=0;ci<CATS.length;ci++){
     var cat=CATS[ci];
     var items=newMaterials[cat.key]||[];
@@ -1427,7 +1356,6 @@ function renderDashboard(){
     var el2=document.getElementById("e-unit-"+k);if(el2)el2.textContent=unitLbl();
   });
 
-  // FUTURE DATE PREVENTION: set max attribute to today
   var now=new Date();
   var todayStr=localDateStr(now);
   var nowTimeStr=now.toTimeString().slice(0,5);
@@ -1482,6 +1410,31 @@ function autoAdvance(fromId,toId){
   if(val&&val.length>=2){var next=document.getElementById(toId);if(next)next.focus();}
 }
 
+// ============================================================
+// STALE DATA NOTICE (Option B companion)
+// Shows a warning badge when the last logged entry is >12h old.
+// Because we no longer extrapolate time to "now", the MESO/THERMO/READY
+// bars reflect only what has actually been measured. This badge tells the
+// user they need to log again to get updated times.
+// ============================================================
+function getStaleNotice(sorted){
+  if(!sorted||!sorted.length)return"";
+  var lastTs=new Date(sorted[sorted.length-1].ts).getTime();
+  var ageMs=Date.now()-lastTs;
+  var ageH=ageMs/3600000;
+  if(ageH<12)return"";
+  var ageStr;
+  if(ageH>=48){
+    ageStr=Math.round(ageH/24)+"d "+Math.floor(ageH%24)+"h";
+  } else {
+    ageStr=Math.floor(ageH)+"h "+Math.round((ageH%1)*60)+"m";
+  }
+  return'<div style="background:#1a1200;border:1px solid #3a2800;border-radius:3px;padding:0.45rem 0.75rem;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.5rem">'+
+    '<span style="color:#f59e0b;font-size:0.85rem">\u26a0\ufe0f</span>'+
+    '<span class="mono" style="font-size:0.62rem;color:#f59e0b;letter-spacing:0.05em">LAST ENTRY '+ageStr+' AGO \u00B7 LOG NOW TO UPDATE TIMES</span>'+
+    '</div>';
+}
+
 function renderStatusCard(pile,sorted,lat,band){
   var heroEl=document.getElementById("status-hero-area");
   var detailEl=document.getElementById("status-details");
@@ -1490,7 +1443,6 @@ function renderStatusCard(pile,sorted,lat,band){
   var sinceStr=sinceMs!==null?fmtHours(sinceMs):"No turn yet";
   var t=calcSmartTimer(pile.entries);
   var isDone=t&&(t.complete||t.stageDone);
-  // Use highest active stage band for status display (not latest temp band)
   if(t&&t.band&&!t.turnNow)band=t.band;
 
   if(lat&&lat.core>=175){
@@ -1530,7 +1482,6 @@ function renderStatusCard(pile,sorted,lat,band){
       '</div>'+
     '</div>'+
     '<div style="margin-top:0.85rem">'+
-      // Multicolor segmented bars per stage reached in current cycle
       (function(){
         var cycles2=buildCycles(sorted);
         var activeCycle=cycles2[cycles2.length-1];
@@ -1538,7 +1489,6 @@ function renderStatusCard(pile,sorted,lat,band){
         var classified=classifyCycleTime(cycleEntries);
         var reachedStages=BANDS.filter(function(b){return b.hours>0&&classified.stages[b.label]&&classified.stages[b.label].everReached;});
         if(reachedStages.length===0){
-          // Nothing reached yet - show simple "waiting" message
           return '<div class="mono" style="font-size:0.6rem;color:#555;padding:0.5rem 0;text-align:center">PILE NOT YET THERMOPHILIC</div>';
         }
         return reachedStages.map(function(b){
@@ -1548,7 +1498,6 @@ function renderStatusCard(pile,sorted,lat,band){
     '</div>'+
   '</div>';
 
-  // NEXT TURN DUE with smart heat label
   var heatLabel=getHeatStateLabel(pile,sorted);
   var heatColor=heatLabel==="NOT HEATING - CHECK PILE"?"#ef4444":heatLabel==="STABLE / MATURING"?"#999":"#60a5fa";
   var nextDue,nextDueColor;
@@ -1568,11 +1517,11 @@ function renderStatusCard(pile,sorted,lat,band){
     thermoSinceStr=heatLabel;thermoSinceColor=heatColor;
   }
   detailEl.innerHTML=
+    getStaleNotice(sorted)+
     '<div class="status-detail"><span class="status-key" style="color:#f97316">NEXT TURN DUE</span><span class="status-val" style="color:'+nextDueColor+';font-weight:600">'+nextDue+'</span></div>'+
     '<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>'+
     '<div class="status-detail"><span class="status-key">SINCE THERMOPHILIC START</span><span class="status-val" style="color:'+thermoSinceColor+'">'+thermoSinceStr+'</span></div>'+
     '<div class="status-detail" style="border-bottom:none"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>';
-  // Append calendar reminder button (active or grayed)
   var canSchedule=t&&t.deadline&&!isDone;
   var calBtnHTML;
   if(canSchedule){
@@ -1583,22 +1532,45 @@ function renderStatusCard(pile,sorted,lat,band){
   detailEl.innerHTML+=calBtnHTML;
 }
 
+function getHeatStateLabel(pile,sorted){
+  if(!sorted||!sorted.length)return "HEATING UP";
+  var now=Date.now();
+  var lastTurn=null;
+  for(var i=sorted.length-1;i>=0;i--){
+    if(sorted[i].turned){lastTurn=sorted[i];break;}
+  }
+  var everThermo=sorted.some(function(e){return e.core!=null&&e.core>=131;});
+  var lastThermoTs=null;
+  for(var j=sorted.length-1;j>=0;j--){
+    if(sorted[j].core!=null&&sorted[j].core>=131){
+      lastThermoTs=new Date(sorted[j].ts).getTime();break;
+    }
+  }
+  var pileBuiltMs=new Date(pile.created).getTime();
+  var ageDays=(now-pileBuiltMs)/86400000;
+  if(lastTurn){
+    var sinceTurnH=(now-new Date(lastTurn.ts).getTime())/3600000;
+    if(sinceTurnH<24)return "REBUILDING HEAT";
+  }
+  if(everThermo&&lastThermoTs){
+    var sinceThermoH=(now-lastThermoTs)/3600000;
+    if(sinceThermoH>=120)return "STABLE / MATURING";
+    return "REBUILDING HEAT";
+  }
+  if(ageDays>=5)return "NOT HEATING - CHECK PILE";
+  return "HEATING UP";
+}
+
 function renderTimer(pile){
   var card=document.getElementById("timer-card");var content=document.getElementById("timer-content");
   if(!pile.entries.length){card.style.borderLeftColor="#222";content.innerHTML='<div class="mono" style="color:#555;font-size:0.78rem;text-align:center">LOG ENTRIES TO ACTIVATE</div>';return;}
   var sorted=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var lat=sorted[sorted.length-1];
   if(lat&&lat.core>=175){card.style.borderLeftColor="#ff0000";content.innerHTML='<div class="hd" style="color:#ff0000;font-size:2rem;text-align:center">TURN NOW!</div>';return;}
-  // Build cycle data: each cycle is a sequence ending with a turn.
-  // For each cycle, compute the highest stage that was satisfied (for completed cycles)
-  // or the current stage progress (for the active cycle).
   var cycles=buildCycles(sorted);
   var t=calcSmartTimer(pile.entries);
   var activeCycleColor=t&&t.band?t.band.color:"#f97316";
   card.style.borderLeftColor=activeCycleColor;
-  // Exclude the initial heating phase (pile start -> first turn) from the cycle list.
-  // Cycles[0] represents pile-start to first turn. If there is at least one turn (cycles.length > 1),
-  // skip cycles[0]. Active cycle (no turn yet) is always shown.
   var displayCycles=cycles;
   var displayOffset=0;
   if(cycles.length>1){
@@ -1609,7 +1581,6 @@ function renderTimer(pile){
     var displayIdx=idx+1;
     var isActive=cycle.turnEntry===null;
     if(isActive){
-      // Active cycle: show the SINGLE bar for the stage closest to completion
       var classified=classifyCycleTime(cycle.entries);
       var reachedStages=BANDS.filter(function(b){return b.hours>0&&classified.stages[b.label]&&classified.stages[b.label].everReached;});
       if(reachedStages.length===0){
@@ -1623,7 +1594,6 @@ function renderTimer(pile){
           '<div class="pbar-wrap" style="height:12px"><div class="pbar" style="width:5%;background:'+heatColor2+';height:12px"></div></div>'+
         '</div>';
       }
-      // Find stage with highest fill % (closest to completion)
       var bestBand=null;var bestPct=-1;var bestTimes=null;
       reachedStages.forEach(function(b){
         var t=classified.stages[b.label];
@@ -1632,21 +1602,18 @@ function renderTimer(pile){
         var pct=t.satisfied?100:Math.min(100,(totalMs/refMs)*100);
         if(pct>bestPct){bestPct=pct;bestBand=b;bestTimes=t;}
       });
-      // Render that one bar with CYCLE N prefix
       var stageBarHTML=renderStageBarActive(bestBand,bestTimes,lat.core);
-      // Inject CYCLE N label by prepending in the wrapping div
       stageBarHTML=stageBarHTML.replace(bestBand.label+' \u00B7 '+bestBand.hours+'H','CYCLE '+displayIdx+' \u00B7 '+bestBand.label+' \u00B7 '+bestBand.hours+'H');
       return stageBarHTML;
     } else {
-      // Completed cycle: multicolor segmented (BLUE/ORANGE/RED), no green
       return renderCompletedCycleBar(cycle.entries,cycle.turnEntry,displayIdx);
     }
   }).join("");
-  // Wrap cycle rows in scrollable container if more than 5 cycles
   var cyclesWrap=displayCycles.length>5
     ?'<div style="max-height:340px;overflow-y:auto;padding-right:0.4rem">'+cycleRows+'</div>'
     :cycleRows;
   content.innerHTML=
+    getStaleNotice(sorted)+
     '<div style="margin-bottom:1rem;display:flex;align-items:baseline;gap:0.7rem">'+
       '<span class="hd" style="color:#fff;font-size:1rem">TURN CYCLES</span>'+
       '<span class="mono" style="color:#ccc;font-size:0.85rem;font-weight:600">'+displayCycles.length+' '+(displayCycles.length===1?"CYCLE":"CYCLES")+'</span>'+
@@ -1660,7 +1627,6 @@ function renderChart(sorted){
   var section=document.getElementById("chart-section");
   if(!sorted.length){section.classList.add("hidden");return;}
   section.classList.remove("hidden");
-  // Date-based labels: show "Apr 1" on first entry of each day, blank on others
   var monthNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   var lastDate="";
   var labels=sorted.map(function(e,i){
@@ -1672,17 +1638,14 @@ function renderChart(sorted){
     }
     return "";
   });
-  // Turn markers: use unique entry index since labels can repeat as blanks
   var turnDays=sorted.map(function(e,i){return e.turned?i:null;}).filter(function(v){return v!==null;});
   if(tempChart){tempChart.destroy();tempChart=null;}
-  // Adjust chart width based on entry count for horizontal scrolling
   var chartInner=document.getElementById("chart-inner");
   var chartCanvas=document.getElementById("temp-chart");
   var hintEl=document.getElementById("chart-scroll-hint");
   if(chartInner&&chartCanvas){
     var n=sorted.length;
     if(n>10){
-      // Each entry gets a fixed width for readability
       var pxPerEntry=45;
       var totalW=Math.max(500,n*pxPerEntry);
       chartInner.style.width=totalW+"px";
@@ -1710,7 +1673,6 @@ function renderChart(sorted){
   turnDays.forEach(function(idx,i){
     turnAnnotations["turn"+i]={type:"line",xMin:idx,xMax:idx,borderColor:"#f97316",borderWidth:2.5};
   });
-  // Day vertical lines: one per day (on first entry of each day)
   var dayAnnotations={};
   var seenDay={};
   sorted.forEach(function(e,i){
@@ -1718,7 +1680,7 @@ function renderChart(sorted){
     var dayKey=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();
     if(seenDay[dayKey])return;
     seenDay[dayKey]=true;
-    if(turnDays.indexOf(i)>=0)return; // skip turn entries
+    if(turnDays.indexOf(i)>=0)return;
     dayAnnotations["day"+i]={type:"line",xMin:i,xMax:i,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
   });
   var tempDatasets=tempMode==="three"?[
@@ -1874,7 +1836,6 @@ function renderLogTable(sorted,pile){
   var sortedDisplay=entriesSortMode==="oldest"?sorted.slice():sorted.slice().reverse();
   var tbody='<tbody>'+sortedDisplay.map(function(en,i){
     var moistCell=en.moisture!=null?'<span style="background:'+mColor(en.moisture)+';color:#fff;padding:0.05rem 0.25rem;border-radius:2px;font-family:Share Tech Mono,monospace;font-size:0.65rem">'+en.moisture+'%</span>':"-";
-    // Day 1 = earliest entry date (not pile.created, which is when pile was tapped in the app)
     var earliestTs=sorted.length?new Date(sorted[0].ts):new Date(pile.created);
     var earliestDay=new Date(earliestTs.getFullYear(),earliestTs.getMonth(),earliestTs.getDate());
     var entryDate=new Date(en.ts);
@@ -1895,7 +1856,6 @@ function renderLogTable(sorted,pile){
   table.innerHTML=thead+tbody;
 }
 
-// VALIDATE ENTRY: future date prevention + temp required
 function validateEntry(){
   var errors=[];
   var dateEl=document.getElementById("f-date");
@@ -1904,7 +1864,6 @@ function validateEntry(){
   var time=timeEl.value;
   dateEl.classList.remove("error");
   timeEl.classList.remove("error");
-  // Future date check
   var entryTs=new Date(date+"T"+time);
   var now=new Date();
   if(entryTs.getTime()>now.getTime()){
@@ -1912,7 +1871,6 @@ function validateEntry(){
     timeEl.classList.add("error");
     errors.push("Entry date/time cannot be in the future");
   }
-  // At least one temp required
   var coreEl=document.getElementById("f-core");
   var topEl=document.getElementById("f-top");
   var botEl=document.getElementById("f-bottom");
@@ -1926,7 +1884,6 @@ function validateEntry(){
     coreEl.classList.add("error");
     errors.push("Enter at least one temperature");
   } else {
-    // Range check: F: 0-250, C: 0-120 (after conversion to F: 32-248)
     var maxF=250,minF=0;
     if(core!=null&&(core<minF||core>maxF)){
       coreEl.classList.add("error");
@@ -1965,7 +1922,6 @@ function addEntry(){
   renderDashboard();
 }
 
-// SAVE RECIPE WITH OVERWRITE CONFIRMATION
 function saveRecipe(){
   var pile=getActivePile();if(!pile)return;
   var name=document.getElementById("recipe-name").value.trim();if(!name)return;
@@ -2146,7 +2102,6 @@ function exportPDF(){
     doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
     doc.text("TURN HISTORY",M,y);y+=5;
     doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
-    // Compute peak temp per cycle: from previous turn (or pile start) to this turn
     var cycleBoundaries=[];
     var prevTurnIdx=-1;
     var sortedAll=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
@@ -2163,7 +2118,6 @@ function exportPDF(){
       var icon=t.highestSatisfied?(hsBand?hsBand.hours+"H":"")+" SATISFIED":t.isWarning?"WARNING":"TURN "+t.num;
       doc.text("Turn "+t.num+" - "+icon,M,y);y+=4;
       doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(100,100,100);
-      // Compute peak for this cycle
       var peakStr="";
       if(cycleBoundaries[turnIdx]){
         var cb=cycleBoundaries[turnIdx];
@@ -2217,12 +2171,7 @@ function exportPDF(){
 
 
 // ============================================================
-// DRIVE SYNC OVERHAUL
-// - On app open: try Drive first, fallback to localStorage
-// - On every change: save localStorage immediately + push to Drive immediately
-// - 3-state indicator: SAVING / SAVED / OFFLINE
-// - beforeunload warning when save is pending
-// - Manual Sync Now button when pending
+// DRIVE SYNC
 // ============================================================
 
 function driveLabelShort(){
@@ -2264,9 +2213,7 @@ function updateDriveUI(){
   var label=labels[driveStatus]||"LOCAL ONLY";
   if(dot)dot.style.background=color;
   if(lbl){lbl.style.color=color;lbl.textContent=label;}
-  // Connect button only when disconnected
   if(btnConnect)btnConnect.style.display=(driveStatus==="disconnected"||driveStatus==="error"||driveStatus==="offline")?"inline-block":"none";
-  // Sync now button when pending save and connected
   if(btnSync)btnSync.style.display=driveToken?"inline-block":"none";
 }
 
@@ -2309,7 +2256,6 @@ async function driveCreateFile(name,folderId,data){
 }
 
 async function initDriveStorage(){
-  // Find or create the Compost Logger folder
   var q1=encodeURIComponent("name='Compost Logger' and mimeType='application/vnd.google-apps.folder' and trashed=false");
   var fr=await driveGet("/files?q="+q1+"&fields=files(id)");
   var folderId;
@@ -2319,12 +2265,10 @@ async function initDriveStorage(){
     var folder=await drivePost("/files",{name:"Compost Logger",mimeType:"application/vnd.google-apps.folder"});
     folderId=folder.id;
   }
-  // Find or create the data file
   var q2=encodeURIComponent("name='compost_data.json' and '"+folderId+"' in parents and trashed=false");
   var dr=await driveGet("/files?q="+q2+"&fields=files(id)");
   if(dr.files&&dr.files.length){
     driveFileId=dr.files[0].id;
-    // Drive is source of truth: pull fresh
     var r=await fetch("https://www.googleapis.com/drive/v3/files/"+driveFileId+"?alt=media",{
       headers:{Authorization:"Bearer "+driveToken}
     });
@@ -2335,12 +2279,10 @@ async function initDriveStorage(){
         recipes=d.recipes||[];
         ingHist=d.ingHist||DEF_HIST;
         if(d.tempUnit)tempUnit=d.tempUnit;
-        // Mirror to localStorage
         localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit}));
       }
     }
   } else {
-    // Create new file with current local data
     var f=await driveCreateFile("compost_data.json",folderId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit});
     driveFileId=f.id;
   }
@@ -2365,19 +2307,16 @@ async function driveSaveNow(){
     pendingSave=false;
     syncInProgress=false;
     setStatus("saved");
-    // After 2 seconds, transition saved -> connected (steady state)
     setTimeout(function(){
       if(driveStatus==="saved"&&!pendingSave)setStatus("connected");
     },2000);
   } catch(ex){
     syncInProgress=false;
     console.error("Drive save error",ex);
-    // Try to detect offline vs auth issue
     if(!navigator.onLine){
       setStatus("offline");
     } else {
       setStatus("error");
-      // Try refreshing the token
       if(tokenClient)tokenClient.requestAccessToken({prompt:""});
     }
   }
@@ -2419,10 +2358,8 @@ function initGoogleAuth(){
   },300);
 }
 
-// Online/offline detection
 window.addEventListener("online",function(){
   if(driveStatus==="offline"&&driveToken){
-    // Try to flush pending save
     if(pendingSave)driveSaveNow();
     else setStatus("connected");
   }
@@ -2431,7 +2368,6 @@ window.addEventListener("offline",function(){
   if(driveToken)setStatus("offline");
 });
 
-// Warn before close if pending save
 window.addEventListener("beforeunload",function(e){
   if(pendingSave&&driveToken){
     e.preventDefault();
@@ -2439,10 +2375,6 @@ window.addEventListener("beforeunload",function(e){
     return e.returnValue;
   }
 });
-
-// ============================================================
-// BOOT
-// ============================================================
 
 // ============================================================
 // CSV IMPORT + TEMPLATE
@@ -2487,7 +2419,6 @@ function downloadCSVTemplate(){
 }
 
 function parseCSV(text){
-  // Returns {pile:{name,created},materials:{...},entries:[...]}
   var lines=text.split(/\r?\n/);
   var section=null;
   var pile={name:"",created:""};
@@ -2499,19 +2430,16 @@ function parseCSV(text){
     if(!line||line.trim()==="")continue;
     if(line.trim().charAt(0)==="#")continue;
     var trimmed=line.trim();
-    // Section header
     if(trimmed.charAt(0)==="["&&trimmed.charAt(trimmed.length-1)==="]"){
       section=trimmed.slice(1,-1).toUpperCase();
       continue;
     }
-    // Parse CSV row (simple split, no quote handling for now)
     var parts=line.split(",").map(function(p){return p.trim();});
     if(section==="PILE"){
       var key=parts[0].toLowerCase();
       if(key==="name"&&parts[1])pile.name=parts[1];
       if(key==="created"&&parts[1])pile.created=parts[1];
     } else if(section==="RECIPE"){
-      // Skip header row
       if(parts[0]==="Category"||parts[0]==="category")continue;
       var catKey=catMap[parts[0].toUpperCase()];
       if(!catKey)continue;
@@ -2576,7 +2504,6 @@ function handleCSVImport(event){
       }
       var totalEntries=parsed.entries.length;
       var totalIngredients=parsed.materials.highN.length+parsed.materials.greens.length+parsed.materials.browns.length;
-      // Check if a pile with this name already exists
       var existing=piles.find(function(p){return p.name.toLowerCase()===parsed.pile.name.toLowerCase();});
       var appendMode=false;
       if(existing){
@@ -2593,7 +2520,6 @@ function handleCSVImport(event){
         {event.target.value="";return;}
       }
       if(appendMode){
-        // Append entries to existing pile (skip recipe overwrite)
         existing.entries=existing.entries.concat(parsed.entries);
         save();
         alert("Appended "+totalEntries+" entries to \""+existing.name+"\".");
@@ -2601,7 +2527,6 @@ function handleCSVImport(event){
         renderHome();
         return;
       }
-      // Ensure all 3 categories exist with at least one item (even if empty)
       var mats={
         highN:parsed.materials.highN.length?parsed.materials.highN:[newItem()],
         greens:parsed.materials.greens.length?parsed.materials.greens:[newItem()],
@@ -2619,7 +2544,6 @@ function handleCSVImport(event){
         entries:parsed.entries
       };
       piles.push(pile);
-      // Add ingredient names to history
       CATS.forEach(function(cat){
         (mats[cat.key]||[]).forEach(function(i){if(i.name)addToHist(cat.key,i.name);});
       });
@@ -2654,7 +2578,6 @@ renderHome();
 showView("home");
 initGoogleAuth();
 
-// Re-render chart on orientation change so canvas height adapts
 var __resizeTimer=null;
 window.addEventListener("resize",function(){
   if(__resizeTimer)clearTimeout(__resizeTimer);

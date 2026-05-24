@@ -516,7 +516,7 @@ function computeIndependentStages(cycleEntries){
         if(streakStart===null)streakStart=new Date(rel[i].ts);
         // Active cycle: extrapolate last entry to now so time accumulates in real time.
         // Completed cycles stop at their last entry (the turn).
-        var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?new Date(rel[i].ts):new Date()); B: no extrapolation
+        var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?new Date(rel[i].ts):new Date());
         streakElapsed=(streakEnd-streakStart)/3600000;
         if(streakElapsed>=band.hours)satisfied=true;
       } else {

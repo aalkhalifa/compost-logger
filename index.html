@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.50</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.51</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -424,7 +424,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.50</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.51</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -724,7 +724,7 @@ function buildChronologicalSegments(cycleEntries,isCompleted){
   for(var ri=0;ri<rel.length;ri++){
     var b=getBand(rel[ri].core);
     if(b&&b.hours>0){
-      if(!targetBand||BANDS.indexOf(b)<BANDS.indexOf(targetBand))targetBand=b;
+      if(!targetBand||BANDS.indexOf(b)>BANDS.indexOf(targetBand))targetBand=b;
     }
   }
   var refMs=targetBand?targetBand.hours*3600000:72*3600000;
@@ -1731,10 +1731,8 @@ function renderStatusCard(pile,sorted,lat,band){
         var latCore=relEntries.length?relEntries[relEntries.length-1].core:null;
         if(latCore!=null&&latCore<131){
           if(relEntries.length>=2){
-            // Check if last 2 entries are increasing
             var prev2=relEntries[relEntries.length-2].core;
             if(latCore>prev2){trendLabel="HEATING UP ↑";trendColor="#60a5fa";}
-            else if(latCore<prev2){trendLabel="BELOW THERMOPHILIC";trendColor="#555";}
             else{trendLabel="BELOW THERMOPHILIC";trendColor="#555";}
           } else {
             trendLabel="BELOW THERMOPHILIC";trendColor="#555";
@@ -1746,36 +1744,53 @@ function renderStatusCard(pile,sorted,lat,band){
         // Update cycle label with trend
         var cycleLbl2=document.getElementById("status-cycle-label");
         if(cycleLbl2&&trendLabel)cycleLbl2.textContent="CURRENT CYCLE "+cycleNum+" · "+trendLabel;
-        // Build chronological bar — always fresh for current cycle, no fallback to prev
+
         if(!relEntries.length){
           return '<div class="mono" style="font-size:0.6rem;color:#555;padding:0.5rem 0;text-align:center">LOG FIRST ENTRY TO START</div>';
         }
-        var cr=buildChronologicalSegments(cycleEntries,false);
-        var fillPct=cr.totalMs>0?Math.min(100,(cr.totalMs/cr.refMs)*100):0;
-        var barHTML="";
-        if(cr.totalMs<=0){
-          // No measurable time yet — show thin blue stub
-          barHTML='<div style="width:2%;background:#3b82f6;height:12px"></div>';
-        } else {
-          barHTML=cr.segments.map(function(seg){
-            var p=(seg.ms/cr.totalMs)*fillPct;
-            return p>0.1?'<div style="width:'+p+'%;background:'+seg.color+';height:12px"></div>':'';
-          }).join("");
-        }
-        var msToH=function(ms){return ms/3600000;};
+
+        // Build independent per-stage bars
+        var indep=computeIndependentStages(cycleEntries);
+        var stageBands=BANDS.filter(function(b){return b.hours>0;});
+        var STAGE_COLORS={"Stage 1":"#eab308","Stage 2":"#f97316","Stage 3":"#ef4444","Stage 4":"#dc2626"};
         var fmtH=function(h){if(h<1)return Math.round(h*60)+"m";return Math.floor(h)+"h"+(Math.round((h%1)*60)>0?" "+Math.round((h%1)*60)+"m":"");};
-        var mMs=0,tMs=0,rMs=0;
-        cr.segments.forEach(function(seg){if(seg.label==="MESO")mMs+=seg.ms;else if(seg.label==="READY")rMs+=seg.ms;else tMs+=seg.ms;});
-        var pts=[];
-        if(mMs>0)pts.push("MESO "+fmtH(msToH(mMs)));
-        if(tMs>0)pts.push("THERMO "+fmtH(msToH(tMs)));
-        if(rMs>0)pts.push("READY "+fmtH(msToH(rMs)));
-        var reqLabel=cr.refMs/3600000+"H REQUIRED";
-        return (pts.length?'<div style="display:flex;justify-content:space-between;margin-bottom:0.25rem">'+
-          '<span class="mono" style="font-size:0.6rem;color:#555">'+pts.join(" · ")+'</span>'+
-          '<span class="mono" style="font-size:0.6rem;color:#555">'+reqLabel+'</span>'+
-        '</div>':'')+
-        '<div class="pbar-wrap" style="height:12px;display:flex;background:#1a1a1a">'+barHTML+'</div>';
+
+        // Only show stages that have been reached
+        var reachedBands=stageBands.filter(function(b){
+          var s=indep[b.label];return s&&s.everReached;
+        });
+
+        if(!reachedBands.length){
+          // Not thermophilic yet — show blue stub with heating up message
+          return '<div style="margin-bottom:0.3rem">'+
+            '<div style="display:flex;justify-content:space-between;margin-bottom:0.25rem">'+
+              '<span class="mono" style="font-size:0.6rem;color:#3b82f6">'+trendLabel+'</span>'+
+              '<span class="mono" style="font-size:0.6rem;color:#555">BELOW 131°F</span>'+
+            '</div>'+
+            '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
+              '<div style="width:3%;background:#3b82f6;height:10px"></div>'+
+            '</div>'+
+          '</div>';
+        }
+
+        return reachedBands.map(function(b){
+          var s=indep[b.label];
+          var color=STAGE_COLORS[b.label]||b.color;
+          var pct=s.satisfied?100:Math.min(100,(s.elapsed/b.hours)*100);
+          var statusLabel=s.satisfied?"✓ DONE":fmtH(s.remaining)+" LEFT";
+          var statusColor=s.satisfied?"#4ade80":color;
+          var elapsedLabel=s.satisfied?b.hours+"h+ · SATISFIED":fmtH(s.elapsed)+" / "+b.hours+"H";
+          return '<div style="margin-bottom:0.55rem">'+
+            '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
+              '<span class="mono" style="font-size:0.65rem;color:'+color+';letter-spacing:0.05em">'+b.label+' · '+b.hours+'H</span>'+
+              '<span class="mono" style="font-size:0.65rem;color:'+statusColor+'">'+statusLabel+'</span>'+
+            '</div>'+
+            '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
+              '<div style="width:'+pct+'%;background:'+(s.satisfied?"#4ade80":color)+';height:10px"></div>'+
+            '</div>'+
+            '<div style="font-size:0.55rem;color:#555;margin-top:0.18rem">'+elapsedLabel+'</div>'+
+          '</div>';
+        }).join("");
       })()+
     '</div>'+
   '</div>';

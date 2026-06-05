@@ -425,7 +425,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
         <div>COMPOST LOGGER &middot; FIELD LOGGER v3.49</div>
-        <div>COMPOST ACADEMY</div>
+        <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
     </div>
@@ -2361,7 +2361,7 @@ function exportPDF(){
   function check(needed){if(y+needed>285){doc.addPage();y=M;}}
   doc.setFillColor(0,0,0);doc.rect(0,0,W,30,"F");
   doc.setFont("helvetica","bold");doc.setFontSize(18);doc.setTextColor(255,255,255);
-  doc.text("COMPOST ACADEMY - PILE REPORT",M,12);
+  doc.text("COMPOST LOGGER - PILE REPORT",M,12);
   doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(180,180,180);
   doc.text(pile.name,M,20);
   doc.text("Created: "+new Date(pile.created).toLocaleDateString()+" - Days: "+pile.entries.length+" - Turns: "+pile.entries.filter(function(e){return e.turned;}).length,M,26);

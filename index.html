@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.52</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.53</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -424,7 +424,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.52</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.53</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -2061,10 +2061,14 @@ function renderRecipeSummary(pile){
         '<span class="mono" style="font-size:0.62rem;color:#4ade80;background:#081a08;padding:0.1rem 0.35rem;border-radius:2px">S '+sn+'%</span>'+
         '<span class="mono" style="font-size:0.62rem;color:#d97706;background:#1a1008;padding:0.1rem 0.35rem;border-radius:2px">B '+br+'%</span>'+
       '</div>':"";
-      return '<div style="padding:0.5rem 0.75rem;border-top:1px solid #0a0a0a">'+
-        '<div style="display:flex;justify-content:space-between;align-items:baseline">'+
-          '<span style="font-size:0.88rem;color:#ddd">'+(i.name||"")+'</span>'+
-          '<span class="mono" style="font-size:0.72rem;color:#555">'+(i.volume?i.volume+" gal":"")+'</span>'+
+      var buckets=i.volume&&parseFloat(i.volume)>0?Math.round(parseFloat(i.volume)/5):null;
+      return '<div style="padding:0.55rem 0.75rem;border-top:1px solid #0a0a0a">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
+          '<span style="font-size:0.88rem;color:#ddd;flex:1">'+(i.name||"")+'</span>'+
+          '<div style="text-align:right;flex-shrink:0;margin-left:0.75rem">'+
+            '<div class="mono" style="font-size:0.88rem;color:#f59e0b;font-weight:600">'+(i.volume?i.volume+" gal":"")+'</div>'+
+            (buckets?'<div class="mono" style="font-size:0.68rem;color:#666;margin-top:0.1rem">'+buckets+' buckets</div>':"")+
+          '</div>'+
         '</div>'+notesLine+badge+
       '</div>';
     }).join("");

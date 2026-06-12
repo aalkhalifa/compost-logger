@@ -2489,21 +2489,31 @@ function exportPDF(){
   doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(50,50,50);
   doc.text("INGREDIENT DETAIL",M,y);y+=5;
   doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
+  var cuLabel=(function(){var n=pdfCU.name.toLowerCase();if(n.includes("yard"))return"yards";if(n.includes("gal"))return"buckets";return pdfCU.name;})();
   CATS.forEach(function(cat){
     var items=(pile.materials[cat.key]||[]).filter(function(i){return i.name;});
     if(!items.length)return;
-    check(12);
+    check(14);
     doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(60,60,60);
-    doc.text(cat.label,M,y);y+=4;
+    doc.text(cat.label,M,y);y+=5;
+    var catTotalVol=0;
     items.forEach(function(item){
-      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(100,100,100);
-      var iCount=item.volume&&parseFloat(item.volume)>0?containerCount(item.volume,pdfCU):null;
-      var countStr=iCount?" ["+iCount+" × "+pdfCU.name+"]":"";
-      doc.text("  - "+item.name+(item.volume?" ("+item.volume+" "+pdfVL+")":"")+countStr+(item.notes?" — "+item.notes:""),M,y);y+=4;
+      check(7);
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(80,80,80);
+      var iVol=parseFloat(item.volume)||0;
+      catTotalVol+=iVol;
+      var iCount=iVol>0?containerCount(String(iVol),pdfCU):null;
+      doc.text("  - "+item.name+(item.notes?" — "+item.notes:""),M,y);
+      if(iVol>0)doc.text(iVol.toFixed(1)+" "+pdfVL+(iCount?" · "+iCount+" "+cuLabel:""),W-M,y,{align:"right"});
+      y+=5;
     });
-    y+=1;
+    doc.setDrawColor(210,210,210);doc.line(M+4,y,W-M,y);y+=3;
+    doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(60,60,60);
+    var catCount=catTotalVol>0?containerCount(String(catTotalVol),pdfCU):null;
+    doc.text("TOTAL: "+catTotalVol.toFixed(1)+" "+pdfVL+(catCount?" · "+catCount+" "+cuLabel:""),M+4,y);
+    y+=7;
   });
-  y+=3;
+  y+=2;
   var history=buildTurnHistory(pile.entries);
   if(history.length){
     check(20);

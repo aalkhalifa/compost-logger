@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.55</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.56</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -130,6 +130,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
         <button onclick="showView('setup')" class="btn" style="width:auto;padding:0.45rem 0.9rem;flex-shrink:0">+ NEW PILE</button>
       </div>
     </div>
+    <input type="file" id="scan-photos-input" accept="image/*" multiple style="display:none" onchange="handleScanPhotos(event)"/>
     <input type="file" id="csv-import-input" accept=".csv,text/csv" style="display:none" onchange="handleCSVImport(event)"/>
     <input type="file" id="xlsx-import-input" accept=".xlsx,.xlsm" style="display:none" onchange="handleXLSXImport(event)"/>
     <div id="pile-sort" style="margin-bottom:0.75rem;display:none"></div>
@@ -235,7 +236,11 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 </div>
 
 <div class="card">
-  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.9rem">LOG ENTRY</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+    <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">LOG ENTRY</div>
+    <button id="card-btn-logentry" onclick="toggleCard('logentry')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
+  </div>
+  <div id="card-body-logentry">
   <div style="display:flex;justify-content:flex-end;margin-bottom:0.5rem;width:100%">
     <button onclick="quickLog()" style="background:none;border:1px solid #f97316;color:#f97316;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;padding:0.4rem 0.75rem;border-radius:3px;font-weight:600">USE CURRENT TIME</button>
   </div>
@@ -249,6 +254,9 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <input type="time" class="temp-input" id="f-time" style="font-size:1rem"/>
     </div>
   </div>
+  <button onclick="document.getElementById('scan-photos-input').click()" style="background:none;border:1px solid #333;color:#555;border-radius:3px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;padding:0.35rem 0.75rem;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.4rem">
+    <span style="font-size:0.8rem">&#128247;</span> SCAN THERMOMETER PHOTOS
+  </button>
   <div id="entry-error" class="error-msg hidden"></div>
   <div style="margin-bottom:0.6rem">
     <label class="lbl" style="color:#f59e0b">AMBIENT TEMP <span id="unit-lbl-amb"></span></label>
@@ -269,8 +277,15 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     </div>
   </div>
   <div style="margin-bottom:0.75rem">
-    <label class="lbl" style="display:flex;justify-content:space-between">
-      <span>MOISTURE %</span><span id="moisture-val" class="mono" style="color:#1e88e5;font-size:0.85rem">50%</span>
+    <label class="lbl" style="display:flex;justify-content:space-between;align-items:center">
+      <span>MOISTURE %</span>
+      <span style="display:flex;align-items:center;gap:0.5rem">
+        <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer">
+          <input type="checkbox" id="f-moisture-skip" onchange="toggleMoistureSkip()" style="width:14px;height:14px;accent-color:#555"/>
+          <span class="mono" style="font-size:0.58rem;color:#555">NOT MEASURED</span>
+        </label>
+        <span id="moisture-val" class="mono" style="color:#1e88e5;font-size:0.85rem">50%</span>
+      </span>
     </label>
     <input type="range" id="f-moisture-slider" min="0" max="100" step="5" value="50"
       style="--rc:#1e88e5;--pct:50%" oninput="updateSlider(this)"/>
@@ -296,32 +311,47 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <textarea id="f-notes" placeholder="Observations, smell, texture..." style="height:52px;resize:none"></textarea>
   </div>
   <button class="btn" onclick="addEntry()">+ LOG ENTRY</button>
+  </div>
 </div>
 
 <div class="card">
-  <div id="log-count" class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">ENTRIES</div>
-  <div style="overflow:auto;max-height:230px"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+    <div id="log-count" class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">ENTRIES</div>
+    <button id="card-btn-logtable" onclick="toggleCard('logtable')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
+  </div>
+  <div id="card-body-logtable">
+    <div style="overflow:auto;max-height:230px"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
+  </div>
 </div>
 
 
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
-    <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">RECIPE</div>
+    <div style="display:flex;align-items:center;gap:0.5rem">
+      <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">RECIPE</div>
+      <button id="card-btn-recipe" onclick="toggleCard('recipe')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
+    </div>
     <div style="display:flex;align-items:center;gap:0.75rem">
       <div id="pile-ratio-bar" style="display:flex;height:6px;width:80px;border-radius:3px;overflow:hidden;gap:1px"></div>
       <button onclick="openRecipeEdit()" class="btn-sm" style="font-size:0.65rem">EDIT RECIPE</button>
     </div>
   </div>
-  <div id="dash-recipe"></div>
-  <div style="display:grid;grid-template-columns:1fr auto;gap:0.5rem;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #111">
+  <div id="card-body-recipe"><div id="dash-recipe"></div>
+  </div><div style="display:grid;grid-template-columns:1fr auto;gap:0.5rem;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #111">
     <input id="recipe-name" placeholder="Save as recipe..."/>
     <button class="btn-sm" onclick="saveRecipe()">SAVE</button>
+  </div>
   </div>
 </div>
 
 <div class="card">
-  <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">TEMPERATURE REFERENCE</div>
-  <div id="temp-ref"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+    <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMPERATURE REFERENCE</div>
+    <button id="card-btn-tempref" onclick="toggleCard('tempref')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
+  </div>
+  <div id="card-body-tempref">
+    <div id="temp-ref"></div>
+  </div>
 </div>
 
   </div>
@@ -388,6 +418,21 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div style="font-size:0.68rem;font-weight:400;color:#555;margin-top:0.2rem">Import as a separate new pile</div>
     </button>
     <button onclick="importModalChoice('cancel')" style="width:100%;padding:0.75rem;background:none;border:1px solid #222;color:#555;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.85rem">CANCEL</button>
+  </div>
+</div>
+
+<div id="scan-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:700;display:none;align-items:flex-end;justify-content:center">
+  <div style="background:#0a0a0a;border:1px solid #222;border-radius:8px 8px 0 0;padding:1.5rem;width:100%;max-width:700px;max-height:85vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <span class="hd" style="font-size:1rem;color:#fff">SCAN RESULTS</span>
+      <button onclick="closeScanModal()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
+    </div>
+    <div id="scan-status" class="mono" style="font-size:0.75rem;color:#f59e0b;margin-bottom:1rem"></div>
+    <div id="scan-results"></div>
+    <div id="scan-actions" style="display:none;margin-top:1rem">
+      <button onclick="confirmScan()" class="btn" style="margin-bottom:0.5rem">CONFIRM — FILL FIELDS</button>
+      <button onclick="closeScanModal()" style="width:100%;padding:0.75rem;background:none;border:1px solid #222;color:#555;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.85rem">CANCEL — ENTER MANUALLY</button>
+    </div>
   </div>
 </div>
 
@@ -476,7 +521,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.55</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.56</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -532,6 +577,8 @@ var newMaterials={},editMaterials={};
 var editingEntryId=null;
 var expandedCats=new Set();
 var showAmbient=false;
+var collapsedCards={};  // session only, resets on reload
+var deletedPileIds=[];  // tombstone list for sync
 var pendingSave=false;
 var syncInProgress=false;
 
@@ -1146,7 +1193,9 @@ function getContainerPresets(vu){
 }
 
 function save(){
-  localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit}));
+  // Stamp lastModified on any pile that just changed
+  if(activeId){var ap=piles.find(function(p){return p.id===activeId;});if(ap)ap.lastModified=Date.now();}
+  localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
   if(driveToken&&driveFileId)driveSaveNow();
 }
 
@@ -1173,7 +1222,7 @@ function loadSamplePileIfFirstRun(){
 
 function load(){
   var s=localStorage.getItem("ca_v5")||localStorage.getItem("ca_v4");
-  if(s){try{var d=JSON.parse(s);piles=d.piles||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;if(d.tempUnit)tempUnit=d.tempUnit;if(d.volumeUnit)volumeUnit=d.volumeUnit;if(d.containerUnit)containerUnit=d.containerUnit;}catch(e){}}
+  if(s){try{var d=JSON.parse(s);piles=d.piles||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;if(d.tempUnit)tempUnit=d.tempUnit;if(d.volumeUnit)volumeUnit=d.volumeUnit;if(d.containerUnit)containerUnit=d.containerUnit;if(d.deletedPileIds)deletedPileIds=d.deletedPileIds;}catch(e){}}
   else{loadSamplePileIfFirstRun();}
   // Migrate existing entries from old field names (core/top/bottom → core1/core2/core3)
   piles.forEach(function(pile){
@@ -1340,14 +1389,19 @@ function deletePile(id){
   if(!confirm('Delete "'+p.name+'"?'))return;
   var idx=piles.indexOf(p);
   var savedPile=JSON.parse(JSON.stringify(p));
+  var pileId=p.id;
   piles.splice(idx,1);
+  // Add to tombstone list immediately
+  if(deletedPileIds.indexOf(pileId)<0)deletedPileIds.push(pileId);
   save();
   renderHome();
   showToast('Deleted "'+p.name+'"',function(){
+    // Undo: restore pile and remove from tombstone
     piles.splice(idx,0,savedPile);
+    deletedPileIds=deletedPileIds.filter(function(x){return x!==pileId;});
     save();
     renderHome();
-  });
+  },30000);  // 30 seconds for pile deletion
 }
 
 function renderSetup(){newMaterials=newMats();document.getElementById("new-pile-name").value="";document.getElementById("new-pile-name").classList.remove("error");document.getElementById("setup-error").classList.add("hidden");updateTotalVol();renderCatEditors("new");renderRecipesPanel();}
@@ -1646,6 +1700,7 @@ function createPile(){
   });
   var pile={id:uid(),name:name,created:new Date().toISOString(),status:"active",
     volumeUnit:volumeUnit,containerUnit:JSON.parse(JSON.stringify(containerUnit)),
+    lastModified:Date.now(),
     materials:JSON.parse(JSON.stringify(newMaterials)),entries:[]};
   piles.push(pile);activeId=pile.id;save();showView("dashboard");
 }
@@ -1727,6 +1782,15 @@ function renderDashboard(){
   },60000);
 }
 
+function toggleMoistureSkip(){
+  var skip=document.getElementById("f-moisture-skip").checked;
+  var slider=document.getElementById("f-moisture-slider");
+  var val=document.getElementById("moisture-val");
+  if(slider)slider.disabled=skip;
+  if(slider)slider.style.opacity=skip?"0.3":"1";
+  if(val)val.textContent=skip?"—":slider.value+"%";
+  if(val)val.style.color=skip?"#555":"#1e88e5";
+}
 function updateSlider(el){
   var v=parseInt(el.value);el.style.setProperty("--pct",v+"%");
   var lbl=document.getElementById("moisture-val");
@@ -1938,12 +2002,12 @@ function getHeatStateLabel(pile,sorted){
   var ageDays=(now-pileBuiltMs)/86400000;
   if(lastTurn){
     var sinceTurnH=(now-new Date(lastTurn.ts).getTime())/3600000;
-    if(sinceTurnH<24)return "REBUILDING HEAT";
+    if(sinceTurnH<24)return "BUILDING HEAT";
   }
   if(everThermo&&lastThermoTs){
     var sinceThermoH=(now-lastThermoTs)/3600000;
     if(sinceThermoH>=120)return "STABLE / MATURING";
-    return "REBUILDING HEAT";
+    return "BUILDING HEAT";
   }
   if(ageDays>=5)return "NOT HEATING - CHECK PILE";
   return "HEATING UP";
@@ -2113,6 +2177,17 @@ function renderChart(sorted){
     var wrap=document.getElementById("chart-scroll-wrap");
     if(wrap)wrap.scrollLeft=wrap.scrollWidth;
   },50);
+}
+function toggleCard(id){
+  collapsedCards[id]=!collapsedCards[id];
+  var body=document.getElementById("card-body-"+id);
+  var btn=document.getElementById("card-btn-"+id);
+  if(body)body.style.display=collapsedCards[id]?"none":"";
+  if(btn)btn.textContent=collapsedCards[id]?"+":"−";
+}
+function cardHeader(id,label,extraHtml){
+  var btn='<button id="card-btn-'+id+'" onclick="toggleCard(\''+id+'\')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0;flex-shrink:0">−</button>';
+  return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">'+(extraHtml||'<div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">'+label+'</div>')+btn+'</div>';
 }
 function toggleAmbient(){
   showAmbient=!showAmbient;
@@ -2320,10 +2395,11 @@ function addEntry(){
   var pile=getActivePile();if(!pile)return;
   var v=validateEntry();if(!v)return;
   pile.entries.push({id:uid(),ts:v.ts.toISOString(),date:v.date,time:v.time,core1:v.core1,core2:v.core2,core3:v.core3,ambient:v.ambient,
-    moisture:parseInt(document.getElementById("f-moisture-slider").value),
+    moisture:document.getElementById("f-moisture-skip").checked?null:parseInt(document.getElementById("f-moisture-slider").value),
     turned:document.getElementById("f-turned").checked,
     notes:document.getElementById("f-notes").value});
   save();
+  var skipEl=document.getElementById("f-moisture-skip");if(skipEl){skipEl.checked=false;toggleMoistureSkip();}
   ["f-core","f-top","f-bottom","f-ambient","f-notes"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
   var sl=document.getElementById("f-moisture-slider");sl.value=50;updateSlider(sl);
   document.getElementById("f-turned").checked=false;
@@ -2806,43 +2882,40 @@ async function initDriveStorage(){
         var driveRecipes=d.recipes||[];
         var driveIngHist=d.ingHist||DEF_HIST;
         var driveUnit=d.tempUnit||tempUnit;
-        // MERGE: keep all Drive piles; add local-only piles; rename conflicts
+        var driveDeletedIds=d.deletedPileIds||[];
+        // Combine tombstones from both sides
+        var allDeletedIds=driveDeletedIds.slice();
+        deletedPileIds.forEach(function(id){if(allDeletedIds.indexOf(id)<0)allDeletedIds.push(id);});
+        // Merge piles: lastModified wins; tombstone removes
         var localPiles=piles.slice();
-        var mergedPiles=drivePiles.slice();
-        localPiles.forEach(function(localPile){
-          var driveMatch=drivePiles.find(function(dp){return dp.id===localPile.id;});
-          if(driveMatch){
-            // Same ID already in Drive — skip (Drive is source of truth)
-            return;
-          }
-          var nameMatch=drivePiles.find(function(dp){
-            return dp.name.toLowerCase()===localPile.name.toLowerCase();
-          });
-          if(nameMatch){
-            // Same name, different ID — rename local copy and keep both
-            var renamed=JSON.parse(JSON.stringify(localPile));
-            renamed.name=localPile.name+" \u2014 Local Copy";
-            renamed.id=uid();
-            mergedPiles.push(renamed);
-          } else {
-            // Local-only pile — add to merged set
-            mergedPiles.push(localPile);
-          }
+        var mergedPiles=[];
+        drivePiles.forEach(function(dp){
+          if(allDeletedIds.indexOf(dp.id)>=0)return;
+          var lm=localPiles.find(function(lp){return lp.id===dp.id;});
+          if(lm){mergedPiles.push((dp.lastModified||0)>=(lm.lastModified||0)?dp:lm);}
+          else{mergedPiles.push(dp);}
         });
-        // Merge recipes: add local recipes not in Drive by id
+        localPiles.forEach(function(lp){
+          if(allDeletedIds.indexOf(lp.id)>=0)return;
+          if(drivePiles.find(function(dp){return dp.id===lp.id;}))return;
+          var nm=drivePiles.find(function(dp){return dp.name.toLowerCase()===lp.name.toLowerCase();});
+          if(nm){var r=JSON.parse(JSON.stringify(lp));r.name=lp.name+" — Local Copy";r.id=uid();mergedPiles.push(r);}
+          else{mergedPiles.push(lp);}
+        });
+        // Merge recipes: keep newer version by id
         var mergedRecipes=driveRecipes.slice();
         (recipes||[]).forEach(function(lr){
-          if(!driveRecipes.find(function(dr2){return dr2.id===lr.id;})){
+          var dr2=driveRecipes.find(function(r){return r.id===lr.id;});
+          if(!dr2){mergedRecipes.push(lr);}
+          else if((lr.lastModified||0)>(dr2.lastModified||0)){
+            mergedRecipes=mergedRecipes.filter(function(r){return r.id!==lr.id;});
             mergedRecipes.push(lr);
           }
         });
-        piles=mergedPiles;
-        recipes=mergedRecipes;
-        ingHist=driveIngHist;
-        tempUnit=driveUnit;
-        localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit}));
-        // Push merged data back to Drive
-        await driveUpload(driveFileId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit});
+        piles=mergedPiles;recipes=mergedRecipes;ingHist=driveIngHist;tempUnit=driveUnit;
+        deletedPileIds=allDeletedIds;
+        localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
+        await driveUpload(driveFileId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
       }
     }
   } else {
@@ -2866,7 +2939,7 @@ async function driveSaveNow(){
   pendingSave=true;
   setStatus("saving");
   try{
-    await driveUpload(driveFileId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit});
+    await driveUpload(driveFileId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
     pendingSave=false;
     syncInProgress=false;
     setStatus("saved");
@@ -2959,18 +3032,20 @@ function downloadCSVTemplate(){
     "BROWNS,Dry leaves,10,",
     "",
     "[ENTRIES]",
-    "Date,Time,Core,Top,Bottom,Moisture,Turned,Notes",
-    "2026-01-15,09:00,135,130,128,50,NO,First reading",
-    "2026-01-16,10:00,142,135,132,55,NO,",
-    "2026-01-18,09:30,148,140,138,50,YES,Turned the pile",
+    "Date,Time,Ambient,Core 1,Core 2,Core 3,Moisture,Turned,Notes",
+    "2026-01-15,09:00,,135,130,128,50,NO,First reading",
+    "2026-01-16,10:00,72,142,135,132,55,NO,",
+    "2026-01-18,09:30,,148,140,138,50,YES,Turned the pile",
     "",
     "# INSTRUCTIONS:",
     "# - Categories must be exactly: HIGH NITROGEN, GREENS, BROWNS",
-    "# - Volume is in gallons",
+    "# - Volume is in gallons (or your chosen volume unit)",
     "# - Date format: YYYY-MM-DD",
     "# - Time format: HH:MM (24-hour)",
-    "# - Temperatures in Fahrenheit",
-    "# - Moisture is 0-100 percent",
+    "# - Temperatures in Fahrenheit (or Celsius based on your settings)",
+    "# - Ambient: outside/ambient temperature (optional, leave blank if not measured)",
+    "# - Core 1, Core 2, Core 3: compost core temperatures from three probe positions",
+    "# - Moisture is 0-100 percent (leave blank if not measured)",
     "# - Turned: YES or NO",
     "# - Lines starting with # are ignored"
   ];
@@ -2980,7 +3055,6 @@ function downloadCSVTemplate(){
   a.download="compost-logger-template.csv";
   a.click();
 }
-
 function parseCSV(text){
   var lines=text.split(/\r?\n/);
   var section=null;
@@ -3026,12 +3100,26 @@ function parseCSV(text){
       if(!parts[0]||!parts[1])continue;
       var date=parts[0];
       var time=parts[1];
-      var core=parts[2]?parseFloat(parts[2]):null;
-      var top=parts[3]?parseFloat(parts[3]):null;
-      var bottom=parts[4]?parseFloat(parts[4]):null;
-      var moist=parts[5]?parseInt(parts[5]):50;
-      var turned=parts[6]&&parts[6].toUpperCase()==="YES";
-      var notes=parts[7]||"";
+      // Support both old format (Core,Top,Bottom) and new format (Ambient,Core1,Core2,Core3)
+      var ambient=null,core=null,top=null,bottom=null,moist=null,turned=false,notes="";
+      if(parts.length>=9&&(parts[2]===""||isNaN(parseFloat(parts[2]))||parts.length===9)){
+        // New format: Ambient,Core1,Core2,Core3,Moisture,Turned,Notes
+        ambient=parts[2]?parseFloat(parts[2]):null;
+        core=parts[3]?parseFloat(parts[3]):null;
+        top=parts[4]?parseFloat(parts[4]):null;
+        bottom=parts[5]?parseFloat(parts[5]):null;
+        moist=parts[6]?parseInt(parts[6]):null;
+        turned=parts[7]&&parts[7].toUpperCase()==="YES";
+        notes=parts[8]||"";
+      } else {
+        // Old format: Core,Top,Bottom,Moisture,Turned,Notes
+        core=parts[2]?parseFloat(parts[2]):null;
+        top=parts[3]?parseFloat(parts[3]):null;
+        bottom=parts[4]?parseFloat(parts[4]):null;
+        moist=parts[5]?parseInt(parts[5]):null;
+        turned=parts[6]&&parts[6].toUpperCase()==="YES";
+        notes=parts[7]||"";
+      }
       var ts;
       try{ts=new Date(date+"T"+time).toISOString();}
       catch(e){continue;}
@@ -3040,10 +3128,11 @@ function parseCSV(text){
         ts:ts,
         date:date,
         time:time,
+        ambient:isNaN(ambient)?null:ambient,
         core1:isNaN(core)?null:core,
         core2:isNaN(top)?null:top,
         core3:isNaN(bottom)?null:bottom,
-        moisture:isNaN(moist)?50:moist,
+        moisture:(moist===null||isNaN(moist))?null:moist,
         turned:turned,
         notes:notes
       });
@@ -3529,6 +3618,131 @@ function exportAllJSON(){
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
   a.download="compost-logger-backup-"+localDateStr(new Date())+".json";
   a.click();
+}
+
+// ============================================================
+// PHOTO SCAN — Read thermometer displays via Claude Vision API
+// ============================================================
+var _scanData=null;
+
+function closeScanModal(){
+  document.getElementById("scan-modal").style.display="none";
+  _scanData=null;
+}
+
+function confirmScan(){
+  if(!_scanData)return;
+  // Fill ambient
+  if(_scanData.ambient!=null){
+    var ambEl=document.getElementById("f-ambient");
+    if(ambEl)ambEl.value=disp(_scanData.ambient);
+  }
+  // Fill core readings in order
+  var cores=[_scanData.core1,_scanData.core2,_scanData.core3];
+  ["f-core","f-top","f-bottom"].forEach(function(id,i){
+    if(cores[i]!=null){
+      var el=document.getElementById(id);
+      if(el)el.value=disp(cores[i]);
+    }
+  });
+  closeScanModal();
+  // Focus first empty core field
+  var ids=["f-core","f-top","f-bottom"];
+  for(var i=0;i<ids.length;i++){
+    var el=document.getElementById(ids[i]);
+    if(el&&!el.value){el.focus();break;}
+  }
+}
+
+async function handleScanPhotos(event){
+  var files=Array.from(event.target.files||[]);
+  event.target.value="";
+  if(!files.length)return;
+
+  // Show modal in loading state
+  var modal=document.getElementById("scan-modal");
+  var status=document.getElementById("scan-status");
+  var results=document.getElementById("scan-results");
+  var actions=document.getElementById("scan-actions");
+  modal.style.display="flex";
+  status.textContent="Reading "+files.length+" photo"+(files.length>1?"s":"")+"...";
+  results.innerHTML="";
+  actions.style.display="none";
+  _scanData=null;
+
+  try{
+    // Convert all files to base64
+    var imageBlocks=await Promise.all(files.map(function(file){
+      return new Promise(function(resolve,reject){
+        var r=new FileReader();
+        r.onload=function(e){
+          var b64=e.target.result.split(",")[1];
+          var mime=file.type||"image/jpeg";
+          resolve({type:"image",source:{type:"base64",media_type:mime,data:b64}});
+        };
+        r.onerror=reject;
+        r.readAsDataURL(file);
+      });
+    }));
+
+    // Add text prompt
+    imageBlocks.push({type:"text",text:"You are reading compost temperature monitoring instruments. Identify each instrument in the photos:\n1. REOTEMP analog gauge (circular dial with needle, \u00b0F scale 0-200) \u2014 these show CORE temperatures\n2. ETHMEAS digital display (black box with red buttons, shows OUT temperature) \u2014 this shows AMBIENT temperature\n\nFor each instrument, read the temperature value as accurately as possible.\nIf the analog needle is between marks, estimate to the nearest 2\u00b0F.\nReturn ONLY valid JSON in this exact format:\n{\"ambient\": null_or_number, \"core1\": null_or_number, \"core2\": null_or_number, \"core3\": null_or_number, \"confidence\": \"high\" or \"medium\" or \"low\", \"notes\": \"brief note about any uncertainty\"}\nAll temperatures should be in Fahrenheit. Return null for any reading you cannot determine."});
+
+    var resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-6",
+        max_tokens:400,
+        messages:[{role:"user",content:imageBlocks}]
+      })
+    });
+
+    if(!resp.ok)throw new Error("API error: "+resp.status);
+    var data=await resp.json();
+    var text=(data.content||[]).filter(function(b){return b.type==="text";}).map(function(b){return b.text;}).join("");
+    var clean=text.replace(/```json|```/g,"").trim();
+    var parsed=JSON.parse(clean);
+    _scanData=parsed;
+
+    // Show results
+    var confColor=parsed.confidence==="high"?"#4ade80":parsed.confidence==="medium"?"#f59e0b":"#ef4444";
+    var rows=[
+      {label:"AMBIENT",val:parsed.ambient,color:"#f59e0b"},
+      {label:"CORE 1",val:parsed.core1,color:"#ff4444"},
+      {label:"CORE 2",val:parsed.core2,color:"#4ade80"},
+      {label:"CORE 3",val:parsed.core3,color:"#a855f7"},
+    ];
+    results.innerHTML=rows.map(function(r){
+      var v=r.val!=null?(tempUnit==="C"?toC(r.val).toFixed(1):r.val)+"°"+tempUnit:"— not detected";
+      var src=r.label==="AMBIENT"?"digital display":"analog gauge";
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0;border-bottom:1px solid #111">'+
+        '<div><span class="mono" style="font-size:0.85rem;color:'+r.color+'">'+r.label+'</span>'+
+        '<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.1rem">from '+src+'</div></div>'+
+        '<span class="mono" style="font-size:1.1rem;color:'+(r.val!=null?r.color:"#333")+'">'+v+'</span>'+
+      '</div>';
+    }).join("")+
+    (parsed.notes?'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.75rem;padding:0.5rem;background:#050505;border-radius:3px">NOTE: '+parsed.notes+'</div>':"")+
+    '<div style="display:flex;align-items:center;gap:0.4rem;margin-top:0.75rem">'+
+      '<div style="width:8px;height:8px;border-radius:50%;background:'+confColor+'"></div>'+
+      '<span class="mono" style="font-size:0.62rem;color:'+confColor+'">'+parsed.confidence.toUpperCase()+' CONFIDENCE</span>'+
+    '</div>';
+
+    status.textContent="";
+    actions.style.display="block";
+
+    var hasAny=parsed.ambient!=null||parsed.core1!=null||parsed.core2!=null||parsed.core3!=null;
+    if(!hasAny){
+      results.innerHTML='<div class="mono" style="color:#ef4444;font-size:0.8rem;padding:1rem 0">Could not read any temperatures. Please enter manually.</div>';
+      actions.style.display="none";
+    }
+
+  }catch(err){
+    console.error("Scan error:",err);
+    status.textContent="";
+    results.innerHTML='<div class="mono" style="color:#ef4444;font-size:0.8rem">Error reading photos: '+err.message+'<br><br>Please enter temperatures manually.</div>';
+    actions.style.display="none";
+  }
 }
 
 if("Notification" in window && Notification.permission==="default"){

@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.54</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.55</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -199,6 +199,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem">
       <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMP + MOISTURE</div>
       <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
+      <button id="btn-toggle-ambient" class="btn-sm" onclick="toggleAmbient()" style="font-size:0.65rem;color:#555">AMBIENT OFF</button>
     </div>
     <div id="chart-scroll-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative">
       <div id="chart-inner" style="min-width:100%;position:relative">
@@ -212,6 +213,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#a855f7;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">CORE 3</span></div>
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">MOISTURE</span></div>
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">TURN</span></div>
+      <div id="legend-ambient" style="display:flex;align-items:center;gap:0.4rem;display:none"><div style="width:16px;height:3px;background:#f59e0b;border-radius:1px;border-top:1px dashed #f59e0b"></div><span class="mono" style="font-size:0.65rem;color:#f59e0b">AMBIENT</span></div>
     </div>
 
 <div class="card" id="status-card" style="border-left:3px solid #222;padding:0">
@@ -248,6 +250,10 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     </div>
   </div>
   <div id="entry-error" class="error-msg hidden"></div>
+  <div style="margin-bottom:0.6rem">
+    <label class="lbl" style="color:#f59e0b">AMBIENT TEMP <span id="unit-lbl-amb"></span></label>
+    <input type="number" class="temp-input" id="f-ambient" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem"/>
+  </div>
   <div style="margin-bottom:0.75rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
     <div>
       <label class="lbl" style="color:#ff4444">CORE 1 <span id="unit-lbl-core"></span></label>
@@ -333,6 +339,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
         <div><label class="lbl">TIME</label><input type="time" id="e-time"/></div>
       </div>
       <div id="edit-error" class="error-msg hidden"></div>
+      <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#f59e0b">AMBIENT <span id="e-unit-amb"></span></label><input type="number" class="temp-input" id="e-ambient" placeholder="-" inputmode="decimal"/></div>
       <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#ff4444">CORE 1 <span id="e-unit-core"></span></label><input type="number" class="temp-input" id="e-core" placeholder="-" inputmode="decimal"/></div>
       <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#4ade80">CORE 2 <span id="e-unit-top"></span></label><input type="number" class="temp-input" id="e-top" placeholder="-" inputmode="decimal"/></div>
       <div style="margin-bottom:0.75rem"><label class="lbl" style="color:#a855f7">CORE 3 <span id="e-unit-bot"></span></label><input type="number" class="temp-input" id="e-bottom" placeholder="-" inputmode="decimal"/></div>
@@ -469,7 +476,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.54</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.55</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -524,6 +531,7 @@ var tokenClient=null,timerInterval=null;
 var newMaterials={},editMaterials={};
 var editingEntryId=null;
 var expandedCats=new Set();
+var showAmbient=false;
 var pendingSave=false;
 var syncInProgress=false;
 
@@ -1681,6 +1689,7 @@ function renderDashboard(){
   document.getElementById("dash-core").style.color=band?band.color:"#333";
   document.getElementById("unit-toggle").textContent=tempUnit==="F"?"\u00B0F/\u00B0C":"\u00B0C/\u00B0F";
   document.getElementById("unit-toggle").style.color=tempUnit==="C"?"#38bdf8":"#888";
+  var ambLbl=document.getElementById("unit-lbl-amb");if(ambLbl)ambLbl.textContent=unitLbl();
   ["core","top","bot"].forEach(function(k){
     var el=document.getElementById("unit-lbl-"+k);if(el)el.textContent=unitLbl();
     var el2=document.getElementById("e-unit-"+k);if(el2)el2.textContent=unitLbl();
@@ -2075,7 +2084,11 @@ function renderChart(sorted){
       {label:"Moisture %",data:sorted.map(function(e){return e.moisture!=null?e.moisture:null;}),borderColor:"#1e88e5",
         backgroundColor:"rgba(30,136,229,0.12)",fill:true,tension:0.3,
         pointRadius:3,pointBackgroundColor:"#1e88e5",spanGaps:true,yAxisID:"y2",order:10}
-    ])},
+    ].concat(showAmbient&&sorted.some(function(e){return e.ambient!=null;})?[
+      {label:"Ambient",data:sorted.map(function(e){return e.ambient!=null?disp(e.ambient):null;}),
+        borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,
+        pointRadius:3,pointBackgroundColor:"#f59e0b",spanGaps:true,yAxisID:"y",order:4,borderDash:[4,3]}
+    ]:[]))},
     options:{
       responsive:false,maintainAspectRatio:false,animation:false,
       interaction:{mode:"index",intersect:false},
@@ -2100,6 +2113,14 @@ function renderChart(sorted){
     var wrap=document.getElementById("chart-scroll-wrap");
     if(wrap)wrap.scrollLeft=wrap.scrollWidth;
   },50);
+}
+function toggleAmbient(){
+  showAmbient=!showAmbient;
+  var btn=document.getElementById("btn-toggle-ambient");
+  if(btn){btn.textContent=showAmbient?"AMBIENT ON":"AMBIENT OFF";btn.style.color=showAmbient?"#f59e0b":"#555";}
+  var legAmb=document.getElementById("legend-ambient");if(legAmb)legAmb.style.display=showAmbient?"flex":"none";
+  var pile=getActivePile();if(!pile)return;
+  renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
 }
 function toggleChart(){
   tempMode=tempMode==="three"?"average":"three";
@@ -2216,7 +2237,7 @@ function renderLogTable(sorted,pile){
   }
   var table=document.getElementById("log-table");
   if(!sorted.length){table.innerHTML="";return;}
-  var headers=["DAY","DATE","TIME","C1","C2","C3","MOIST","TURN",""];
+  var headers=["DAY","DATE","TIME","AMB","C1","C2","C3","MOIST","TURN",""];
   var thead='<thead><tr>'+headers.map(function(h){return '<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#555;font-size:0.62rem;letter-spacing:0.05em">'+h+'</th>';}).join("")+'</tr></thead>';
   var sortedDisplay=entriesSortMode==="oldest"?sorted.slice():sorted.slice().reverse();
   var tbody='<tbody>'+sortedDisplay.map(function(en,i){
@@ -2230,6 +2251,7 @@ function renderLogTable(sorted,pile){
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+dayNum+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+en.date+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+(en.time||"-")+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#f59e0b;font-size:0.7rem">'+(en.ambient!=null?dispStr(en.ambient):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.7rem">'+(en.core1!=null?dispStr(en.core1):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.7rem">'+(en.core2!=null?dispStr(en.core2):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.7rem">'+(en.core3!=null?dispStr(en.core3):"-")+'</td>'+
@@ -2290,18 +2312,19 @@ function validateEntry(){
     return null;
   }
   errEl.classList.add("hidden");
-  return{core1:core,core2:top,core3:bottom,date:date,time:time,ts:entryTs};
+  var ambient=fromInput(document.getElementById("f-ambient").value);
+  return{core1:core,core2:top,core3:bottom,ambient:ambient,date:date,time:time,ts:entryTs};
 }
 
 function addEntry(){
   var pile=getActivePile();if(!pile)return;
   var v=validateEntry();if(!v)return;
-  pile.entries.push({id:uid(),ts:v.ts.toISOString(),date:v.date,time:v.time,core1:v.core1,core2:v.core2,core3:v.core3,
+  pile.entries.push({id:uid(),ts:v.ts.toISOString(),date:v.date,time:v.time,core1:v.core1,core2:v.core2,core3:v.core3,ambient:v.ambient,
     moisture:parseInt(document.getElementById("f-moisture-slider").value),
     turned:document.getElementById("f-turned").checked,
     notes:document.getElementById("f-notes").value});
   save();
-  ["f-core","f-top","f-bottom","f-notes"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
+  ["f-core","f-top","f-bottom","f-ambient","f-notes"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
   var sl=document.getElementById("f-moisture-slider");sl.value=50;updateSlider(sl);
   document.getElementById("f-turned").checked=false;
   renderDashboard();
@@ -2350,12 +2373,14 @@ function openEdit(entryId){
   dateEl.value=entry.date;
   dateEl.setAttribute("max",todayStr);
   document.getElementById("e-time").value=entry.time;
+  document.getElementById("e-ambient").value=entry.ambient!=null?disp(entry.ambient):"";
   document.getElementById("e-core").value=entry.core1!=null?disp(entry.core1):"";
   document.getElementById("e-top").value=entry.core2!=null?disp(entry.core2):"";
   document.getElementById("e-bottom").value=entry.core3!=null?disp(entry.core3):"";
   var sl=document.getElementById("e-moisture");sl.value=entry.moisture!=null?entry.moisture:50;updateEditSlider(sl);
   document.getElementById("e-turned").checked=entry.turned;
   document.getElementById("e-notes").value=entry.notes||"";
+  var eAmbLbl=document.getElementById("e-unit-amb");if(eAmbLbl)eAmbLbl.textContent=unitLbl();
   ["core","top","bot"].forEach(function(k){var el=document.getElementById("e-unit-"+k);if(el)el.textContent=unitLbl();});
   document.getElementById("edit-error").classList.add("hidden");
   document.getElementById("edit-overlay").classList.remove("hidden");
@@ -2400,6 +2425,7 @@ function saveEdit(){
     return;
   }
   entry.date=newDate;entry.time=newTime;entry.ts=newTs.toISOString();
+  entry.ambient=fromInput(document.getElementById("e-ambient").value);
   entry.core1=eCore;
   entry.core2=eTop;
   entry.core3=eBot;
@@ -2430,11 +2456,11 @@ function exportCSV(){
   document.getElementById("export-menu").classList.add("hidden");
   var pile=getActivePile();if(!pile)return;
   var sorted=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
-  var rows=[["Day","Date","Time","Core 1 F","Core 2 F","Core 3 F","Core 1 C","Core 2 C","Core 3 C","Moisture %","Turned","Stage","Notes"]];
+  var rows=[["Day","Date","Time","Ambient F","Ambient C","Core 1 F","Core 2 F","Core 3 F","Core 1 C","Core 2 C","Core 3 C","Moisture %","Turned","Stage","Notes"]];
   sorted.forEach(function(e,i){
     var band=getBand(e.core1);
     rows.push([i+1,e.date,e.time,
-      e.core1||"",e.core2||"",e.core3||"",
+      e.ambient||"",e.ambient!=null?toC(e.ambient):"",e.core1||"",e.core2||"",e.core3||"",
       e.core1!=null?toC(e.core1):"",e.core2!=null?toC(e.core2):"",e.core3!=null?toC(e.core3):"",
       e.moisture||"",e.turned?"YES":"",band?band.label:"",
       (e.notes||"").replace(/,/g,";")]);

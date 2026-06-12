@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.53</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.54</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -368,6 +368,22 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   </div>
 </div>
 
+<div id="import-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;display:none;align-items:flex-end;justify-content:center">
+  <div style="background:#0a0a0a;border:1px solid #222;border-radius:8px 8px 0 0;padding:1.5rem;width:100%;max-width:700px">
+    <div class="hd" style="font-size:1rem;color:#fff;margin-bottom:0.25rem" id="import-modal-title">IMPORT PILE</div>
+    <div class="mono" style="font-size:0.65rem;color:#555;margin-bottom:1.25rem" id="import-modal-sub"></div>
+    <button onclick="importModalChoice('append')" class="btn" style="margin-bottom:0.6rem;background:#0a0a0a;border:1px solid #4ade80;color:#4ade80">
+      <div style="font-size:0.85rem;font-weight:700">APPEND TO EXISTING PILE</div>
+      <div style="font-size:0.68rem;font-weight:400;color:#555;margin-top:0.2rem" id="import-modal-append-sub">Add entries to existing pile</div>
+    </button>
+    <button onclick="importModalChoice('new')" class="btn" style="margin-bottom:0.6rem;background:#0a0a0a;border:1px solid #f59e0b;color:#f59e0b">
+      <div style="font-size:0.85rem;font-weight:700">CREATE NEW PILE</div>
+      <div style="font-size:0.68rem;font-weight:400;color:#555;margin-top:0.2rem">Import as a separate new pile</div>
+    </button>
+    <button onclick="importModalChoice('cancel')" style="width:100%;padding:0.75rem;background:none;border:1px solid #222;color:#555;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.85rem">CANCEL</button>
+  </div>
+</div>
+
 <div id="settings-overlay" class="overlay hidden">
   <div style="max-width:700px;margin:0 auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #111">
@@ -375,10 +391,11 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <button onclick="closeSettings()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
     </div>
 
-    <!-- Temperature Units -->
+    <!-- Units -->
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">UNITS</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0">
+      <!-- Temperature -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid #111">
         <div>
           <div class="mono" style="font-size:0.85rem;color:#ccc">TEMPERATURE</div>
           <div style="font-size:0.65rem;color:#555;margin-top:0.15rem">Applies to all piles globally</div>
@@ -387,6 +404,34 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
           <button id="s-unit-f" onclick="setTempUnit('F')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.9rem">&deg;F</button>
           <button id="s-unit-c" onclick="setTempUnit('C')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.9rem">&deg;C</button>
         </div>
+      </div>
+      <!-- Volume -->
+      <div style="padding:0.5rem 0;border-bottom:1px solid #111">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="mono" style="font-size:0.85rem;color:#ccc">VOLUME</div>
+            <div style="font-size:0.65rem;color:#555;margin-top:0.15rem">Applies to new piles only</div>
+          </div>
+          <div style="display:flex;gap:0.4rem">
+            <button id="s-vol-gal" onclick="setVolumeUnit('gal')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">GAL</button>
+            <button id="s-vol-l" onclick="setVolumeUnit('L')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">L</button>
+            <button id="s-vol-yd" onclick="setVolumeUnit('yd3')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">YDS</button>
+          </div>
+        </div>
+      </div>
+      <!-- Container Unit -->
+      <div style="padding:0.5rem 0">
+        <div class="mono" style="font-size:0.85rem;color:#ccc;margin-bottom:0.4rem">CONTAINER UNIT</div>
+        <div style="font-size:0.65rem;color:#555;margin-bottom:0.6rem">Used for bucket counts in recipe. Applies to new piles only.</div>
+        <div id="s-container-presets" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.6rem"></div>
+        <div id="s-custom-wrap" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin-bottom:0.4rem">
+            <div><label class="lbl">NAME</label><input id="s-custom-name" placeholder="e.g. loader bucket"/></div>
+            <div><label class="lbl" id="s-custom-size-lbl">SIZE (GAL)</label><input id="s-custom-size" type="number" placeholder="e.g. 50"/></div>
+          </div>
+          <button onclick="saveCustomContainer()" class="btn-sm" style="width:100%;font-size:0.7rem">SAVE CUSTOM UNIT</button>
+        </div>
+        <div id="s-container-current" class="mono" style="font-size:0.65rem;color:#4ade80;margin-top:0.4rem"></div>
       </div>
     </div>
 
@@ -424,7 +469,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.53</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.54</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -471,6 +516,8 @@ var pilesSortMode=localStorage.getItem("ca_pilesSort")||"recent";
 var entriesSortMode=localStorage.getItem("ca_entriesSort")||"newest";
 var piles=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
 var activeId=null,tempMode="three",tempUnit="F";
+var volumeUnit="gal";
+var containerUnit={name:"5 gal",size:5};
 var tempChart=null;
 var driveToken=null,driveFileId=null,driveStatus="disconnected";
 var tokenClient=null,timerInterval=null;
@@ -1072,8 +1119,26 @@ function calcPileRatio(materials){
   return{fastN:Math.round(fN/tot*100),slowN:Math.round(sN/tot*100),brown:Math.round(br/tot*100)};
 }
 
+// ============================================================
+// VOLUME + CONTAINER UNIT HELPERS
+// ============================================================
+function volUnitLabel(){return volumeUnit==="L"?"L":volumeUnit==="yd3"?"YDS":"GAL";}
+function pileVolUnit(pile){return (pile&&pile.volumeUnit)||"gal";}
+function pileVolLabel(pile){var u=pileVolUnit(pile);return u==="L"?"L":u==="yd3"?"YDS":"GAL";}
+function pileContainerUnit(pile){return (pile&&pile.containerUnit)||containerUnit||{name:"5 gal",size:5};}
+function containerCount(volume,cu){
+  if(!volume||parseFloat(volume)<=0)return null;
+  var n=Math.round(parseFloat(volume)/cu.size);
+  return n>0?n:null;
+}
+function getContainerPresets(vu){
+  if(vu==="L")return [{name:"20 L",size:20},{name:"50 L",size:50},{name:"100 L",size:100},{name:"200 L",size:200}];
+  if(vu==="yd3")return [{name:"1 yard",size:1},{name:"½ yard",size:0.5},{name:"¼ yard",size:0.25}];
+  return [{name:"5 gal",size:5},{name:"10 gal",size:10},{name:"20 gal",size:20},{name:"32 gal",size:32},{name:"55 gal",size:55}];
+}
+
 function save(){
-  localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit}));
+  localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit}));
   if(driveToken&&driveFileId)driveSaveNow();
 }
 
@@ -1100,7 +1165,7 @@ function loadSamplePileIfFirstRun(){
 
 function load(){
   var s=localStorage.getItem("ca_v5")||localStorage.getItem("ca_v4");
-  if(s){try{var d=JSON.parse(s);piles=d.piles||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;if(d.tempUnit)tempUnit=d.tempUnit;}catch(e){}}
+  if(s){try{var d=JSON.parse(s);piles=d.piles||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;if(d.tempUnit)tempUnit=d.tempUnit;if(d.volumeUnit)volumeUnit=d.volumeUnit;if(d.containerUnit)containerUnit=d.containerUnit;}catch(e){}}
   else{loadSamplePileIfFirstRun();}
 }
 
@@ -1308,11 +1373,11 @@ function renderCatItems(cat,mode){
             'onblur="setTimeout(function(){hideSugg(\''+prefix+'-'+item.id+'\');},200)"/>'+
           '<div id="sugg-'+prefix+'-'+item.id+'" class="dropdown-list"></div>'+
         '</div>'+
-        '<div><label class="lbl">GAL</label>'+
+        '<div><label class="lbl">'+volUnitLabel()+'</label>'+
           '<input type="number" value="'+(item.volume||"")+'" placeholder="0" id="'+prefix+'-ivol-'+item.id+'" '+
             'oninput="updateIngItem(\''+cat.key+'\',\''+item.id+'\',\'volume\',this.value,\''+mode+'\')"/>'+
           '<div id="'+prefix+'-ibkt-'+item.id+'" class="mono" style="font-size:0.57rem;color:#555;margin-top:0.1rem;text-align:right">'+
-            (item.volume&&parseFloat(item.volume)>0?(Math.round(parseFloat(item.volume)/5)+' buckets'):'')+'</div>'+
+            (item.volume&&parseFloat(item.volume)>0?(function(){var n=containerCount(item.volume,containerUnit);return n?n+' × '+containerUnit.name:'';})():'')+'</div>'+
           '</div>'+
         '<button onclick="removeCatItem(\''+cat.key+'\',\''+item.id+'\',\''+mode+'\')" '+
           'style="background:none;border:1px solid #222;color:#555;cursor:pointer;border-radius:3px;width:32px;height:38px;font-size:0.9rem;align-self:end">&times;</button>'+
@@ -1388,7 +1453,7 @@ function updateIngItem(catKey,itemId,field,val,mode){
       var bktEl=document.getElementById(prefix+"-ibkt-"+itemId);
       if(bktEl){
         var v=parseFloat(val);
-        bktEl.textContent=v>0?Math.round(v/5)+" buckets":"";
+        bktEl.textContent=(function(){var n=containerCount(String(v),containerUnit);return n?n+" × "+containerUnit.name:"";})();
       }
     }
   }
@@ -1402,8 +1467,8 @@ function updateCatVolDisplay(catKey,mode){
 }
 function updateTotalVol(){
   var v=totVol(newMaterials).toFixed(1);
-  var el=document.getElementById("total-vol");if(el)el.textContent=v+" GAL";
-  var el2=document.getElementById("setup-vol");if(el2)el2.textContent=v+" GAL";
+  var el=document.getElementById("total-vol");if(el)el.textContent=v+" "+volUnitLabel();
+  var el2=document.getElementById("setup-vol");if(el2)el2.textContent=v+" "+volUnitLabel();
   renderSetupRatio();
 }
 function renderSetupRatio(){
@@ -1564,6 +1629,7 @@ function createPile(){
     newMaterials[cat.key].forEach(function(i){if(i.name)addToHist(cat.key,i.name);});
   });
   var pile={id:uid(),name:name,created:new Date().toISOString(),status:"active",
+    volumeUnit:volumeUnit,containerUnit:JSON.parse(JSON.stringify(containerUnit)),
     materials:JSON.parse(JSON.stringify(newMaterials)),entries:[]};
   piles.push(pile);activeId=pile.id;save();showView("dashboard");
 }
@@ -2042,9 +2108,11 @@ function renderRecipeSummary(pile){
     (ratio.fastN>0?'<div style="flex:'+ratio.fastN+';background:#ef4444;height:100%"></div>':'')+
     (ratio.slowN>0?'<div style="flex:'+ratio.slowN+';background:#4ade80;height:100%"></div>':'')+
     (ratio.brown>0?'<div style="flex:'+ratio.brown+';background:#d97706;height:100%"></div>':'');
+  var pVL=pileVolLabel(pile);
+  var pCU=pileContainerUnit(pile);
   var volHeader='<div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0.75rem;background:#050505;border:1px solid #111;border-radius:3px;margin-bottom:0.75rem">'+
     '<span class="mono" style="font-size:0.72rem;color:#555">TOTAL RECIPE VOLUME</span>'+
-    '<span class="mono" style="font-size:1rem;color:#f59e0b;font-weight:bold">'+tot.toFixed(1)+' GAL</span>'+
+    '<span class="mono" style="font-size:1rem;color:#f59e0b;font-weight:bold">'+tot.toFixed(1)+' '+pVL+'</span>'+
   '</div>';
   var catHtml=CATS.map(function(cat){
     var items=pile.materials[cat.key]||[];
@@ -2061,13 +2129,14 @@ function renderRecipeSummary(pile){
         '<span class="mono" style="font-size:0.62rem;color:#4ade80;background:#081a08;padding:0.1rem 0.35rem;border-radius:2px">S '+sn+'%</span>'+
         '<span class="mono" style="font-size:0.62rem;color:#d97706;background:#1a1008;padding:0.1rem 0.35rem;border-radius:2px">B '+br+'%</span>'+
       '</div>':"";
-      var buckets=i.volume&&parseFloat(i.volume)>0?Math.round(parseFloat(i.volume)/5):null;
+      var iVol=i.volume&&parseFloat(i.volume)>0?parseFloat(i.volume):null;
+      var iCount=iVol?containerCount(i.volume,pCU):null;
       return '<div style="padding:0.55rem 0.75rem;border-top:1px solid #0a0a0a">'+
         '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
           '<span style="font-size:0.88rem;color:#ddd;flex:1">'+(i.name||"")+'</span>'+
           '<div style="text-align:right;flex-shrink:0;margin-left:0.75rem">'+
-            '<div class="mono" style="font-size:0.88rem;color:#f59e0b;font-weight:600">'+(i.volume?i.volume+" gal":"")+'</div>'+
-            (buckets?'<div class="mono" style="font-size:0.68rem;color:#666;margin-top:0.1rem">'+buckets+' buckets</div>':"")+
+            '<div class="mono" style="font-size:0.88rem;color:#f59e0b;font-weight:600">'+(iVol?iVol.toFixed(1)+" "+pVL:"")+'</div>'+
+            (iCount?'<div class="mono" style="font-size:0.68rem;color:#666;margin-top:0.1rem">'+iCount+' × '+pCU.name+'</div>':"")+
           '</div>'+
         '</div>'+notesLine+badge+
       '</div>';
@@ -2079,7 +2148,7 @@ function renderRecipeSummary(pile){
           '<span style="font-size:0.65rem;color:#555">'+visItems.length+' item'+(visItems.length!==1?"s":"")+'</span>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:0.75rem">'+
-          '<span class="mono" style="font-size:0.72rem;color:#555">'+cv.toFixed(1)+' gal \u00B7 '+Math.round(pct)+'%</span>'+
+          '<span class="mono" style="font-size:0.72rem;color:#555">'+cv.toFixed(1)+' '+pVL+' \u00B7 '+Math.round(pct)+'%</span>'+
           '<span style="color:#555;font-size:0.9rem">'+(isExpanded?"\u25BE":"\u25B8")+'</span>'+
         '</div>'+
       '</div>'+
@@ -2388,32 +2457,35 @@ function exportPDF(){
   doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
   doc.text("MATERIAL RECIPE",M,y);y+=5;
   doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
-  var tot=totVol(pile.materials);
-  var ratio=calcPileRatio(pile.materials);
-  // Summary table header
+  var pdfTot=totVol(pile.materials);
+  var pdfRatio=calcPileRatio(pile.materials);
+  var pdfVL=pileVolLabel(pile);
+  var pdfCU=pileContainerUnit(pile);
+  // Summary table
   doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(100,100,100);
-  doc.text("Total Volume: "+tot.toFixed(1)+" gal",M,y);y+=5;
-  doc.text("C:N  Fast N: "+ratio.fastN+"% | Slow N: "+ratio.slowN+"% | Brown: "+ratio.brown+"%",M,y);y+=6;
-  // Category summary table
-  var tCols=[60,30,30,20];
-  var tX=[M,M+tCols[0],M+tCols[0]+tCols[1],M+tCols[0]+tCols[1]+tCols[2]];
+  doc.text("Total Volume: "+pdfTot.toFixed(1)+" "+pdfVL,M,y);y+=5;
+  doc.text("C:N  Fast N: "+pdfRatio.fastN+"% | Slow N: "+pdfRatio.slowN+"% | Brown: "+pdfRatio.brown+"%",M,y);y+=6;
+  var tCols=[55,28,22,22,28];
+  var tX=[M,M+tCols[0],M+tCols[0]+tCols[1],M+tCols[0]+tCols[1]+tCols[2],M+tCols[0]+tCols[1]+tCols[2]+tCols[3]];
   doc.setFillColor(240,240,240);doc.rect(M,y-3,CW,6,"F");
   doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(60,60,60);
-  doc.text("CATEGORY",tX[0],y);doc.text("VOLUME",tX[1],y);doc.text("% OF BATCH",tX[2],y);doc.text("ITEMS",tX[3],y);y+=5;
+  doc.text("CATEGORY",tX[0],y);doc.text("VOLUME",tX[1],y);doc.text("% BATCH",tX[2],y);doc.text("ITEMS",tX[3],y);doc.text(pdfCU.name.toUpperCase(),tX[4],y);y+=5;
   doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=3;
   CATS.forEach(function(cat){
     var items=(pile.materials[cat.key]||[]).filter(function(i){return i.name;});
     var cv=catVol(pile.materials[cat.key]||[]);
-    var pct=tot>0?Math.round(cv/tot*100):0;
+    var pct=pdfTot>0?Math.round(cv/pdfTot*100):0;
+    var catCount=Math.round(cv/pdfCU.size);
     doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(80,80,80);
     doc.text(cat.label,tX[0],y);
-    doc.text(cv.toFixed(1)+" gal",tX[1],y);
+    doc.text(cv.toFixed(1)+" "+pdfVL,tX[1],y);
     doc.text(pct+"%",tX[2],y);
     doc.text(String(items.length),tX[3],y);
+    doc.text(catCount>0?String(catCount):"-",tX[4],y);
     y+=5;
   });
   doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=6;
-  // Ingredient detail by category
+  // Ingredient detail
   doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(50,50,50);
   doc.text("INGREDIENT DETAIL",M,y);y+=5;
   doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
@@ -2425,7 +2497,9 @@ function exportPDF(){
     doc.text(cat.label,M,y);y+=4;
     items.forEach(function(item){
       doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(100,100,100);
-      doc.text("  - "+item.name+(item.volume?" ("+item.volume+" gal)":"")+(item.notes?" — "+item.notes:""),M,y);y+=4;
+      var iCount=item.volume&&parseFloat(item.volume)>0?containerCount(item.volume,pdfCU):null;
+      var countStr=iCount?" ["+iCount+" × "+pdfCU.name+"]":"";
+      doc.text("  - "+item.name+(item.volume?" ("+item.volume+" "+pdfVL+")":"")+countStr+(item.notes?" — "+item.notes:""),M,y);y+=4;
     });
     y+=1;
   });
@@ -2473,7 +2547,7 @@ function exportPDF(){
           // Background for unfilled portion
           doc.setFillColor(230,230,230);
           doc.rect(xOff,y,barW-(xOff-barX),barH,"F");
-          y+=5;
+          y+=8;
         }
       }
       doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(100,100,100);
@@ -2934,6 +3008,25 @@ function parseCSV(text){
   return {pile:pile,materials:materials,entries:entries};
 }
 
+// ============================================================
+// IMPORT MODAL
+// ============================================================
+var _importModalCallback=null;
+function showImportModal(title,sub,appendSub,callback){
+  document.getElementById("import-modal-title").textContent=title;
+  document.getElementById("import-modal-sub").textContent=sub;
+  document.getElementById("import-modal-append-sub").textContent=appendSub;
+  document.getElementById("import-modal").classList.remove("hidden");
+  document.getElementById("import-modal").style.display="flex";
+  _importModalCallback=callback;
+}
+function importModalChoice(choice){
+  document.getElementById("import-modal").classList.add("hidden");
+  document.getElementById("import-modal").style.display="none";
+  if(_importModalCallback)_importModalCallback(choice);
+  _importModalCallback=null;
+}
+
 function handleCSVImport(event){
   var file=event.target.files[0];
   if(!file)return;
@@ -2950,20 +3043,34 @@ function handleCSVImport(event){
       var totalEntries=parsed.entries.length;
       var totalIngredients=parsed.materials.highN.length+parsed.materials.greens.length+parsed.materials.browns.length;
       var existing=piles.find(function(p){return p.name.toLowerCase()===parsed.pile.name.toLowerCase();});
-      var appendMode=false;
       if(existing){
-        var choice=prompt("A pile named \""+existing.name+"\" already exists.\n\nType:\n  APPEND - to add "+totalEntries+" entries to existing pile\n  NEW - to create a separate new pile\n  CANCEL - to abort","APPEND");
-        if(!choice||choice.toUpperCase()==="CANCEL"){event.target.value="";return;}
-        if(choice.toUpperCase()==="APPEND"){
-          appendMode=true;
-        } else if(choice.toUpperCase()!=="NEW"){
-          alert("Unrecognized option. Import cancelled.");
-          event.target.value="";return;
-        }
-      } else {
-        if(!confirm("Import pile \""+parsed.pile.name+"\" with "+totalIngredients+" ingredients and "+totalEntries+" entries?\n\nThis will create a new pile."))
-        {event.target.value="";return;}
+        showImportModal(
+          'IMPORT "'+parsed.pile.name.toUpperCase()+'"',
+          parsed.pile.name+' · '+totalEntries+' entries found',
+          'Add '+totalEntries+' entries to "'+existing.name+'"',
+          function(choice){
+            if(choice==='cancel'){event.target.value="";return;}
+            if(choice==='append'){
+              existing.entries=existing.entries.concat(parsed.entries);
+              save();alert("Appended "+totalEntries+" entries to \""+existing.name+"\".");
+              event.target.value="";renderHome();return;
+            }
+            // new pile
+            var mats2={
+              highN:parsed.materials.highN.length?parsed.materials.highN:[newItem("highN")],
+              greens:parsed.materials.greens.length?parsed.materials.greens:[newItem("greens")],
+              browns:parsed.materials.browns.length?parsed.materials.browns:[newItem("browns")]
+            };
+            var createdDate2;try{createdDate2=parsed.pile.created?new Date(parsed.pile.created).toISOString():new Date().toISOString();}catch(e){createdDate2=new Date().toISOString();}
+            var pile2={id:uid(),name:parsed.pile.name,created:createdDate2,status:"active",volumeUnit:volumeUnit,containerUnit:JSON.parse(JSON.stringify(containerUnit)),materials:mats2,entries:parsed.entries};
+            piles.push(pile2);CATS.forEach(function(cat){(mats2[cat.key]||[]).forEach(function(i){if(i.name)addToHist(cat.key,i.name);});});
+            save();alert('Imported "'+pile2.name+'" — '+totalIngredients+' ingredients, '+totalEntries+' entries.');
+            event.target.value="";renderHome();
+          }
+        );return;
       }
+      if(!confirm("Import pile \""+parsed.pile.name+"\" with "+totalIngredients+" ingredients and "+totalEntries+" entries?\n\nThis will create a new pile."))
+      {event.target.value="";return;}
       if(appendMode){
         existing.entries=existing.entries.concat(parsed.entries);
         save();
@@ -3218,19 +3325,28 @@ function handleXLSXImport(event){
       var existing=piles.find(function(p){return p.name.toLowerCase()===pileName.toLowerCase();});
       var appendMode=false;
       if(existing){
-        var choice=prompt('A pile named "'+existing.name+'" already exists.\n\nType:\n  APPEND — add '+totalEntries+' entries to existing pile\n  NEW — create a separate new pile\n  CANCEL — abort',"APPEND");
-        if(!choice||choice.toUpperCase()==="CANCEL"){event.target.value="";return;}
-        if(choice.toUpperCase()==="APPEND"){appendMode=true;}
-        else if(choice.toUpperCase()!=="NEW"){alert("Unrecognized option. Import cancelled.");event.target.value="";return;}
-      } else {
-        if(!confirm('Import "'+pileName+'" with '+totalIngredients+' ingredients and '+totalEntries+' entries?')){event.target.value="";return;}
+        showImportModal(
+          'IMPORT "'+pileName.toUpperCase()+'"',
+          pileName+' · '+totalEntries+' entries found',
+          'Add '+totalEntries+' entries to "'+existing.name+'"',
+          function(choice){
+            if(choice==='cancel'){event.target.value="";return;}
+            if(choice==='append'){
+              existing.entries=existing.entries.concat(entries);
+              save();alert("Appended "+totalEntries+" entries to \""+existing.name+"\".");
+              event.target.value="";renderHome();return;
+            }
+            // new pile
+            var createdISO2=createdDate?new Date(createdDate).toISOString():new Date().toISOString();
+            var pile3={id:uid(),name:pileName,created:createdISO2,status:"active",volumeUnit:volumeUnit,containerUnit:JSON.parse(JSON.stringify(containerUnit)),materials:materials,entries:entries};
+            piles.push(pile3);
+            CATS.forEach(function(cat){(materials[cat.key]||[]).forEach(function(i){if(i.name)addToHist(cat.key,i.name);});});
+            save();alert('Imported "'+pileName+'" — '+totalIngredients+' ingredients, '+totalEntries+' entries.');
+            event.target.value="";renderHome();
+          }
+        );return;
       }
-      if(appendMode){
-        existing.entries=existing.entries.concat(entries);
-        save();
-        alert("Appended "+totalEntries+" entries to \""+existing.name+"\".");
-        event.target.value="";renderHome();return;
-      }
+      if(!confirm('Import "'+pileName+'" with '+totalIngredients+' ingredients and '+totalEntries+' entries?')){event.target.value="";return;}
       var createdISO=createdDate?new Date(createdDate).toISOString():new Date().toISOString();
       var pile={id:uid(),name:pileName,created:createdISO,status:"active",materials:materials,entries:entries};
       piles.push(pile);
@@ -3252,6 +3368,69 @@ function handleXLSXImport(event){
 // ============================================================
 // SETTINGS
 // ============================================================
+function setVolumeUnit(u){
+  volumeUnit=u;
+  save();
+  renderContainerPresets();
+  // Update button states
+  ["gal","l","yd"].forEach(function(k){
+    var el=document.getElementById("s-vol-"+k);
+    if(!el)return;
+    var active=(k==="gal"&&u==="gal")||(k==="l"&&u==="L")||(k==="yd"&&u==="yd3");
+    el.style.color=active?"#fff":"#555";
+    el.style.borderColor=active?"#fff":"#222";
+  });
+}
+function renderContainerPresets(){
+  var wrap=document.getElementById("s-container-presets");
+  if(!wrap)return;
+  var presets=getContainerPresets(volumeUnit);
+  var sizeLbl=document.getElementById("s-custom-size-lbl");
+  if(sizeLbl)sizeLbl.textContent="SIZE ("+volUnitLabel()+")";
+  wrap.innerHTML="";
+  presets.forEach(function(p){
+    var btn=document.createElement("button");
+    btn.className="btn-sm";
+    btn.textContent=p.name;
+    var active=containerUnit.name===p.name&&!containerUnit.custom;
+    btn.style.fontSize="0.7rem";
+    btn.style.color=active?"#fff":"#555";
+    btn.style.borderColor=active?"#fff":"#222";
+    btn.addEventListener("click",function(){selectContainerPreset(p.name,p.size);});
+    wrap.appendChild(btn);
+  });
+  var customBtn=document.createElement("button");
+  customBtn.className="btn-sm";
+  customBtn.textContent="CUSTOM";
+  customBtn.style.fontSize="0.7rem";
+  customBtn.style.color=containerUnit.custom?"#fff":"#555";
+  customBtn.style.borderColor=containerUnit.custom?"#fff":"#222";
+  customBtn.addEventListener("click",toggleCustomContainer);
+  wrap.appendChild(customBtn);
+  var cur=document.getElementById("s-container-current");
+  if(cur)cur.textContent="CURRENT: "+containerUnit.name;
+}
+function selectContainerPreset(name,size){
+  containerUnit={name:name,size:size};
+  save();
+  renderContainerPresets();
+  var cw=document.getElementById("s-custom-wrap");
+  if(cw)cw.style.display="none";
+}
+function toggleCustomContainer(){
+  var cw=document.getElementById("s-custom-wrap");
+  if(cw)cw.style.display=cw.style.display==="none"?"block":"none";
+}
+function saveCustomContainer(){
+  var name=document.getElementById("s-custom-name").value.trim();
+  var size=parseFloat(document.getElementById("s-custom-size").value);
+  if(!name||isNaN(size)||size<=0){alert("Enter a valid name and size.");return;}
+  containerUnit={name:name,size:size,custom:true};
+  save();
+  renderContainerPresets();
+  var cw=document.getElementById("s-custom-wrap");
+  if(cw)cw.style.display="none";
+}
 function openSettings(){
   // Sync unit button states
   var fBtn=document.getElementById("s-unit-f");
@@ -3260,6 +3439,13 @@ function openSettings(){
   if(fBtn)fBtn.style.borderColor=tempUnit==="F"?"#fff":"#222";
   if(cBtn)cBtn.style.color=tempUnit==="C"?"#38bdf8":"#555";
   if(cBtn)cBtn.style.borderColor=tempUnit==="C"?"#38bdf8":"#222";
+  // Sync volume buttons
+  ["gal","l","yd"].forEach(function(k){
+    var el=document.getElementById("s-vol-"+k);if(!el)return;
+    var active=(k==="gal"&&volumeUnit==="gal")||(k==="l"&&volumeUnit==="L")||(k==="yd"&&volumeUnit==="yd3");
+    el.style.color=active?"#fff":"#555";el.style.borderColor=active?"#fff":"#222";
+  });
+  renderContainerPresets();
   // Sync drive status
   var statusLabels={disconnected:"Not connected",connecting:"Connecting...",
     connected:"Synced to Google Drive",saving:"Saving...",saved:"Saved \u2713",

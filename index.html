@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.58</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.60</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -327,13 +327,11 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
-    <div style="display:flex;align-items:center;gap:0.5rem">
-      <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">RECIPE</div>
-      <button id="card-btn-recipe" onclick="toggleCard('recipe')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
-    </div>
+    <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">RECIPE</div>
     <div style="display:flex;align-items:center;gap:0.75rem">
       <div id="pile-ratio-bar" style="display:flex;height:6px;width:80px;border-radius:3px;overflow:hidden;gap:1px"></div>
       <button onclick="openRecipeEdit()" class="btn-sm" style="font-size:0.65rem">EDIT RECIPE</button>
+      <button id="card-btn-recipe" onclick="toggleCard('recipe')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
     </div>
   </div>
   <div id="card-body-recipe"><div id="dash-recipe"></div>
@@ -344,13 +342,20 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   </div>
 </div>
 
-<div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-    <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMPERATURE REFERENCE</div>
-    <button id="card-btn-tempref" onclick="toggleCard('tempref')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem">
+  <div class="card" style="margin-bottom:0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem">
+      <div class="hd" style="font-size:0.7rem;color:#555;letter-spacing:0.12em">TEMP GUIDE</div>
+      <button id="card-btn-tempref" onclick="toggleCard('tempref')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
+    </div>
+    <div id="card-body-tempref"><div id="temp-ref"></div></div>
   </div>
-  <div id="card-body-tempref">
-    <div id="temp-ref"></div>
+  <div class="card" style="margin-bottom:0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem">
+      <div class="hd" style="font-size:0.7rem;color:#555;letter-spacing:0.12em">MOISTURE GUIDE</div>
+      <button id="card-btn-moistref" onclick="toggleCard('moistref')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
+    </div>
+    <div id="card-body-moistref"><div id="moist-ref"></div></div>
   </div>
 </div>
 
@@ -433,6 +438,22 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <button onclick="confirmScan()" class="btn" style="margin-bottom:0.5rem">CONFIRM — FILL FIELDS</button>
       <button onclick="closeScanModal()" style="width:100%;padding:0.75rem;background:none;border:1px solid #222;color:#555;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.85rem">CANCEL — ENTER MANUALLY</button>
     </div>
+  </div>
+</div>
+
+<div id="maturity-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:700;display:none;align-items:flex-end;justify-content:center">
+  <div style="background:#0a0a0a;border:1px solid #222;border-radius:8px 8px 0 0;padding:1.5rem;width:100%;max-width:700px;max-height:85vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <span class="hd" style="font-size:1rem;color:#4ade80">PILE MATURED</span>
+      <button onclick="closeMaturityModal()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
+    </div>
+    <div id="maturity-summary"></div>
+    <div style="margin-top:1rem">
+      <label class="lbl">FINAL NOTES (optional)</label>
+      <textarea id="maturity-notes" style="height:60px;resize:none" placeholder="Observations about the finished compost..."></textarea>
+    </div>
+    <button onclick="confirmMatured()" class="btn" style="margin-top:1rem;background:#4ade80;color:#000">CONFIRM MATURED</button>
+    <button onclick="closeMaturityModal()" style="width:100%;padding:0.75rem;background:none;border:1px solid #222;color:#555;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.85rem;margin-top:0.5rem">CANCEL</button>
   </div>
 </div>
 
@@ -522,7 +543,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.58</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.60</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -599,6 +620,16 @@ function getBand(f){if(!f||f<131)return null;return BANDS.find(function(b){retur
 function mColor(p){if(!p)return"#222";if(p>=60)return"#1565c0";if(p>=50)return"#1e88e5";if(p>=40)return"#4a90d9";return"#7ab3e0";}
 function fmtHours(ms){if(ms<0)return"0h 0m";var h=Math.floor(ms/3600000);var m=Math.round((ms%3600000)/60000);return h+"h "+m+"m";}
 function localDateStr(d){var y=d.getFullYear();var m=d.getMonth()+1;var dd=d.getDate();return y+"-"+(m<10?"0":"")+m+"-"+(dd<10?"0":"")+dd;}
+function timeAgo(date){
+  var ms=Date.now()-new Date(date).getTime();
+  var mins=Math.floor(ms/60000);
+  var hrs=Math.floor(ms/3600000);
+  var days=Math.floor(ms/86400000);
+  if(mins<60)return mins+"m ago";
+  if(hrs<24)return hrs+"h ago";
+  if(days===1)return "yesterday";
+  return days+" days ago";
+}
 function fmtDate(d){return d.toLocaleDateString()+" "+d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});}
 function fmtShortDate(d){
   if(typeof d==="string"){
@@ -1342,7 +1373,60 @@ function renderHome(){
   }).join("");
 }
 function openPile(id){activeId=id;showView("dashboard");}
-function togglePileStatus(id){var p=piles.find(function(x){return x.id===id;});if(!p)return;p.status=p.status==="completed"?"active":"completed";save();renderHome();}
+var _maturityPileId=null;
+function togglePileStatus(id){
+  var p=piles.find(function(x){return x.id===id;});if(!p)return;
+  if(p.status==="completed"){p.status="active";save();renderHome();return;}
+  // Show maturity data collection modal
+  _maturityPileId=id;
+  var sorted=(p.entries||[]).slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  var firstEntry=sorted[0];
+  var lastEntry=sorted[sorted.length-1];
+  var totalDays=firstEntry&&lastEntry?Math.round((new Date(lastEntry.ts)-new Date(firstEntry.ts))/86400000):0;
+  var peakTemp=0;
+  sorted.forEach(function(e){var c1=e.core1||0,c2=e.core2||0,c3=e.core3||0;var mx=Math.max(c1,c2,c3);if(mx>peakTemp)peakTemp=mx;});
+  var turns=sorted.filter(function(e){return e.turned;}).length;
+  var daysAbove131=0;
+  for(var i=1;i<sorted.length;i++){
+    var prev=sorted[i-1],cur=sorted[i];
+    var avgCore=((prev.core1||0)+(prev.core2||0)+(prev.core3||0))/3;
+    if(avgCore>=131){daysAbove131+=Math.round((new Date(cur.ts)-new Date(prev.ts))/86400000);}
+  }
+  var rows=[
+    {label:"TOTAL DAYS",val:totalDays+" days"},
+    {label:"PEAK TEMP",val:peakTemp>0?disp(peakTemp)+"°"+tempUnit:"—"},
+    {label:"TOTAL TURNS",val:turns},
+    {label:"DAYS ABOVE 131°F",val:daysAbove131+" days"},
+    {label:"TOTAL ENTRIES",val:sorted.length},
+  ];
+  document.getElementById("maturity-summary").innerHTML=
+    '<div style="margin-bottom:0.75rem;font-size:0.7rem;color:#555;font-family:Share Tech Mono,monospace">'+
+    'This pile journey at a glance:</div>'+
+    rows.map(function(r){return '<div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid #111">'+
+      '<span class="mono" style="font-size:0.75rem;color:#555">'+r.label+'</span>'+
+      '<span class="mono" style="font-size:0.85rem;color:#4ade80">'+r.val+'</span></div>';}).join("")+
+    '<div style="margin-top:0.75rem;padding:0.75rem;background:#050505;border-radius:3px;font-size:0.65rem;color:#555;font-family:Share Tech Mono,monospace">'+
+    'Recipe: '+(p.materials?((p.materials.highN||[]).length+(p.materials.greens||[]).length+(p.materials.browns||[]).length)+' ingredients':'—')+'</div>';
+  document.getElementById("maturity-notes").value="";
+  document.getElementById("maturity-modal").style.display="flex";
+}
+function closeMaturityModal(){
+  document.getElementById("maturity-modal").style.display="none";
+  _maturityPileId=null;
+}
+function confirmMatured(){
+  var p=piles.find(function(x){return x.id===_maturityPileId;});
+  if(!p){closeMaturityModal();return;}
+  p.status="completed";
+  p.maturedAt=new Date().toISOString();
+  p.maturityNotes=document.getElementById("maturity-notes").value.trim();
+  // Save maturity analytics
+  var sorted=(p.entries||[]).slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  var peakTemp=0;sorted.forEach(function(e){var mx=Math.max(e.core1||0,e.core2||0,e.core3||0);if(mx>peakTemp)peakTemp=mx;});
+  var totalDays=sorted.length>1?Math.round((new Date(sorted[sorted.length-1].ts)-new Date(sorted[0].ts))/86400000):0;
+  p.maturityData={totalDays:totalDays,peakTemp:peakTemp,turns:sorted.filter(function(e){return e.turned;}).length,entries:sorted.length};
+  save();closeMaturityModal();renderHome();
+}
 function renamePile(id){
   var p=piles.find(function(x){return x.id===id;});if(!p)return;
   var newName=prompt("Rename pile:",p.name);
@@ -1772,7 +1856,7 @@ function renderDashboard(){
   renderChart(sorted);
   renderLogTable(sorted,pile);
   renderRecipeSummary(pile);
-  renderTempRef();
+  renderTempRef();renderMoistRef();
 
   clearInterval(timerInterval);
   timerInterval=setInterval(function(){
@@ -1953,7 +2037,8 @@ function renderStatusCard(pile,sorted,lat,band){
   } else {
     nextDue=heatLabel;nextDueColor=heatColor;
   }
-  var pileBuilt=fmtDate(getPileStartDate(pile));
+  var _pileStart=getPileStartDate(pile);
+  var pileBuilt=_pileStart?timeAgo(_pileStart)+" · "+fmtDate(_pileStart):"—";
   var thermoSinceStr;var thermoSinceColor;
   if(t&&t.thermophilicStart){
     thermoSinceStr=fmtHours(Date.now()-new Date(t.thermophilicStart).getTime());
@@ -2283,6 +2368,25 @@ function toggleCat(key){
   var pile=getActivePile();if(pile)renderRecipeSummary(pile);
 }
 
+function renderMoistRef(){
+  var el=document.getElementById("moist-ref");if(!el)return;
+  var levels=[
+    {pct:">60%",label:"TOO WET",color:"#3b82f6",desc:"Pushes out like toothpaste — squeeze harder"},
+    {pct:"60%",label:"WET",color:"#60a5fa",desc:"3-5 drops, sounds like wet sponge"},
+    {pct:"50%",label:"IDEAL",color:"#4ade80",desc:"1-2 drops stick, sounds like damp sponge"},
+    {pct:"40%",label:"DRY",color:"#f59e0b",desc:"1 drop or creases, holds but breaks apart"},
+    {pct:"<40%",label:"TOO DRY",color:"#ef4444",desc:"No moisture — powdery or dusty"},
+  ];
+  el.innerHTML=levels.map(function(l){
+    return '<div style="display:flex;align-items:flex-start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid #0f0f0f">'+
+      '<div style="min-width:32px;font-family:\'Share Tech Mono\',monospace;font-size:0.62rem;color:'+l.color+';padding-top:0.1rem">'+l.pct+'</div>'+
+      '<div>'+
+        '<div style="font-size:0.6rem;font-weight:600;color:'+l.color+';letter-spacing:0.05em">'+l.label+'</div>'+
+        '<div style="font-size:0.58rem;color:#555;margin-top:0.1rem;line-height:1.3">'+l.desc+'</div>'+
+      '</div>'+
+    '</div>';
+  }).join("");
+}
 function renderTempRef(){
   document.getElementById("temp-ref").innerHTML=BANDS.map(function(b){
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid #0a0a0a">'+
@@ -2559,6 +2663,7 @@ function exportPDF(){
   var y=M;
   function check(needed){if(y+needed>285){doc.addPage();y=M;}}
   doc.setFillColor(0,0,0);doc.rect(0,0,W,30,"F");
+  try{var lb64=BANNER_B64.split(",")[1];doc.addImage(lb64,"JPEG",W-52,2,48,16);}catch(e){}
   doc.setFont("helvetica","bold");doc.setFontSize(18);doc.setTextColor(255,255,255);
   doc.text("COMPOST LOGGER - PILE REPORT",M,12);
   doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(180,180,180);
@@ -2958,6 +3063,48 @@ async function driveSaveNow(){
   pendingSave=true;
   setStatus("saving");
   try{
+    // PULL first — fetch Drive data and merge before pushing
+    var r=await fetch("https://www.googleapis.com/drive/v3/files/"+driveFileId+"?alt=media",{
+      headers:{Authorization:"Bearer "+driveToken}
+    });
+    if(r.ok){
+      var d=await r.json();
+      if(d&&d.piles){
+        var drivePiles2=d.piles||[];
+        var driveDeletedIds2=d.deletedPileIds||[];
+        // Combine tombstones
+        var allDeleted2=driveDeletedIds2.slice();
+        deletedPileIds.forEach(function(id){if(allDeleted2.indexOf(id)<0)allDeleted2.push(id);});
+        // Merge piles entry-by-entry
+        var merged2=[];
+        drivePiles2.forEach(function(dp){
+          if(allDeleted2.indexOf(dp.id)>=0)return;
+          var lm=piles.find(function(lp){return lp.id===dp.id;});
+          if(lm){
+            var entryMap={};
+            (dp.entries||[]).forEach(function(e){entryMap[e.id]=e;});
+            (lm.entries||[]).forEach(function(e){if(!entryMap[e.id])entryMap[e.id]=e;});
+            var mergedEntries=Object.values(entryMap).sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+            var base=(dp.lastModified||0)>=(lm.lastModified||0)?dp:lm;
+            var mp=JSON.parse(JSON.stringify(base));
+            mp.entries=mergedEntries;
+            mp.lastModified=Date.now();
+            merged2.push(mp);
+          } else {
+            merged2.push(dp);
+          }
+        });
+        piles.forEach(function(lp){
+          if(allDeleted2.indexOf(lp.id)>=0)return;
+          if(!drivePiles2.find(function(dp){return dp.id===lp.id;}))merged2.push(lp);
+        });
+        piles=merged2;
+        deletedPileIds=allDeleted2;
+        localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
+        renderHome();
+      }
+    }
+    // PUSH merged result to Drive
     await driveUpload(driveFileId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
     pendingSave=false;
     syncInProgress=false;

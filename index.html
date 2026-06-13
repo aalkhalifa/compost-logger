@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.65</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.66</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -545,7 +545,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.65</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.66</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -3055,9 +3055,11 @@ async function initDriveStorage(){
           if(lm){
             // Same pile on both devices — merge entries by ID, keep all unique ones
             var entryMap={};
+            var localNewer=(lm.lastModified||0)>(dp.lastModified||0);
             (dp.entries||[]).forEach(function(e){entryMap[e.id]=e;});
             (lm.entries||[]).forEach(function(e){
-              if(!entryMap[e.id])entryMap[e.id]=e; // add local-only entries
+              // New local entry, or local pile is newer (e.g. just edited) → local wins
+              if(!entryMap[e.id]||localNewer){entryMap[e.id]=e;}
             });
             // Sort merged entries by timestamp
             var mergedEntries=Object.values(entryMap).sort(function(a,b){
@@ -3136,8 +3138,11 @@ async function driveSaveNow(){
           var lm=piles.find(function(lp){return lp.id===dp.id;});
           if(lm){
             var entryMap={};
+            var localNewer2=(lm.lastModified||0)>(dp.lastModified||0);
             (dp.entries||[]).forEach(function(e){entryMap[e.id]=e;});
-            (lm.entries||[]).forEach(function(e){if(!entryMap[e.id])entryMap[e.id]=e;});
+            (lm.entries||[]).forEach(function(e){
+              if(!entryMap[e.id]||localNewer2){entryMap[e.id]=e;}
+            });
             var mergedEntries=Object.values(entryMap).sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
             var base=(dp.lastModified||0)>=(lm.lastModified||0)?dp:lm;
             var mp=JSON.parse(JSON.stringify(base));

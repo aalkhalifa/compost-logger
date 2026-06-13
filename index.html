@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.61</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.64</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -201,6 +201,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMP + MOISTURE</div>
       <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
       <button id="btn-toggle-ambient" class="btn-sm" onclick="toggleAmbient()" style="font-size:0.65rem;color:#555">AMBIENT OFF</button>
+      <button id="btn-toggle-delta" class="btn-sm" onclick="toggleDelta()" style="font-size:0.65rem;color:#555">DELTA OFF</button>
     </div>
     <div id="chart-scroll-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative">
       <div id="chart-inner" style="min-width:100%;position:relative">
@@ -350,11 +351,11 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div id="card-body-tempref">
     <div style="display:grid;grid-template-columns:2fr 3fr;gap:0 1rem">
       <div>
-        <div class="hd" style="font-size:0.6rem;color:#555;letter-spacing:0.1em;margin-bottom:0.4rem">TEMP GUIDE</div>
+        <div class="hd" style="font-size:0.65rem;color:#555;letter-spacing:0.1em;margin-bottom:0.5rem">TEMP GUIDE</div>
         <div id="temp-ref"></div>
       </div>
       <div style="border-left:1px solid #111;padding-left:1rem">
-        <div class="hd" style="font-size:0.6rem;color:#555;letter-spacing:0.1em;margin-bottom:0.4rem">MOISTURE GUIDE</div>
+        <div class="hd" style="font-size:0.65rem;color:#555;letter-spacing:0.1em;margin-bottom:0.5rem">MOISTURE GUIDE</div>
         <div id="moist-ref"></div>
       </div>
     </div>
@@ -545,7 +546,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.61</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.64</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -601,6 +602,7 @@ var newMaterials={},editMaterials={};
 var editingEntryId=null;
 var expandedCats=new Set();
 var showAmbient=false;
+var showDelta=false;
 var collapsedCards={};  // session only, resets on reload
 var deletedPileIds=[];  // tombstone list for sync
 var pendingSave=false;
@@ -1329,7 +1331,15 @@ function renderHome(){
     var turnCount=p.entries.filter(function(e){return e.turned;}).length;
     var isTurnNow=lat&&lat.core1>=175;
     var isCompleted=p.status==="completed";
-    var nextDue=t&&t.deadline&&!t.complete?fmtDate(t.deadline):"";
+    var nextDue=(function(){
+      if(!t||!t.deadline||t.complete)return"";
+      var msLeft=new Date(t.deadline).getTime()-Date.now();
+      if(msLeft<=0)return"OVERDUE";
+      var hLeft=Math.floor(msLeft/3600000);
+      var mLeft=Math.round((msLeft%3600000)/60000);
+      if(hLeft>=24){var d=Math.floor(hLeft/24);var h=hLeft%24;return d+"d "+(h>0?h+"h ":"")+"remaining";}
+      return hLeft+"h "+mLeft+"m remaining";
+    })();
     var timerHtml="";
     if(isTurnNow){
       timerHtml='<div class="mono" style="margin-top:0.5rem;color:#ff0000;font-size:0.85rem">&#9888; TURN NOW</div>';
@@ -1357,7 +1367,7 @@ function renderHome(){
       '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
         '<div style="flex:1;min-width:0">'+
           '<div class="hd" style="font-size:1.3rem;color:#fff">'+p.name+turnNowBadge+statusPill+'</div>'+
-          '<div class="mono" style="font-size:0.62rem;color:#555;margin-top:0.15rem">DAY '+(function(){var sd=getPileStartDate(p);return p.entries.length?Math.floor((Date.now()-sd.getTime())/86400000)+1:0;})()+' &middot; '+new Date(p.created).toLocaleDateString()+'</div>'+
+          '<div class="mono" style="font-size:0.62rem;color:#555;margin-top:0.15rem">'+(function(){if(p.status==="completed"&&p.maturityData){var md=p.maturityData;return'<span style="color:#4ade80">MATURED</span> &middot; '+md.totalDays+' days &middot; '+md.turns+' turns'+(md.peakTemp?' &middot; Peak '+Math.round(md.peakTemp)+'°F':'');}var sd=getPileStartDate(p);return'DAY '+(p.entries.length?Math.floor((Date.now()-sd.getTime())/86400000)+1:0)+' &middot; '+new Date(p.created).toLocaleDateString();})()+'</div>'+
           sinceHtml+
         '</div>'+
         '<div style="text-align:right;flex-shrink:0;margin-left:0.5rem">'+
@@ -2052,7 +2062,21 @@ function renderStatusCard(pile,sorted,lat,band){
     '<div class="status-detail"><span class="status-key" style="color:#f97316">NEXT TURN DUE</span><span class="status-val" style="color:'+nextDueColor+';font-weight:600">'+nextDue+'</span></div>'+
     '<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>'+
     '<div class="status-detail"><span class="status-key">SINCE THERMOPHILIC START</span><span class="status-val" style="color:'+thermoSinceColor+'">'+thermoSinceStr+'</span></div>'+
-    '<div class="status-detail" style="border-bottom:none"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>';
+    '<div class="status-detail" style="border-bottom:none"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>'+
+    (function(){
+      if(!sorted||sorted.length<2)return'';
+      var firstEntry=sorted[0];
+      var firstThermo=null;
+      for(var i=0;i<sorted.length;i++){var ei=sorted[i];if((ei.core1||0)>=131||(ei.core2||0)>=131||(ei.core3||0)>=131){firstThermo=ei;break;}}
+      var daysTo131=firstThermo?Math.round((new Date(firstThermo.ts)-new Date(firstEntry.ts))/86400000):null;
+      var aboveDays={};
+      sorted.forEach(function(e){if((e.core1||0)>=131||(e.core2||0)>=131||(e.core3||0)>=131)aboveDays[e.date]=true;});
+      var daysAbove131=Object.keys(aboveDays).length;
+      var r='';
+      if(daysTo131!=null)r+='<div class="status-detail"><span class="status-key">DAYS TO 131\u00B0F</span><span class="status-val" style="color:#f59e0b">'+daysTo131+(daysTo131===1?' day':' days')+'</span></div>';
+      if(daysAbove131>0)r+='<div class="status-detail" style="border-bottom:none"><span class="status-key">DAYS ABOVE 131\u00B0F</span><span class="status-val" style="color:#f97316">'+daysAbove131+(daysAbove131===1?' day':' days')+'</span></div>';
+      return r;
+    })();
   var canSchedule=t&&t.deadline&&!isDone;
   var calBtnHTML;
   if(canSchedule){
@@ -2236,7 +2260,15 @@ function renderChart(sorted){
       {label:"Moisture %",data:sorted.map(function(e){return e.moisture!=null?e.moisture:null;}),borderColor:"#1e88e5",
         backgroundColor:"rgba(30,136,229,0.12)",fill:true,tension:0.3,
         pointRadius:3,pointBackgroundColor:"#1e88e5",spanGaps:true,yAxisID:"y2",order:10}
-    ].concat(showAmbient&&sorted.some(function(e){return e.ambient!=null;})?[
+    ].concat(showDelta&&sorted.some(function(e){return e.ambient!=null&&(e.core1!=null||e.core2!=null||e.core3!=null);})?[
+      {label:"Core-Ambient Delta",data:sorted.map(function(e){
+        var c=e.core1!=null?disp(e.core1):(e.core2!=null?disp(e.core2):(e.core3!=null?disp(e.core3):null));
+        var a=e.ambient!=null?disp(e.ambient):null;
+        return(c!=null&&a!=null)?Math.round((c-a)*10)/10:null;
+      }),borderColor:"#06b6d4",backgroundColor:"transparent",tension:0.3,
+        pointRadius:3,pointBackgroundColor:"#06b6d4",spanGaps:true,yAxisID:"y",order:5,borderDash:[2,2]}
+    ]:[])
+    .concat(showAmbient&&sorted.some(function(e){return e.ambient!=null;})?[
       {label:"Ambient",data:sorted.map(function(e){return e.ambient!=null?disp(e.ambient):null;}),
         borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,
         pointRadius:3,pointBackgroundColor:"#f59e0b",spanGaps:true,yAxisID:"y",order:4,borderDash:[4,3]}
@@ -2276,6 +2308,13 @@ function toggleCard(id){
 function cardHeader(id,label,extraHtml){
   var btn='<button id="card-btn-'+id+'" onclick="toggleCard(\''+id+'\')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0;flex-shrink:0">−</button>';
   return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">'+(extraHtml||'<div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">'+label+'</div>')+btn+'</div>';
+}
+function toggleDelta(){
+  showDelta=!showDelta;
+  var btn=document.getElementById("btn-toggle-delta");
+  if(btn){btn.textContent=showDelta?"DELTA ON":"DELTA OFF";btn.style.color=showDelta?"#06b6d4":"#555";}
+  var pile=getActivePile();if(!pile)return;
+  renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
 }
 function toggleAmbient(){
   showAmbient=!showAmbient;
@@ -2373,30 +2412,31 @@ function toggleCat(key){
 function renderMoistRef(){
   var el=document.getElementById("moist-ref");if(!el)return;
   var levels=[
-    {pct:">60%",label:"TOO WET",color:"#3b82f6",desc:"Pushes out like toothpaste — squeeze harder"},
-    {pct:"60%",label:"WET",color:"#60a5fa",desc:"3-5 drops, sounds like wet sponge"},
-    {pct:"50%",label:"IDEAL",color:"#4ade80",desc:"1-2 drops stick, sounds like damp sponge"},
-    {pct:"40%",label:"DRY",color:"#f59e0b",desc:"1 drop or creases, holds but breaks apart"},
-    {pct:"<40%",label:"TOO DRY",color:"#ef4444",desc:"No moisture — powdery or dusty"},
+    {pct:">60%",label:"TOO WET",color:"#3b82f6",desc:"Pushes out like toothpaste"},
+    {pct:"60%",label:"WET",color:"#60a5fa",desc:"3-5 drops, wet sponge sound"},
+    {pct:"50%",label:"IDEAL",color:"#4ade80",desc:"1-2 drops, damp sponge sound"},
+    {pct:"40%",label:"DRY",color:"#f59e0b",desc:"1 drop, holds but breaks apart"},
+    {pct:"<40%",label:"TOO DRY",color:"#ef4444",desc:"No moisture, powdery or dusty"},
   ];
   el.innerHTML=levels.map(function(l){
-    return '<div style="display:flex;align-items:flex-start;gap:0.4rem;padding:0.3rem 0;border-bottom:1px solid #0f0f0f">'+
-      '<div style="min-width:32px;font-family:\'Share Tech Mono\',monospace;font-size:0.62rem;color:'+l.color+';padding-top:0.1rem">'+l.pct+'</div>'+
+    return '<div style="display:flex;align-items:flex-start;gap:0.4rem;padding:0.45rem 0;border-bottom:1px solid #111">'+
+      '<div style="min-width:30px;font-family:\'Share Tech Mono\',monospace;font-size:0.72rem;color:'+l.color+';padding-top:0.1rem;flex-shrink:0">'+l.pct+'</div>'+
       '<div>'+
-        '<div style="font-size:0.6rem;font-weight:600;color:'+l.color+';letter-spacing:0.05em">'+l.label+'</div>'+
-        '<div style="font-size:0.58rem;color:#555;margin-top:0.1rem;line-height:1.3">'+l.desc+'</div>'+
+        '<div style="font-size:0.72rem;font-weight:600;color:'+l.color+';letter-spacing:0.04em">'+l.label+'</div>'+
+        '<div style="font-size:0.65rem;color:#666;margin-top:0.1rem;line-height:1.3">'+l.desc+'</div>'+
       '</div>'+
     '</div>';
   }).join("");
 }
 function renderTempRef(){
   document.getElementById("temp-ref").innerHTML=BANDS.map(function(b){
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid #0a0a0a">'+
-      '<div style="display:flex;align-items:center;gap:0.45rem">'+
-        '<div style="width:7px;height:7px;border-radius:50%;background:'+b.color+'"></div>'+
-        '<span class="mono" style="color:'+b.color+';font-size:0.78rem">'+bandRange(b)+'</span>'+
+    var hrs=b.hours?b.hours+'H':'TURN NOW';
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.45rem 0;border-bottom:1px solid #111">'+
+      '<div style="display:flex;align-items:center;gap:0.4rem">'+
+        '<div style="width:8px;height:8px;border-radius:50%;background:'+b.color+';flex-shrink:0"></div>'+
+        '<span class="mono" style="color:'+b.color+';font-size:0.72rem">'+bandRange(b)+'</span>'+
       '</div>'+
-      '<span class="mono" style="color:#555;font-size:0.78rem">'+(b.hours?b.hours+"H CONTINUOUS":"TURN NOW")+'</span>'+
+      '<span class="mono" style="color:#666;font-size:0.72rem;padding-left:0.3rem">'+hrs+'</span>'+
     '</div>';
   }).join("");
 }
@@ -2665,7 +2705,7 @@ function exportPDF(){
   var y=M;
   function check(needed){if(y+needed>285){doc.addPage();y=M;}}
   doc.setFillColor(0,0,0);doc.rect(0,0,W,30,"F");
-  try{var lb64=BANNER_B64.split(",")[1];doc.addImage(lb64,"JPEG",W-52,2,48,16);}catch(e){}
+  try{var lb64=BANNER_B64.split(",")[1];doc.addImage(lb64,"JPEG",W-58,4,54,22);}catch(e){}
   doc.setFont("helvetica","bold");doc.setFontSize(18);doc.setTextColor(255,255,255);
   doc.text("COMPOST LOGGER - PILE REPORT",M,12);
   doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(180,180,180);
@@ -2789,7 +2829,18 @@ function exportPDF(){
         }
         if(peak!=null)peakStr=" | Peak: "+Math.round(peak)+"F";
       }
-      doc.text("Date: "+t.date+" "+t.time+(t.core1?" | Core at turn: "+t.core1+"F":"")+peakStr+(t.activeBand?" | "+t.activeBand.label:""),M+4,y);y+=4;
+      // Cooling rate: compare turn temp to next entry
+      var coolingStr="";
+      if(t.core1&&sortedAll[turnIdx+1]){
+        var nextE=null;
+        for(var ni=0;ni<sortedAll.length;ni++){if(sortedAll[ni].turned&&ni>0){var prevTurnTs=new Date(sortedAll[ni].ts).getTime();if(prevTurnTs>new Date(t.ts||t.date+"T"+t.time).getTime()){break;}}
+        }
+        // Find first entry after this turn
+        var turnTs=new Date(t.date+"T"+t.time).getTime();
+        for(var xi=0;xi<sortedAll.length;xi++){if(new Date(sortedAll[xi].ts).getTime()>turnTs&&sortedAll[xi].core1){nextE=sortedAll[xi];break;}}
+        if(nextE){var drop=Math.round(t.core1-nextE.core1);var hrs=Math.round((new Date(nextE.ts).getTime()-turnTs)/3600000);if(drop>0)coolingStr=" | Dropped "+drop+"°F in "+hrs+"h";}
+      }
+      doc.text("Date: "+t.date+" "+t.time+(t.core1?" | Core at turn: "+t.core1+"F":"")+peakStr+(t.activeBand?" | "+t.activeBand.label:"")+coolingStr,M+4,y);y+=4;
       if(t.sinceMs!=null){doc.text("Since previous turn: "+fmtHours(t.sinceMs),M+4,y);y+=4;}
       if(t.highestSatisfied){doc.text("Stage satisfied: "+t.highestSatisfied,M+4,y);y+=4;}
       if(t.isWarning){doc.setTextColor(200,60,60);doc.text("Warning: turned without satisfying stage requirement",M+4,y);doc.setTextColor(100,100,100);y+=4;}
@@ -2816,7 +2867,9 @@ function exportPDF(){
             {label:"Core 2",data:sortedEntries.map(function(e){return e.core2;}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
             {label:"Core 3",data:sortedEntries.map(function(e){return e.core3;}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
             {label:"Moisture",data:sortedEntries.map(function(e){return e.moisture;}),borderColor:"#1e88e5",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y2"}
-          ]
+          ].concat(showAmbient&&sortedEntries.some(function(e){return e.ambient!=null;})?[
+            {label:"Ambient",data:sortedEntries.map(function(e){return e.ambient!=null?e.ambient:null;}),borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[4,3]}
+          ]:[])
         },
         options:{
           responsive:false,maintainAspectRatio:false,animation:false,

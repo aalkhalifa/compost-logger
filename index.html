@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.66</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.67</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -545,7 +545,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.66</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.67</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -623,6 +623,22 @@ function getBand(f){if(!f||f<131)return null;return BANDS.find(function(b){retur
 function mColor(p){if(!p)return"#222";if(p>=60)return"#1565c0";if(p>=50)return"#1e88e5";if(p>=40)return"#4a90d9";return"#7ab3e0";}
 function fmtHours(ms){if(ms<0)return"0h 0m";var h=Math.floor(ms/3600000);var m=Math.round((ms%3600000)/60000);return h+"h "+m+"m";}
 function localDateStr(d){var y=d.getFullYear();var m=d.getMonth()+1;var dd=d.getDate();return y+"-"+(m<10?"0":"")+m+"-"+(dd<10?"0":"")+dd;}
+function avgCore(e){
+  if(!e)return null;
+  var vals=[e.core1,e.core2,e.core3].filter(function(v){return v!=null&&v>0;});
+  if(!vals.length)return null;
+  return Math.round((vals.reduce(function(a,b){return a+b;},0)/vals.length)*10)/10;
+}
+function fmtDuration(ms){
+  if(!ms||ms<0)ms=0;
+  var h=Math.floor(ms/3600000);
+  var m=Math.round((ms%3600000)/60000);
+  var d=Math.floor(h/24);
+  var remH=h%24;
+  if(h<1)return m+'m';
+  if(d===0)return h+'h '+m+'m';
+  return d+'d'+(remH>0?' '+remH+'h':'');
+}
 function timeAgo(date){
   var ms=Date.now()-new Date(date).getTime();
   var mins=Math.floor(ms/60000);
@@ -1093,7 +1109,7 @@ function calcSmartTimer(entries){
   if(!entries.length)return null;
   var sorted=entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var lat=sorted[sorted.length-1];
-  if(lat&&lat.core1>=175){
+  if(lat&&avgCore(lat)>=175){
     var turnNowBand=BANDS[BANDS.length-1];
     return{band:turnNowBand,turnNow:true,deadline:null,progress:100,remaining:0,elapsed:0,satisfiedStages:{},independentStages:{},thermophilicStart:null};
   }
@@ -1168,13 +1184,13 @@ function buildTurnHistory(entries){
     var highestSatisfied=getHighestSatisfied(satisfiedStages);
     var cycleStartTime=prevTurnTime||new Date(sorted[0].ts);
     var cycleElapsedMs=new Date(turn.ts)-cycleStartTime;
-    var activeBandAtTurn=getBand(turn.core1);
+    var activeBandAtTurn=getBand(avgCore(turn));
     var isWarning=false;
     if(!highestSatisfied&&activeBandAtTurn){
       isWarning=cycleElapsedMs>activeBandAtTurn.hours*3600000;
     }
     result.push({num:i+1,date:turn.date,time:turn.time,ts:turn.ts,sinceMs:sinceMs,
-      satisfiedStages:satisfiedStages,highestSatisfied:highestSatisfied,core1:turn.core1,
+      satisfiedStages:satisfiedStages,highestSatisfied:highestSatisfied,core1:turn.core1,avgTemp:avgCore(turn),
       isWarning:isWarning,activeBand:activeBandAtTurn});
   }
   return result;
@@ -1325,10 +1341,10 @@ function renderHome(){
     var sorted=p.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
     var lat=sorted[sorted.length-1];
     var t=calcSmartTimer(p.entries);
-    var band=lat?getBand(lat.core1):null;
+    var band=lat?getBand(avgCore(lat)):null;
     var sinceMs=hoursSinceLastTurn(p.entries);
     var turnCount=p.entries.filter(function(e){return e.turned;}).length;
-    var isTurnNow=lat&&lat.core1>=175;
+    var isTurnNow=lat&&avgCore(lat)>=175;
     var isCompleted=p.status==="completed";
     var nextDue=(function(){
       if(!t||!t.deadline||t.complete)return"";
@@ -1370,8 +1386,8 @@ function renderHome(){
           sinceHtml+
         '</div>'+
         '<div style="text-align:right;flex-shrink:0;margin-left:0.5rem">'+
-          '<div class="mono" style="font-size:1.5rem;color:'+(isTurnNow?"#ff0000":band?band.color:"#333")+';font-weight:bold">'+(lat&&lat.core1?disp(lat.core1)+"\u00B0":"-")+'</div>'+
-          '<div style="font-size:0.58rem;color:#555;font-family:Share Tech Mono,monospace">CORE 1</div>'+
+          '<div class="mono" style="font-size:1.5rem;color:'+(isTurnNow?"#ff0000":band?band.color:"#333")+';font-weight:bold">'+(lat&&avgCore(lat)?disp(avgCore(lat))+"\u00B0":"-")+'</div>'+
+          '<div style="font-size:0.58rem;color:#555;font-family:Share Tech Mono,monospace">AVG</div>'+
         '</div>'+
       '</div>'+
       timerHtml+
@@ -1830,13 +1846,13 @@ function getActivePile(){return piles.find(function(p){return p.id===activeId;})
 function renderDashboard(){
   var pile=getActivePile();if(!pile)return showView("home");
   var sorted=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
-  var lat=sorted[sorted.length-1];var band=lat?getBand(lat.core1):null;
+  var lat=sorted[sorted.length-1];var band=lat?getBand(avgCore(lat)):null;
 
   document.getElementById("dash-name").textContent=pile.name;
   var pileStartDate=getPileStartDate(pile);
   var daysSinceStart=sorted.length?Math.floor((Date.now()-pileStartDate.getTime())/86400000)+1:0;
   document.getElementById("dash-sub").textContent="DAY "+daysSinceStart+" \u00B7 "+driveLabelShort();
-  document.getElementById("dash-core").textContent=lat&&lat.core1?dispStr(lat.core1):"-";
+  document.getElementById("dash-core").textContent=lat&&lat.core1?dispStr(avgCore(lat)):"-";
   document.getElementById("dash-core").style.color=band?band.color:"#333";
   document.getElementById("unit-toggle").textContent=tempUnit==="F"?"\u00B0F/\u00B0C":"\u00B0C/\u00B0F";
   document.getElementById("unit-toggle").style.color=tempUnit==="C"?"#38bdf8":"#888";
@@ -1860,7 +1876,7 @@ function renderDashboard(){
   updateSlider(document.getElementById("f-moisture-slider"));
 
   var warn=document.getElementById("warn-banner");
-  if(lat&&lat.core1>=175)warn.classList.remove("hidden");else warn.classList.add("hidden");
+  if(lat&&avgCore(lat)>=175)warn.classList.remove("hidden");else warn.classList.add("hidden");
 
   renderStatusCard(pile,sorted,lat,band);
   renderTimer(pile);
@@ -1873,7 +1889,7 @@ function renderDashboard(){
   timerInterval=setInterval(function(){
     var p=getActivePile();if(!p)return;
     var s=p.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
-    var l=s[s.length-1];var b=l?getBand(l.core1):null;
+    var l=s[s.length-1];var b=l?getBand(avgCore(l)):null;
     renderStatusCard(p,s,l,b);renderTimer(p);
   },60000);
 }
@@ -1921,11 +1937,11 @@ function renderStatusCard(pile,sorted,lat,band){
   var isDone=t&&(t.complete||t.stageDone);
   if(t&&t.band&&!t.turnNow)band=t.band;
 
-  if(lat&&lat.core1>=175){
+  if(lat&&avgCore(lat)>=175){
     card.style.borderLeftColor="#ff0000";
     heroEl.innerHTML='<div style="padding:1rem 1.25rem;background:#1a0000;border-top:1px solid #3a0000;border-bottom:1px solid #3a0000;text-align:center">'+
       '<div class="hd" style="font-size:2rem;color:#ff0000;letter-spacing:0.1em">&#9888; TURN NOW</div>'+
-      '<div class="mono" style="font-size:3rem;color:#ff0000;font-weight:bold">'+dispStr(lat.core1)+'</div>'+
+      '<div class="mono" style="font-size:3rem;color:#ff0000;font-weight:bold">'+dispStr(avgCore(lat))+'</div>'+
     '</div>';
     detailEl.innerHTML='<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>';
     return;
@@ -1955,8 +1971,8 @@ function renderStatusCard(pile,sorted,lat,band){
   heroEl.innerHTML='<div style="padding:1rem 1.25rem;border-top:1px solid #111;border-bottom:1px solid #111">'+
     '<div style="display:flex;justify-content:space-between;align-items:center">'+
       '<div>'+
-        '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">CORE 1 TEMP</div>'+
-        '<div class="mono" style="font-size:2.8rem;color:'+band.color+';font-weight:bold;line-height:1">'+dispStr(lat.core1)+'</div>'+
+        '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">AVG TEMP</div>'+
+        '<div class="mono" style="font-size:2.8rem;color:'+band.color+';font-weight:bold;line-height:1">'+dispStr(avgCore(lat))+'</div>'+
         '<div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+band.label+(band.hours>0?' \u00B7 '+bandRange(band):' \u00B7 BELOW 131\u00B0F')+'</div>'+
       '</div>'+
       '<div style="text-align:right">'+
@@ -1971,7 +1987,7 @@ function renderStatusCard(pile,sorted,lat,band){
         var trendLabel="";
         var trendColor="#555";
         var relEntries=cycleEntries.filter(function(e){return e.core1!=null;});
-        var latCore=relEntries.length?relEntries[relEntries.length-1].core1:null;
+        var latCore=relEntries.length?avgCore(relEntries[relEntries.length-1]):null;
         if(latCore!=null&&latCore<131){
           if(relEntries.length>=2){
             var prev2=relEntries[relEntries.length-2].core1;
@@ -2066,14 +2082,17 @@ function renderStatusCard(pile,sorted,lat,band){
       if(!sorted||sorted.length<2)return'';
       var firstEntry=sorted[0];
       var firstThermo=null;
-      for(var i=0;i<sorted.length;i++){var ei=sorted[i];if((ei.core1||0)>=131||(ei.core2||0)>=131||(ei.core3||0)>=131){firstThermo=ei;break;}}
-      var daysTo131=firstThermo?Math.round((new Date(firstThermo.ts)-new Date(firstEntry.ts))/86400000):null;
-      var aboveDays={};
-      sorted.forEach(function(e){if((e.core1||0)>=131||(e.core2||0)>=131||(e.core3||0)>=131)aboveDays[e.date]=true;});
-      var daysAbove131=Object.keys(aboveDays).length;
+      for(var i=0;i<sorted.length;i++){if(avgCore(sorted[i])>=131){firstThermo=sorted[i];break;}}
+      var msTo131=firstThermo?new Date(firstThermo.ts)-new Date(firstEntry.ts):null;
+      var msAbove131=0;
+      for(var ai=1;ai<sorted.length;ai++){
+        if(avgCore(sorted[ai-1])>=131&&avgCore(sorted[ai])>=131){
+          msAbove131+=new Date(sorted[ai].ts)-new Date(sorted[ai-1].ts);
+        }
+      }
       var r='';
-      if(daysTo131!=null)r+='<div class="status-detail"><span class="status-key">DAYS TO 131\u00B0F</span><span class="status-val" style="color:#f59e0b">'+daysTo131+(daysTo131===1?' day':' days')+'</span></div>';
-      if(daysAbove131>0)r+='<div class="status-detail" style="border-bottom:none"><span class="status-key">DAYS ABOVE 131\u00B0F</span><span class="status-val" style="color:#f97316">'+daysAbove131+(daysAbove131===1?' day':' days')+'</span></div>';
+      if(msTo131!=null)r+='<div class="status-detail"><span class="status-key">TIME TO 131\u00B0F</span><span class="status-val" style="color:#f59e0b">'+fmtDuration(msTo131)+'</span></div>';
+      if(msAbove131>0)r+='<div class="status-detail" style="border-bottom:none"><span class="status-key">TIME ABOVE 131\u00B0F</span><span class="status-val" style="color:#f97316">'+fmtDuration(msAbove131)+'</span></div>';
       return r;
     })();
   var canSchedule=t&&t.deadline&&!isDone;
@@ -2102,10 +2121,10 @@ function getHeatStateLabel(pile,sorted){
   for(var i=sorted.length-1;i>=0;i--){
     if(sorted[i].turned){lastTurn=sorted[i];break;}
   }
-  var everThermo=sorted.some(function(e){return e.core1!=null&&e.core1>=131;});
+  var everThermo=sorted.some(function(e){return avgCore(e)>=131;});
   var lastThermoTs=null;
   for(var j=sorted.length-1;j>=0;j--){
-    if(sorted[j].core1!=null&&sorted[j].core1>=131){
+    if(avgCore(sorted[j])>=131){
       lastThermoTs=new Date(sorted[j].ts).getTime();break;
     }
   }
@@ -2129,7 +2148,7 @@ function renderTimer(pile){
   if(!pile.entries.length){card.style.borderLeftColor="#222";content.innerHTML='<div class="mono" style="color:#555;font-size:0.78rem;text-align:center">LOG ENTRIES TO ACTIVATE</div>';return;}
   var sorted=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var lat=sorted[sorted.length-1];
-  if(lat&&lat.core1>=175){card.style.borderLeftColor="#ff0000";content.innerHTML='<div class="hd" style="color:#ff0000;font-size:2rem;text-align:center">TURN NOW!</div>';return;}
+  if(lat&&avgCore(lat)>=175){card.style.borderLeftColor="#ff0000";content.innerHTML='<div class="hd" style="color:#ff0000;font-size:2rem;text-align:center">TURN NOW!</div>';return;}
   var cycles=buildCycles(sorted);
   var t=calcSmartTimer(pile.entries);
   var activeCycleColor=t&&t.band?t.band.color:"#f97316";
@@ -2250,7 +2269,7 @@ function renderChart(sorted){
     {label:"Core 2",data:sorted.map(function(e){return e.core2!=null?disp(e.core2):null;}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#4ade80",spanGaps:true,yAxisID:"y",order:2},
     {label:"Core 3",data:sorted.map(function(e){return e.core3!=null?disp(e.core3):null;}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#a855f7",spanGaps:true,yAxisID:"y",order:3}
   ]:[
-    {label:"Average",data:sorted.map(function(e){return e.core1&&e.core2&&e.core3?+((disp(e.core1)+disp(e.core2)+disp(e.core3))/3).toFixed(1):null;}),
+    {label:"Average",data:sorted.map(function(e){return avgCore(e)!=null?disp(avgCore(e)):null;}),
       borderColor:"#fff",backgroundColor:"#ffffff08",tension:0.3,pointRadius:4,pointBackgroundColor:"#fff",spanGaps:true,yAxisID:"y",order:1}
   ];
   tempChart=new Chart(document.getElementById("temp-chart"),{
@@ -2259,9 +2278,9 @@ function renderChart(sorted){
       {label:"Moisture %",data:sorted.map(function(e){return e.moisture!=null?e.moisture:null;}),borderColor:"#1e88e5",
         backgroundColor:"rgba(30,136,229,0.12)",fill:true,tension:0.3,
         pointRadius:3,pointBackgroundColor:"#1e88e5",spanGaps:true,yAxisID:"y2",order:10}
-    ].concat(showDelta&&sorted.some(function(e){return e.ambient!=null&&(e.core1!=null||e.core2!=null||e.core3!=null);})?[
+    ].concat(showDelta&&sorted.some(function(e){return e.ambient!=null&&avgCore(e)!=null;})?[
       {label:"Core-Ambient Delta",data:sorted.map(function(e){
-        var c=e.core1!=null?disp(e.core1):(e.core2!=null?disp(e.core2):(e.core3!=null?disp(e.core3):null));
+        var c=avgCore(e)!=null?disp(avgCore(e)):null;
         var a=e.ambient!=null?disp(e.ambient):null;
         return(c!=null&&a!=null)?Math.round((c-a)*10)/10:null;
       }),borderColor:"#06b6d4",backgroundColor:"transparent",tension:0.3,
@@ -2680,7 +2699,7 @@ function exportCSV(){
   var sorted=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var rows=[["Day","Date","Time","Ambient F","Ambient C","Core 1 F","Core 2 F","Core 3 F","Core 1 C","Core 2 C","Core 3 C","Moisture %","Turned","Stage","Notes"]];
   sorted.forEach(function(e,i){
-    var band=getBand(e.core1);
+    var band=getBand(avgCore(e));
     rows.push([i+1,e.date,e.time,
       e.ambient||"",e.ambient!=null?toC(e.ambient):"",e.core1||"",e.core2||"",e.core3||"",
       e.core1!=null?toC(e.core1):"",e.core2!=null?toC(e.core2):"",e.core3!=null?toC(e.core3):"",
@@ -2837,7 +2856,7 @@ function exportPDF(){
         // Find first entry after this turn
         var turnTs=new Date(t.date+"T"+t.time).getTime();
         for(var xi=0;xi<sortedAll.length;xi++){if(new Date(sortedAll[xi].ts).getTime()>turnTs&&sortedAll[xi].core1){nextE=sortedAll[xi];break;}}
-        if(nextE){var drop=Math.round(t.core1-nextE.core1);var hrs=Math.round((new Date(nextE.ts).getTime()-turnTs)/3600000);if(drop>0)coolingStr=" | Dropped "+drop+"°F in "+hrs+"h";}
+        if(nextE){var drop=Math.round((avgCore(t)||t.core1||0)-(avgCore(nextE)||nextE.core1||0));var hrs=Math.round((new Date(nextE.ts).getTime()-turnTs)/3600000);if(drop>0)coolingStr=" | Dropped "+drop+"°F in "+hrs+"h";}
       }
       doc.text("Date: "+t.date+" "+t.time+(t.core1?" | Core at turn: "+t.core1+"F":"")+peakStr+(t.activeBand?" | "+t.activeBand.label:"")+coolingStr,M+4,y);y+=4;
       if(t.sinceMs!=null){doc.text("Since previous turn: "+fmtHours(t.sinceMs),M+4,y);y+=4;}
@@ -2866,8 +2885,14 @@ function exportPDF(){
             {label:"Core 2",data:sortedEntries.map(function(e){return e.core2;}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
             {label:"Core 3",data:sortedEntries.map(function(e){return e.core3;}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
             {label:"Moisture",data:sortedEntries.map(function(e){return e.moisture;}),borderColor:"#1e88e5",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y2"}
-          ].concat(showAmbient&&sortedEntries.some(function(e){return e.ambient!=null;})?[
+          ].concat(tempMode==="average"?[
+            {label:"Average",data:sortedEntries.map(function(e){return avgCore(e)!=null?e.avgTemp||avgCore(e):null;}),borderColor:"#ffffff",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[6,3]}
+          ]:[])
+          .concat(showAmbient&&sortedEntries.some(function(e){return e.ambient!=null;})?[
             {label:"Ambient",data:sortedEntries.map(function(e){return e.ambient!=null?e.ambient:null;}),borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[4,3]}
+          ]:[])
+          .concat(showDelta&&sortedEntries.some(function(e){return e.ambient!=null&&avgCore(e)!=null;})?[
+            {label:"Delta",data:sortedEntries.map(function(e){var a=avgCore(e);return(a!=null&&e.ambient!=null)?Math.round((a-e.ambient)*10)/10:null;}),borderColor:"#06b6d4",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[2,2]}
           ]:[])
         },
         options:{
@@ -2921,7 +2946,7 @@ function exportPDF(){
   sortedEntries.forEach(function(e,i){
     check(6);
     x=M;doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);
-    var band=getBand(e.core1);
+    var band=getBand(avgCore(e));
     var row=[i+1,e.date,e.core1||"",e.core2||"",e.core3||"",e.moisture?e.moisture+"%":"",e.turned?"YES":"",band?band.label:""];
     row.forEach(function(v,j){doc.text(String(v),x,y);x+=cols[j];});
     y+=5;if(i%2===0){doc.setFillColor(248,248,248);doc.rect(M,y-4,CW,5,"F");}

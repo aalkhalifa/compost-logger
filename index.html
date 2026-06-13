@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.64</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.65</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -340,7 +340,6 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <input id="recipe-name" placeholder="Save as recipe..."/>
     <button class="btn-sm" onclick="saveRecipe()">SAVE</button>
   </div>
-  </div>
 </div>
 
 <div class="card">
@@ -546,7 +545,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.64</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.65</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -2286,7 +2285,7 @@ function renderChart(sorted){
       },
       scales:{
         x:{ticks:{color:"#555",font:{size:11}},grid:{display:false}},
-        y:{min:cMin,max:cMax,position:"left",ticks:{color:"#888",font:{size:11}},grid:{color:"#111"},
+        y:{min:showDelta?0:cMin,max:cMax,position:"left",ticks:{color:"#888",font:{size:11}},grid:{color:"#111"},
           title:{display:true,text:"\u00B0"+tempUnit,color:"#555",font:{size:11}}},
         y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:11},callback:function(v){return v+"%";}},
           grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:11}}}
@@ -2710,7 +2709,7 @@ function exportPDF(){
   doc.text("COMPOST LOGGER - PILE REPORT",M,12);
   doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(180,180,180);
   doc.text(pile.name,M,20);
-  doc.text("Created: "+new Date(pile.created).toLocaleDateString()+" - Days: "+pile.entries.length+" - Turns: "+pile.entries.filter(function(e){return e.turned;}).length,M,26);
+  doc.text("Created: "+new Date(pile.created).toLocaleDateString()+" - Days: "+(pile.entries.length?Math.round((new Date(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);})[pile.entries.length-1].ts)-new Date(pile.created).getTime())/86400000)+1:0)+" - Turns: "+pile.entries.filter(function(e){return e.turned;}).length,M,26);
   y=38;
   doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
   doc.text("MATERIAL RECIPE",M,y);y+=5;

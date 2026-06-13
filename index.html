@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.56</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.57</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -498,6 +498,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
         <div style="display:flex;gap:0.4rem">
           <button id="s-btn-sync" onclick="forceSyncNow()" class="btn-sm" style="display:none;font-size:0.7rem">SYNC NOW</button>
           <button id="s-btn-connect" onclick="connectDrive();closeSettings();" class="btn-sm" style="font-size:0.7rem">CONNECT</button>
+          <button id="s-btn-disconnect" onclick="clearDriveToken();closeSettings();" class="btn-sm" style="font-size:0.7rem;color:#ef4444;border-color:#3a1a1a;display:none">DISCONNECT</button>
         </div>
       </div>
       <div style="padding:0.6rem 0;font-size:0.65rem;color:#555;line-height:1.6">
@@ -521,7 +522,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.56</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.57</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -2965,6 +2966,9 @@ function forceSyncNow(){
 async function onDriveToken(resp){
   if(resp.error){setStatus("error");return;}
   driveToken=resp.access_token;
+  // Persist token so page refresh doesn't force re-consent
+  var expiryMs=Date.now()+((resp.expires_in||3600)-60)*1000; // 60s buffer
+  try{localStorage.setItem("ca_drive_token",resp.access_token);localStorage.setItem("ca_drive_token_expiry",String(expiryMs));}catch(e){}
   setStatus("connecting");
   try{
     await initDriveStorage();
@@ -2981,7 +2985,43 @@ function connectDrive(){
   tokenClient.requestAccessToken({prompt:"consent"});
 }
 
+function tryRestoreDriveToken(){
+  try{
+    var stored=localStorage.getItem("ca_drive_token");
+    var expiry=parseInt(localStorage.getItem("ca_drive_token_expiry")||"0");
+    if(stored&&expiry>Date.now()){
+      // Token still valid — reconnect silently
+      driveToken=stored;
+      setStatus("connecting");
+      initDriveStorage().then(function(){
+        setStatus("connected");
+        renderHome();
+      }).catch(function(){
+        // Token may have been revoked — clear and let user reconnect manually
+        localStorage.removeItem("ca_drive_token");
+        localStorage.removeItem("ca_drive_token_expiry");
+        driveToken=null;
+        setStatus("disconnected");
+        updateDriveUI();
+      });
+      return true;
+    }
+    // Token expired — try silent refresh if tokenClient is ready
+    if(stored&&tokenClient){
+      tokenClient.requestAccessToken({prompt:""});
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+function clearDriveToken(){
+  try{localStorage.removeItem("ca_drive_token");localStorage.removeItem("ca_drive_token_expiry");}catch(e){}
+  driveToken=null;driveFileId=null;setStatus("disconnected");updateDriveUI();
+}
+
 function initGoogleAuth(){
+  // First try to restore existing token silently
   var iv=setInterval(function(){
     if(window.google&&window.google.accounts&&window.google.accounts.oauth2){
       clearInterval(iv);
@@ -2990,6 +3030,8 @@ function initGoogleAuth(){
         scope:"https://www.googleapis.com/auth/drive.file",
         callback:onDriveToken
       });
+      // Try silent restore after tokenClient is ready
+      setTimeout(function(){tryRestoreDriveToken();},500);
     }
   },300);
 }
@@ -3591,6 +3633,7 @@ function openSettings(){
   var sConn=document.getElementById("s-btn-connect");
   if(sSync)sSync.style.display=driveToken?"inline-block":"none";
   if(sConn)sConn.style.display=(driveStatus==="disconnected"||driveStatus==="error"||driveStatus==="offline")?"inline-block":"none";
+  var sDisc=document.getElementById("s-btn-disconnect");if(sDisc)sDisc.style.display=driveToken?"inline-block":"none";
   // Update version string in about section
   document.getElementById("settings-overlay").classList.remove("hidden");
 }

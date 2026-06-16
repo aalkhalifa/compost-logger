@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.73</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.75</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -545,7 +545,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.73</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.75</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -2309,7 +2309,13 @@ function renderChart(sorted){
   // Time-proportional x: days since first entry
   var firstTs=sorted.length?new Date(sorted[0].ts).getTime():Date.now();
   function xVal(e){return (new Date(e.ts).getTime()-firstTs)/86400000;}
+  function xValTs(ts){return (ts-firstTs)/86400000;}
   var xMaxVal=sorted.length?xVal(sorted[sorted.length-1]):1;
+  var xMinVal=0;
+  if(sorted.length){
+    var fd=new Date(sorted[0].ts);
+    xMinVal=xValTs(new Date(fd.getFullYear(),fd.getMonth(),fd.getDate(),0,0,0,0).getTime());
+  }
   if(tempChart){tempChart.destroy();tempChart=null;}
   var chartInner=document.getElementById("chart-inner");
   var chartCanvas=document.getElementById("temp-chart");
@@ -2348,7 +2354,13 @@ function renderChart(sorted){
     var dk=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();
     if(seenDayTick[dk])return;
     seenDayTick[dk]=true;
-    dayTicks.push({x:xVal(e),label:monthNames[d.getMonth()]+" "+d.getDate()});
+    // Anchor the label at midnight of this calendar day so gaps are exactly 1 day apart.
+    // The first day's midnight is before the first reading (negative x); clamp it to 0
+    // so its label still shows at the left edge without adding empty space.
+    var midnight=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,0,0,0).getTime();
+    var tx=xValTs(midnight);
+    if(tx<0)tx=0;
+    dayTicks.push({x:tx,label:monthNames[d.getMonth()]+" "+d.getDate()});
   });
   var turnAnnotations={};
   turnDays.forEach(function(idx,i){
@@ -2362,9 +2374,10 @@ function renderChart(sorted){
     var dayKey=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();
     if(seenDay[dayKey])return;
     seenDay[dayKey]=true;
-    if(turnDays.indexOf(i)>=0)return;
-    var dx=xVal(e);
-    dayAnnotations["day"+i]={type:"line",xMin:dx,xMax:dx,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
+    var midnight=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,0,0,0).getTime();
+    var dx=xValTs(midnight);
+    if(dx<0)return;
+    dayAnnotations["day"+dayKey]={type:"line",xMin:dx,xMax:dx,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
   });
   var tempDatasets=tempMode==="three"?[
     {label:"Core 1",data:sorted.filter(function(e){return e.core1!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core1)};}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},

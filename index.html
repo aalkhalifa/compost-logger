@@ -2304,15 +2304,7 @@ function renderChart(sorted){
   section.classList.remove("hidden");
   var monthNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   var lastDate="";
-  var labels=sorted.map(function(e,i){
-    var d=new Date(e.ts);
-    var thisDate=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();
-    if(thisDate!==lastDate){
-      lastDate=thisDate;
-      return monthNames[d.getMonth()]+" "+d.getDate();
-    }
-    return "";
-  });
+  // (labels array removed — chart now uses time-based x values)
   var turnDays=sorted.map(function(e,i){return e.turned?i:null;}).filter(function(v){return v!==null;});
   // Time-proportional x: days since first entry
   var firstTs=sorted.length?new Date(sorted[0].ts).getTime():Date.now();
@@ -2375,29 +2367,28 @@ function renderChart(sorted){
     dayAnnotations["day"+i]={type:"line",xMin:dx,xMax:dx,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
   });
   var tempDatasets=tempMode==="three"?[
-    {label:"Core 1",data:sorted.map(function(e){return e.core1!=null?{x:xVal(e),y:disp(e.core1)}:null;}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
-    {label:"Core 2",data:sorted.map(function(e){return e.core2!=null?{x:xVal(e),y:disp(e.core2)}:null;}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#4ade80",spanGaps:true,yAxisID:"y",order:2},
-    {label:"Core 3",data:sorted.map(function(e){return e.core3!=null?{x:xVal(e),y:disp(e.core3)}:null;}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#a855f7",spanGaps:true,yAxisID:"y",order:3}
+    {label:"Core 1",data:sorted.filter(function(e){return e.core1!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core1)};}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
+    {label:"Core 2",data:sorted.filter(function(e){return e.core2!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core2)};}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#4ade80",spanGaps:true,yAxisID:"y",order:2},
+    {label:"Core 3",data:sorted.filter(function(e){return e.core3!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core3)};}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#a855f7",spanGaps:true,yAxisID:"y",order:3}
   ]:[
-    {label:"Average",data:sorted.map(function(e){return avgCore(e)!=null?{x:xVal(e),y:disp(avgCore(e))}:null;}),
+    {label:"Average",data:sorted.filter(function(e){return avgCore(e)!=null;}).map(function(e){return {x:xVal(e),y:disp(avgCore(e))};}),
       borderColor:"#fff",backgroundColor:"#ffffff08",tension:0.3,pointRadius:4,pointBackgroundColor:"#fff",spanGaps:true,yAxisID:"y",order:1}
   ];
   tempChart=new Chart(document.getElementById("temp-chart"),{
     type:"line",
     data:{datasets:tempDatasets.concat([
-      {label:"Moisture %",data:sorted.map(function(e){return e.moisture!=null?{x:xVal(e),y:e.moisture}:null;}),borderColor:"#1e88e5",
+      {label:"Moisture %",data:sorted.filter(function(e){return e.moisture!=null;}).map(function(e){return {x:xVal(e),y:e.moisture};}),borderColor:"#1e88e5",
         backgroundColor:"rgba(30,136,229,0.12)",fill:true,tension:0.3,
         pointRadius:3,pointBackgroundColor:"#1e88e5",spanGaps:true,yAxisID:"y2",order:10}
     ].concat(showDelta&&sorted.some(function(e){return e.ambient!=null&&avgCore(e)!=null;})?[
-      {label:"Core-Ambient Delta",data:sorted.map(function(e){
-        var c=avgCore(e)!=null?disp(avgCore(e)):null;
-        var a=e.ambient!=null?disp(e.ambient):null;
-        return(c!=null&&a!=null)?{x:xVal(e),y:Math.round((c-a)*10)/10}:null;
+      {label:"Core-Ambient Delta",data:sorted.filter(function(e){return avgCore(e)!=null&&e.ambient!=null;}).map(function(e){
+        var c=disp(avgCore(e));var a=disp(e.ambient);
+        return {x:xVal(e),y:Math.round((c-a)*10)/10};
       }),borderColor:"#06b6d4",backgroundColor:"transparent",tension:0.3,
         pointRadius:3,pointBackgroundColor:"#06b6d4",spanGaps:true,yAxisID:"y",order:5,borderDash:[2,2]}
     ]:[])
     .concat(showAmbient&&sorted.some(function(e){return e.ambient!=null;})?[
-      {label:"Ambient",data:sorted.map(function(e){return e.ambient!=null?{x:xVal(e),y:disp(e.ambient)}:null;}),
+      {label:"Ambient",data:sorted.filter(function(e){return e.ambient!=null;}).map(function(e){return {x:xVal(e),y:disp(e.ambient)};}),
         borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,
         pointRadius:3,pointBackgroundColor:"#f59e0b",spanGaps:true,yAxisID:"y",order:4,borderDash:[4,3]}
     ]:[]))},
@@ -2414,13 +2405,12 @@ function renderChart(sorted){
       },
       scales:{
         x:{type:"linear",min:0,max:xMaxVal,
+          afterBuildTicks:function(axis){axis.ticks=dayTicks.map(function(dt){return{value:dt.x};});return;},
           ticks:{color:"#555",font:{size:11},autoSkip:false,
             callback:function(v){
-              for(var i=0;i<dayTicks.length;i++){if(Math.abs(dayTicks[i].x-v)<0.01)return dayTicks[i].label;}
+              for(var i=0;i<dayTicks.length;i++){if(Math.abs(dayTicks[i].x-v)<0.05)return dayTicks[i].label;}
               return "";
-            },
-            stepSize:1},
-          afterBuildTicks:function(axis){axis.ticks=dayTicks.map(function(dt){return{value:dt.x};});},
+            }},
           grid:{display:false}},
         y:{min:showDelta?0:cMin,max:cMax,position:"left",ticks:{color:"#888",font:{size:11}},grid:{color:"#111"},
           title:{display:true,text:"\u00B0"+tempUnit,color:"#555",font:{size:11}}},

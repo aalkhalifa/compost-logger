@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.69</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.70</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -545,7 +545,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.69</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.70</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -1423,7 +1423,7 @@ function renderHome(){
     var sinceHtml=sinceMs!==null
       ?'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.2rem">LAST TURN: '+fmtHours(sinceMs)+' AGO &middot; TURNS: '+turnCount+'</div>'
       :'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.2rem">NO TURN RECORDED</div>';
-    // Stage badges — show only ACTIVE stages with time left
+    // Stage progress bars — active stages, full bar style
     var stageBadges='';
     if(!isCompleted&&sorted.length){
       var cyclesPC=buildCycles(sorted);
@@ -1432,15 +1432,31 @@ function renderHome(){
         var indep=computeIndependentStages(curCyc.entries);
         var sOrder=["Stage 1","Stage 2","Stage 3","Stage 4"];
         var sColors={"Stage 1":"#f59e0b","Stage 2":"#f97316","Stage 3":"#ef4444","Stage 4":"#dc2626"};
-        var badges=[];
+        var sHours={"Stage 1":72,"Stage 2":48,"Stage 3":24,"Stage 4":12};
+        var bars=[];
         sOrder.forEach(function(sn){
           var si=indep[sn];
           if(si&&si.active){
-            var leftStr=si.remaining>0?fmtDuration(si.remaining*3600000)+" left":"complete";
-            badges.push('<span style="font-size:0.55rem;font-family:Share Tech Mono,monospace;padding:0.15rem 0.4rem;border-radius:2px;background:'+sColors[sn]+';color:#000;font-weight:600">'+sn.replace("Stage ","S")+' \u00B7 '+leftStr+'</span>');
+            var reqH=sHours[sn];
+            var elapsedH=reqH-si.remaining;
+            var pct=Math.min(100,Math.max(0,(elapsedH/reqH)*100));
+            var leftStr=si.remaining>0?fmtDuration(si.remaining*3600000)+" LEFT":"COMPLETE";
+            var col=sColors[sn];
+            bars.push(
+              '<div style="margin-top:0.6rem">'+
+                '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem">'+
+                  '<span class="mono" style="font-size:0.72rem;color:'+col+'">'+sn+' · '+reqH+'H</span>'+
+                  '<span class="mono" style="font-size:0.68rem;color:#888">'+leftStr+'</span>'+
+                '</div>'+
+                '<div style="height:7px;background:#1a1a1a;border-radius:3px;overflow:hidden">'+
+                  '<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:3px"></div>'+
+                '</div>'+
+                '<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.2rem">'+fmtDuration(elapsedH*3600000)+' / '+reqH+'H</div>'+
+              '</div>'
+            );
           }
         });
-        if(badges.length)stageBadges='<div style="display:flex;gap:0.25rem;margin-top:0.4rem;flex-wrap:wrap">'+badges.join("")+'</div>';
+        if(bars.length)stageBadges='<div style="margin-top:0.3rem">'+bars.join("")+'</div>';
       }
     }
     var statusPill=isCompleted
@@ -2306,15 +2322,20 @@ function renderChart(sorted){
     return "";
   });
   var turnDays=sorted.map(function(e,i){return e.turned?i:null;}).filter(function(v){return v!==null;});
+  // Time-proportional x: days since first entry
+  var firstTs=sorted.length?new Date(sorted[0].ts).getTime():Date.now();
+  function xVal(e){return (new Date(e.ts).getTime()-firstTs)/86400000;}
+  var xMaxVal=sorted.length?xVal(sorted[sorted.length-1]):1;
   if(tempChart){tempChart.destroy();tempChart=null;}
   var chartInner=document.getElementById("chart-inner");
   var chartCanvas=document.getElementById("temp-chart");
   var hintEl=document.getElementById("chart-scroll-hint");
   if(chartInner&&chartCanvas){
     var n=sorted.length;
-    if(n>10){
-      var pxPerEntry=22;
-      var totalW=Math.max(500,n*pxPerEntry);
+    var daySpan=Math.ceil(xMaxVal)+1;
+    if(daySpan>7){
+      var pxPerDay=90;
+      var totalW=Math.max(500,daySpan*pxPerDay);
       chartInner.style.width=totalW+"px";
       chartCanvas.style.width=totalW+"px";
       chartCanvas.width=totalW;
@@ -2336,9 +2357,19 @@ function renderChart(sorted){
   var cMin=tempUnit==="C"?Math.round(toC(80)):80;
   var cMax=tempUnit==="C"?Math.round(toC(180)):180;
   function cr(f){return tempUnit==="C"?Math.round(toC(f)):f;}
+  // Day tick labels for time-based x-axis
+  var dayTicks=[];var seenDayTick={};
+  sorted.forEach(function(e){
+    var d=new Date(e.ts);
+    var dk=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();
+    if(seenDayTick[dk])return;
+    seenDayTick[dk]=true;
+    dayTicks.push({x:xVal(e),label:monthNames[d.getMonth()]+" "+d.getDate()});
+  });
   var turnAnnotations={};
   turnDays.forEach(function(idx,i){
-    turnAnnotations["turn"+i]={type:"line",xMin:idx,xMax:idx,borderColor:"#f97316",borderWidth:2.5};
+    var tx=xVal(sorted[idx]);
+    turnAnnotations["turn"+i]={type:"line",xMin:tx,xMax:tx,borderColor:"#f97316",borderWidth:2.5};
   });
   var dayAnnotations={};
   var seenDay={};
@@ -2348,32 +2379,33 @@ function renderChart(sorted){
     if(seenDay[dayKey])return;
     seenDay[dayKey]=true;
     if(turnDays.indexOf(i)>=0)return;
-    dayAnnotations["day"+i]={type:"line",xMin:i,xMax:i,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
+    var dx=xVal(e);
+    dayAnnotations["day"+i]={type:"line",xMin:dx,xMax:dx,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
   });
   var tempDatasets=tempMode==="three"?[
-    {label:"Core 1",data:sorted.map(function(e){return e.core1!=null?disp(e.core1):null;}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
-    {label:"Core 2",data:sorted.map(function(e){return e.core2!=null?disp(e.core2):null;}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#4ade80",spanGaps:true,yAxisID:"y",order:2},
-    {label:"Core 3",data:sorted.map(function(e){return e.core3!=null?disp(e.core3):null;}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#a855f7",spanGaps:true,yAxisID:"y",order:3}
+    {label:"Core 1",data:sorted.map(function(e){return e.core1!=null?{x:xVal(e),y:disp(e.core1)}:null;}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
+    {label:"Core 2",data:sorted.map(function(e){return e.core2!=null?{x:xVal(e),y:disp(e.core2)}:null;}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#4ade80",spanGaps:true,yAxisID:"y",order:2},
+    {label:"Core 3",data:sorted.map(function(e){return e.core3!=null?{x:xVal(e),y:disp(e.core3)}:null;}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#a855f7",spanGaps:true,yAxisID:"y",order:3}
   ]:[
-    {label:"Average",data:sorted.map(function(e){return avgCore(e)!=null?disp(avgCore(e)):null;}),
+    {label:"Average",data:sorted.map(function(e){return avgCore(e)!=null?{x:xVal(e),y:disp(avgCore(e))}:null;}),
       borderColor:"#fff",backgroundColor:"#ffffff08",tension:0.3,pointRadius:4,pointBackgroundColor:"#fff",spanGaps:true,yAxisID:"y",order:1}
   ];
   tempChart=new Chart(document.getElementById("temp-chart"),{
     type:"line",
-    data:{labels:labels,datasets:tempDatasets.concat([
-      {label:"Moisture %",data:sorted.map(function(e){return e.moisture!=null?e.moisture:null;}),borderColor:"#1e88e5",
+    data:{datasets:tempDatasets.concat([
+      {label:"Moisture %",data:sorted.map(function(e){return e.moisture!=null?{x:xVal(e),y:e.moisture}:null;}),borderColor:"#1e88e5",
         backgroundColor:"rgba(30,136,229,0.12)",fill:true,tension:0.3,
         pointRadius:3,pointBackgroundColor:"#1e88e5",spanGaps:true,yAxisID:"y2",order:10}
     ].concat(showDelta&&sorted.some(function(e){return e.ambient!=null&&avgCore(e)!=null;})?[
       {label:"Core-Ambient Delta",data:sorted.map(function(e){
         var c=avgCore(e)!=null?disp(avgCore(e)):null;
         var a=e.ambient!=null?disp(e.ambient):null;
-        return(c!=null&&a!=null)?Math.round((c-a)*10)/10:null;
+        return(c!=null&&a!=null)?{x:xVal(e),y:Math.round((c-a)*10)/10}:null;
       }),borderColor:"#06b6d4",backgroundColor:"transparent",tension:0.3,
         pointRadius:3,pointBackgroundColor:"#06b6d4",spanGaps:true,yAxisID:"y",order:5,borderDash:[2,2]}
     ]:[])
     .concat(showAmbient&&sorted.some(function(e){return e.ambient!=null;})?[
-      {label:"Ambient",data:sorted.map(function(e){return e.ambient!=null?disp(e.ambient):null;}),
+      {label:"Ambient",data:sorted.map(function(e){return e.ambient!=null?{x:xVal(e),y:disp(e.ambient)}:null;}),
         borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,
         pointRadius:3,pointBackgroundColor:"#f59e0b",spanGaps:true,yAxisID:"y",order:4,borderDash:[4,3]}
     ]:[]))},
@@ -2389,7 +2421,15 @@ function renderChart(sorted){
         },dayAnnotations,turnAnnotations)}
       },
       scales:{
-        x:{ticks:{color:"#555",font:{size:11}},grid:{display:false}},
+        x:{type:"linear",min:0,max:xMaxVal,
+          ticks:{color:"#555",font:{size:11},autoSkip:false,
+            callback:function(v){
+              for(var i=0;i<dayTicks.length;i++){if(Math.abs(dayTicks[i].x-v)<0.01)return dayTicks[i].label;}
+              return "";
+            },
+            stepSize:1},
+          afterBuildTicks:function(axis){axis.ticks=dayTicks.map(function(dt){return{value:dt.x};});},
+          grid:{display:false}},
         y:{min:showDelta?0:cMin,max:cMax,position:"left",ticks:{color:"#888",font:{size:11}},grid:{color:"#111"},
           title:{display:true,text:"\u00B0"+tempUnit,color:"#555",font:{size:11}}},
         y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:9},padding:1,callback:function(v){return v+"%";}},

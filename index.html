@@ -107,7 +107,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.67</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.68</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -545,7 +545,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.67</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.68</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -638,6 +638,55 @@ function fmtDuration(ms){
   if(h<1)return m+'m';
   if(d===0)return h+'h '+m+'m';
   return d+'d'+(remH>0?' '+remH+'h':'');
+}
+function getPileAssessment(pile,sorted){
+  if(!sorted||sorted.length<2)return null;
+  var cycles=buildCycles(sorted);
+  var numCycles=cycles?cycles.length:0;
+  var peakTemp=0;
+  var stageHighCount=0; // readings in Stage 3+ (156°F+)
+  var lastN=Math.min(3,sorted.length);
+  var recentAvgs=sorted.slice(-lastN).map(function(e){return avgCore(e)||0;});
+  var latestAvg=recentAvgs[recentAvgs.length-1]||0;
+  var ambientApprox=sorted.filter(function(e){return e.ambient!=null;}).slice(-3).reduce(function(s,e){return s+e.ambient;},0)/
+    (sorted.filter(function(e){return e.ambient!=null;}).slice(-3).length||1);
+  var stabilized=latestAvg>0&&latestAvg<110&&(ambientApprox?latestAvg<ambientApprox+20:latestAvg<110);
+  sorted.forEach(function(e){
+    var a=avgCore(e)||0;
+    if(a>peakTemp)peakTemp=a;
+    if(a>=156)stageHighCount++;
+  });
+  var label,color,icon,desc,rec;
+  if(numCycles===0){
+    label="NO CYCLES YET";color="#555";icon="○";
+    desc="No thermophilic cycles detected yet.";
+    rec="Ensure adequate moisture and nitrogen. Check C:N ratio.";
+  } else if(numCycles>=1&&numCycles<=2&&stabilized){
+    label="EARLY STABILIZATION";color="#f59e0b";icon="△";
+    desc="Temperature stabilized after "+numCycles+" cycle"+(numCycles>1?"s":"")+". Fewer cycles may mean incomplete pathogen reduction.";
+    rec="Recommend pathogen and germination testing before field application.";
+  } else if(numCycles>=3&&numCycles<=5&&stabilized){
+    label="OPTIMAL MATURITY";color="#4ade80";icon="✓";
+    desc="Pile completed "+numCycles+" cycles and temperature has stabilized — consistent with biological maturity.";
+    rec="Ready for final testing. Germination test recommended before use.";
+  } else if(numCycles>=3&&numCycles<=5&&!stabilized){
+    label="APPROACHING MATURITY";color="#60a5fa";icon="→";
+    desc=numCycles+" cycles completed. Still maintaining heat — allow to stabilize below 110°F.";
+    rec="Monitor temperature. Turn if still above 131°F.";
+  } else if(numCycles>5&&stageHighCount>sorted.length*0.3){
+    label="EXTENDED HIGH HEAT";color="#ef4444";icon="⚠";
+    desc=numCycles+" cycles with prolonged Stage 3+ temperatures. Extended high heat may stress beneficial fungal populations.";
+    rec="Reduce high-nitrogen inputs in future batches. Consider adding more browns next time.";
+  } else if(numCycles>5){
+    label="EXTENDED ACTIVITY";color="#f97316";icon="!";
+    desc=numCycles+" cycles detected — above the optimal 3-5 range. May indicate excess nitrogen or other imbalances.";
+    rec="Review recipe C:N ratio. Consider reducing fast-N inputs in next batch.";
+  } else {
+    label="ACTIVE";color="#60a5fa";icon="→";
+    desc=numCycles+" cycle"+(numCycles>1?"s":"")+". Pile is thermophilically active.";
+    rec="Continue monitoring. Turn when stage timer completes.";
+  }
+  return{label:label,color:color,icon:icon,desc:desc,rec:rec,numCycles:numCycles,peakTemp:peakTemp,stabilized:stabilized};
 }
 function timeAgo(date){
   var ms=Date.now()-new Date(date).getTime();
@@ -1426,13 +1475,19 @@ function togglePileStatus(id){
     {label:"DAYS ABOVE 131°F",val:daysAbove131+" days"},
     {label:"TOTAL ENTRIES",val:sorted.length},
   ];
+  var assess=getPileAssessment(p,sorted);
   document.getElementById("maturity-summary").innerHTML=
     '<div style="margin-bottom:0.75rem;font-size:0.7rem;color:#555;font-family:Share Tech Mono,monospace">'+
     'This pile journey at a glance:</div>'+
     rows.map(function(r){return '<div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid #111">'+
       '<span class="mono" style="font-size:0.75rem;color:#555">'+r.label+'</span>'+
       '<span class="mono" style="font-size:0.85rem;color:#4ade80">'+r.val+'</span></div>';}).join("")+
-    '<div style="margin-top:0.75rem;padding:0.75rem;background:#050505;border-radius:3px;font-size:0.65rem;color:#555;font-family:Share Tech Mono,monospace">'+
+    (assess?'<div style="margin-top:0.75rem;padding:0.75rem;background:#050505;border-radius:3px">'+
+      '<div class="mono" style="font-size:0.65rem;color:'+assess.color+';margin-bottom:0.4rem">'+assess.icon+' '+assess.label+'</div>'+
+      '<div style="font-size:0.65rem;color:#888;line-height:1.5;font-family:Inter,sans-serif">'+assess.desc+'</div>'+
+      '<div style="font-size:0.62rem;color:#555;margin-top:0.3rem;font-family:Inter,sans-serif">→ '+assess.rec+'</div>'+
+    '</div>':'')+
+    '<div style="margin-top:0.5rem;padding:0.75rem;background:#050505;border-radius:3px;font-size:0.65rem;color:#555;font-family:Share Tech Mono,monospace">'+
     'Recipe: '+(p.materials?((p.materials.highN||[]).length+(p.materials.greens||[]).length+(p.materials.browns||[]).length)+' ingredients':'—')+'</div>';
   document.getElementById("maturity-notes").value="";
   document.getElementById("maturity-modal").style.display="flex";
@@ -2094,6 +2149,16 @@ function renderStatusCard(pile,sorted,lat,band){
       if(msTo131!=null)r+='<div class="status-detail"><span class="status-key">TIME TO 131\u00B0F</span><span class="status-val" style="color:#f59e0b">'+fmtDuration(msTo131)+'</span></div>';
       if(msAbove131>0)r+='<div class="status-detail" style="border-bottom:none"><span class="status-key">TIME ABOVE 131\u00B0F</span><span class="status-val" style="color:#f97316">'+fmtDuration(msAbove131)+'</span></div>';
       return r;
+    })()+
+    (function(){
+      var a=getPileAssessment(pile,sorted);
+      if(!a)return'';
+      return'<div class="status-detail" style="border-bottom:none;margin-top:0.3rem;padding-top:0.5rem;border-top:1px solid #111">'+
+        '<span class="mono" style="font-size:0.62rem;color:#555">MATURITY ASSESSMENT</span>'+
+        '<span class="mono" style="font-size:0.72rem;color:'+a.color+';font-weight:600">'+a.label+'</span>'+
+      '</div>'+
+      '<div style="font-size:0.62rem;color:#666;line-height:1.4;margin-top:0.3rem;font-family:Inter,sans-serif">'+a.desc+'</div>'+
+      '<div style="font-size:0.6rem;color:#555;margin-top:0.25rem;font-family:Inter,sans-serif">→ '+a.rec+'</div>';
     })();
   var canSchedule=t&&t.deadline&&!isDone;
   var calBtnHTML;
@@ -2292,7 +2357,7 @@ function renderChart(sorted){
         pointRadius:3,pointBackgroundColor:"#f59e0b",spanGaps:true,yAxisID:"y",order:4,borderDash:[4,3]}
     ]:[]))},
     options:{
-      responsive:false,maintainAspectRatio:false,animation:false,
+      responsive:true,maintainAspectRatio:false,animation:false,
       interaction:{mode:"index",intersect:false},
       plugins:{
         legend:{display:false},
@@ -2306,8 +2371,8 @@ function renderChart(sorted){
         x:{ticks:{color:"#555",font:{size:11}},grid:{display:false}},
         y:{min:showDelta?0:cMin,max:cMax,position:"left",ticks:{color:"#888",font:{size:11}},grid:{color:"#111"},
           title:{display:true,text:"\u00B0"+tempUnit,color:"#555",font:{size:11}}},
-        y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:11},callback:function(v){return v+"%";}},
-          grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:11}}}
+        y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:9},padding:1,callback:function(v){return v+"%";}},
+          grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:9},padding:{top:0,bottom:0}}}
       }
     }
   });
@@ -2315,6 +2380,70 @@ function renderChart(sorted){
     var wrap=document.getElementById("chart-scroll-wrap");
     if(wrap)wrap.scrollLeft=wrap.scrollWidth;
   },50);
+}
+function getPileAssessment(pile,sorted){
+  if(!sorted||sorted.length<2)return null;
+  var cycles=buildCycles(sorted);
+  var numCycles=cycles?cycles.length:0;
+  var peakTemp=0;
+  sorted.forEach(function(e){var a=avgCore(e);if(a&&a>peakTemp)peakTemp=a;});
+  // Check if stabilized: avg below 110°F for last 2+ consecutive readings
+  var stabilized=false;
+  if(sorted.length>=2){
+    var last2=sorted.slice(-2);
+    stabilized=last2.every(function(e){var a=avgCore(e);return a!=null&&a<110;});
+  }
+  // High heat: any cycle with Stage 3+ (156°F+) temps
+  var highHeatCycles=0;
+  if(cycles){cycles.forEach(function(c){
+    var hasHighHeat=c.entries&&c.entries.some(function(e){return avgCore(e)>=156;});
+    if(hasHighHeat)highHeatCycles++;
+  });}
+  // Days above 131
+  var msAbove131=0;
+  for(var ai=1;ai<sorted.length;ai++){
+    if(avgCore(sorted[ai-1])>=131&&avgCore(sorted[ai])>=131){
+      msAbove131+=new Date(sorted[ai].ts)-new Date(sorted[ai-1].ts);
+    }
+  }
+  var daysAbove131=msAbove131/86400000;
+
+  // Assessment logic
+  var label,color,desc,rec;
+  if(numCycles===0){
+    label="PRE-THERMOPHILIC";color="#555";
+    desc="No thermophilic activity detected yet.";
+    rec="Ensure adequate nitrogen, moisture (50%), and aeration.";
+  } else if(!stabilized&&numCycles<=5){
+    label="THERMOPHILICALLY ACTIVE";color="#f97316";
+    desc="Pile is actively heating through cycle "+numCycles+". "+
+      (highHeatCycles>0?"High heat (156°F+) detected in "+highHeatCycles+" cycle(s).":"");
+    rec=highHeatCycles>=2?"Monitor closely — extended high heat may stress beneficial microbes. Consider turning sooner.":
+      "Continue monitoring. Turn when stage timer completes.";
+  } else if(stabilized&&numCycles>=3&&numCycles<=5){
+    label="OPTIMAL MATURITY";color="#4ade80";
+    desc="Pile stabilized after "+numCycles+" cycles with "+fmtDuration(msAbove131)+" above 131°F. Biological activity winding down.";
+    rec="Recommend germination test (radish seeds) before field application.";
+  } else if(stabilized&&numCycles<3){
+    label="EARLY STABILIZATION";color="#f59e0b";
+    desc="Temperature stabilized after only "+numCycles+" cycle(s). Fewer cycles increases pathogen risk.";
+    rec="Recommend pathogen testing before use. Consider rebuilding with fresh nitrogen inputs.";
+  } else if(numCycles>5&&stabilized){
+    label="EXTENDED ACTIVITY";color="#fb923c";
+    desc=numCycles+" cycles completed. Extended cycling may indicate excess nitrogen or inconsistent turning.";
+    rec="Review recipe — consider reducing high-nitrogen inputs by 15-20% in future batches.";
+  } else if(numCycles>5&&!stabilized){
+    label="EXTENDED ACTIVE";color="#ef4444";
+    desc=numCycles+" cycles and still heating. "+
+      (highHeatCycles>=3?"Repeated high heat may reduce beneficial fungal populations. ":"");
+    rec="Review C:N ratio and turning frequency. "+
+      (highHeatCycles>=3?"Add more browns to balance excess nitrogen.":"");
+  } else {
+    label="ACTIVE";color="#60a5fa";
+    desc="Pile is progressing through thermophilic cycles.";
+    rec="Continue regular monitoring and turning schedule.";
+  }
+  return{label:label,color:color,desc:desc,rec:rec,numCycles:numCycles,peakTemp:peakTemp,daysAbove131:daysAbove131,stabilized:stabilized};
 }
 function toggleCard(id){
   collapsedCards[id]=!collapsedCards[id];
@@ -2896,7 +3025,7 @@ function exportPDF(){
           ]:[])
         },
         options:{
-          responsive:false,maintainAspectRatio:false,animation:false,
+          responsive:true,maintainAspectRatio:false,animation:false,
           plugins:{legend:{display:true,labels:{color:"#333",font:{size:10},
               usePointStyle:true,pointStyle:"line",
               generateLabels:function(chart){
@@ -2938,20 +3067,97 @@ function exportPDF(){
   doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
   doc.text("LOG ENTRIES",M,y);y+=5;
   doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
-  var cols=[12,26,14,14,14,14,14,16];var hdrs=["Day","Date","C1 F","C2 F","C3 F","Moist","Turn","Stage"];
-  var x=M;
-  doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(80,80,80);
-  hdrs.forEach(function(h,i){doc.text(h,x,y);x+=cols[i];});y+=1;
-  doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=3;
-  sortedEntries.forEach(function(e,i){
-    check(6);
-    x=M;doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(60,60,60);
-    var band=getBand(avgCore(e));
-    var row=[i+1,e.date,e.core1||"",e.core2||"",e.core3||"",e.moisture?e.moisture+"%":"",e.turned?"YES":"",band?band.label:""];
-    row.forEach(function(v,j){doc.text(String(v),x,y);x+=cols[j];});
-    y+=5;if(i%2===0){doc.setFillColor(248,248,248);doc.rect(M,y-4,CW,5,"F");}
-  });
-  // Fallback footer/save for when there are no entries (no chart generated)
+  // Two-column log layout
+  var half=Math.ceil(sortedEntries.length/2);
+  var leftCol=sortedEntries.slice(0,half);
+  var rightCol=sortedEntries.slice(half);
+  var colW=(CW-6)/2;  // 6mm gap between columns
+  var rightX=M+colW+6;
+  
+  function drawLogHeader(startX){
+    var hx=startX;
+    doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(80,80,80);
+    [["#",6],["Date",16],["Amb",10],["Avg",10],["Mst",8],["Trn",6]].forEach(function(h){
+      doc.text(h[0],hx,y);hx+=h[1];
+    });
+  }
+  drawLogHeader(M);drawLogHeader(rightX);
+  y+=1;
+  doc.setDrawColor(180,180,180);
+  doc.line(M,y,M+colW,y);
+  doc.line(rightX,y,rightX+colW,y);
+  y+=3;
+
+  var maxRows=Math.max(leftCol.length,rightCol.length);
+  for(var ri=0;ri<maxRows;ri++){
+    check(5);
+    doc.setFont("helvetica","normal");doc.setFontSize(7);
+    [leftCol[ri],rightCol[ri]].forEach(function(e,ci){
+      if(!e)return;
+      var sx=ci===0?M:rightX;
+      var band2=getBand(avgCore(e));
+      var bandColor=band2?band2.color:"#555";
+      var avg2=avgCore(e);
+      // Row background
+      if(ri%2===1){
+        var rc=ci===0?M:rightX;
+        doc.setFillColor(245,245,245);doc.rect(rc,y-3,colW,5,"F");
+      }
+      doc.setTextColor(60,60,60);
+      var hx2=sx;
+      doc.text(String((ci===0?ri:ri+half)+1),hx2,y);hx2+=6;
+      doc.text((e.date||"").slice(5),hx2,y);hx2+=16; // MM-DD only
+      doc.text(e.ambient!=null?String(Math.round(e.ambient)):"—",hx2,y);hx2+=10;
+      // Avg in band color
+      var prevColor=null;
+      if(avg2!=null){
+        doc.setTextColor(parseInt(bandColor.slice(1,3),16),parseInt(bandColor.slice(3,5),16),parseInt(bandColor.slice(5,7),16));
+        doc.text(String(Math.round(avg2)),hx2,y);
+        doc.setTextColor(60,60,60);
+      } else {
+        doc.text("—",hx2,y);
+      }
+      hx2+=10;
+      doc.text(e.moisture!=null?e.moisture+"%":"—",hx2,y);hx2+=8;
+      doc.text(e.turned?"Y":"",hx2,y);
+    });
+    y+=5;
+  }
+  // Notes section below if any entries have notes
+  var notedEntries=sortedEntries.filter(function(e){return e.notes&&e.notes.trim();});
+  if(notedEntries.length){
+    y+=2;
+    doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(80,80,80);
+    doc.text("NOTES",M,y);y+=3;
+    doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(100,100,100);
+    notedEntries.forEach(function(e,ni){
+      check(5);
+      var noteIdx=sortedEntries.indexOf(e)+1;
+      var noteText="#"+noteIdx+" ("+e.date.slice(5)+"): "+e.notes;
+      var lines=doc.splitTextToSize(noteText,CW);
+      lines.forEach(function(ln){check(4);doc.text(ln,M,y);y+=4;});
+    });
+  }
+  // Maturity Assessment section
+  var assess2=getPileAssessment(pile,sortedEntries);
+  if(assess2){
+    check(35);
+    y+=4;
+    doc.setFillColor(10,10,10);doc.rect(M,y-3,CW,32,"F");
+    doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(180,180,180);
+    doc.text("PILE ASSESSMENT",M+3,y+2);y+=7;
+    var ac=assess2.color;
+    var acR=parseInt(ac.slice(1,3),16),acG=parseInt(ac.slice(3,5),16),acB=parseInt(ac.slice(5,7),16);
+    doc.setTextColor(acR,acG,acB);doc.setFontSize(9);doc.setFont("helvetica","bold");
+    doc.text(assess2.label,M+3,y);y+=5;
+    doc.setTextColor(120,120,120);doc.setFontSize(7.5);doc.setFont("helvetica","normal");
+    var descLines=doc.splitTextToSize(assess2.desc,CW-6);
+    descLines.forEach(function(ln){doc.text(ln,M+3,y);y+=4;});
+    doc.setTextColor(100,100,100);doc.setFontSize(7);
+    var recLines=doc.splitTextToSize("→ "+assess2.rec,CW-6);
+    recLines.forEach(function(ln){doc.text(ln,M+3,y);y+=4;});
+  }
+  // Footer
   doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(160,160,160);
   doc.text("Generated by Compost Logger App - "+new Date().toLocaleDateString(),M,290);
   doc.save(pile.name.replace(/\s+/g,"-")+"-report.pdf");

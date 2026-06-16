@@ -1410,15 +1410,7 @@ function renderHome(){
     } else if(t&&(t.complete||t.stageDone)){
       timerHtml='<div class="mono" style="margin-top:0.5rem;color:#4ade80;font-size:0.78rem">&#10003; CLEAR TO TURN</div>';
     } else if(t&&!t.turnNow){
-      var label=Math.floor(t.remaining)+"h "+Math.round((t.remaining%1)*60)+"m LEFT";
-      timerHtml='<div style="margin-top:0.75rem">'+
-        '<div style="display:flex;justify-content:space-between;margin-bottom:0.3rem">'+
-          '<span class="mono" style="font-size:0.65rem;color:'+t.band.color+'">'+t.band.label+'</span>'+
-          '<span class="mono" style="font-size:0.65rem;color:#999">'+label+'</span>'+
-        '</div>'+
-        '<div class="pbar-wrap"><div class="pbar" style="width:'+t.progress+'%;background:'+t.band.color+'"></div></div>'+
-        (nextDue?'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.3rem">NEXT TURN: '+nextDue+'</div>':"")+
-      '</div>';
+      timerHtml=(nextDue?'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.6rem">NEXT TURN: '+nextDue+'</div>':"");
     }
     var sinceHtml=sinceMs!==null
       ?'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.2rem">LAST TURN: '+fmtHours(sinceMs)+' AGO &middot; TURNS: '+turnCount+'</div>'

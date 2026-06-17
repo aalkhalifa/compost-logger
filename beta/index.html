@@ -43,6 +43,10 @@ input[type=range]:disabled{opacity:0.3}
   cursor:pointer;font-family:Inter,sans-serif;text-align:center}
 .btn-sm{background:#0a0a0a;border:1px solid #222;color:#999;border-radius:3px;
   padding:0.35rem 0.75rem;cursor:pointer;font-size:0.72rem;font-family:Inter,sans-serif;white-space:nowrap}
+.import-menu-item{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #161616;
+  color:#bbb;padding:0.65rem 0.85rem;cursor:pointer;font-size:0.7rem;font-family:Inter,sans-serif;white-space:nowrap}
+.import-menu-item:last-child{border-bottom:none}
+.import-menu-item:hover{background:#141414;color:#fff}
 .btn-now{background:#1a1a1a;border:1px solid #555;color:#ccc;border-radius:3px;
   padding:0 0.9rem;cursor:pointer;font-size:0.7rem;font-family:"Share Tech Mono",monospace;
   letter-spacing:0.08em;white-space:nowrap;height:38px;display:flex;align-items:center;justify-content:center;font-weight:600}
@@ -107,7 +111,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.76-BETA</div>
+    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.76</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -124,9 +128,14 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.5rem">
       <span class="hd" style="font-size:1.5rem;color:#fff">YOUR PILES</span>
       <div style="display:flex;gap:0.4rem;flex-wrap:nowrap;overflow-x:auto">
-        <button onclick="downloadCSVTemplate()" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem;flex-shrink:0">CSV TEMPLATE</button>
-        <button onclick="document.getElementById('csv-import-input').click()" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem;flex-shrink:0">IMPORT CSV</button>
-        <button onclick="document.getElementById('xlsx-import-input').click()" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem;flex-shrink:0">IMPORT EXCEL</button>
+        <div style="position:relative;flex-shrink:0" class="import-menu-wrap">
+          <button onclick="toggleImportMenu(event)" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem">IMPORT / TEMPLATE &#9662;</button>
+          <div id="import-menu" class="hidden" style="position:absolute;top:110%;left:0;z-index:50;background:#0a0a0a;border:1px solid #222;border-radius:4px;min-width:160px;box-shadow:0 6px 20px rgba(0,0,0,0.6)">
+            <button onclick="closeImportMenu();downloadCSVTemplate()" class="import-menu-item">DOWNLOAD TEMPLATE</button>
+            <button onclick="closeImportMenu();document.getElementById('csv-import-input').click()" class="import-menu-item">IMPORT CSV</button>
+            <button onclick="closeImportMenu();document.getElementById('xlsx-import-input').click()" class="import-menu-item">IMPORT EXCEL</button>
+          </div>
+        </div>
         <button onclick="showOpSummary()" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem;flex-shrink:0">OPERATION SUMMARY</button>
         <button onclick="showView('setup')" class="btn" style="width:auto;padding:0.45rem 0.9rem;flex-shrink:0">+ NEW PILE</button>
       </div>
@@ -567,7 +576,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.76-BETA</div>
+        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.76</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -2238,7 +2247,24 @@ function renderStatusCard(pile,sorted,lat,band){
           '</div>';
         }
 
-        return reachedBands.map(function(b){
+        // Show completed (satisfied) stages plus the single active stage (highest
+        // reached-but-unsatisfied). Hide lower unsatisfied stages that would render
+        // as dead/empty bars.
+        var unsatReached=reachedBands.filter(function(b){var s=indep[b.label];return s&&!s.satisfied;});
+        var activeLabel=null;
+        if(unsatReached.length){
+          // "highest" = the one furthest along the stage order (Stage 3 over Stage 2)
+          var orderRank={"Stage 1":1,"Stage 2":2,"Stage 3":3,"Stage 4":4};
+          activeLabel=unsatReached.reduce(function(hi,b){
+            return (orderRank[b.label]||0)>(orderRank[hi.label]||0)?b:hi;
+          },unsatReached[0]).label;
+        }
+        var visibleBands=reachedBands.filter(function(b){
+          var s=indep[b.label];
+          return (s&&s.satisfied)||b.label===activeLabel;
+        });
+
+        return visibleBands.map(function(b){
           var s=indep[b.label];
           var color=STAGE_COLORS[b.label]||b.color;
           var pct=s.satisfied?100:Math.min(100,(s.elapsed/b.hours)*100);
@@ -3279,51 +3305,87 @@ function exportPDF(){
     doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
     doc.text("LOG ENTRIES",M,y);y+=5;
     doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
-    // Single-column log with inline notes
-    function drawLogHeader(){
-      var hx=M;
-      doc.setFont("helvetica","bold");doc.setFontSize(7.5);doc.setTextColor(80,80,80);
-      [["#",8],["Date",20],["Time",16],["Amb",16],["Avg",16],["Moist",18],["Turn",14]].forEach(function(h){
-        doc.text(h[0],hx,y);hx+=h[1];
-      });
-    }
-    drawLogHeader();
-    y+=1;
-    doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=3.5;
 
-    sortedEntries.forEach(function(e,idx){
-      check(6);
+    // Two-column log. Entries split evenly: first half fills left column top-to-bottom,
+    // second half fills right column. Each entry keeps its row + (optional) note beneath.
+    var GUT=6;                          // gutter between columns
+    var COLW=(CW-GUT)/2;                // width of each column
+    var colX=[M, M+COLW+GUT];          // x-origin of left / right columns
+    // Column header (drawn once per column at the top of each column block)
+    function drawColHeader(x0,yy){
+      doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(80,80,80);
+      var cols=[["#",6],["Date",17],["Time",12],["Amb",10],["Avg",10],["Moist",12],["Turn",0]];
+      var hx=x0;
+      cols.forEach(function(h){doc.text(h[0],hx,yy);hx+=h[1];});
+      doc.setDrawColor(180,180,180);doc.line(x0,yy+1.2,x0+COLW-2,yy+1.2);
+      return yy+5;
+    }
+    // Draw one entry at column origin x0, starting at vertical yLocal. Returns new yLocal.
+    // zebra index controls the alternating row background.
+    function drawEntry(e,idx,x0,yLocal,zebra){
       var band2=getBand(avgCore(e));
       var bandColor=band2?band2.color:"#555";
       var avg2=avgCore(e);
       var hasNote=e.notes&&e.notes.trim();
-      // Row background (alternating)
-      if(idx%2===1){doc.setFillColor(246,246,246);doc.rect(M,y-3.2,CW,5,"F");}
-      doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);
-      var hx=M;
-      doc.text(String(idx+1),hx,y);hx+=8;
-      doc.text(e.date||"",hx,y);hx+=20;
-      doc.text(e.time||"—",hx,y);hx+=16;
-      doc.text(e.ambient!=null?String(Math.round(e.ambient)):"—",hx,y);hx+=16;
+      if(zebra%2===1){doc.setFillColor(246,246,246);doc.rect(x0,yLocal-3.2,COLW-2,5,"F");}
+      doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(60,60,60);
+      var hx=x0;
+      doc.text(String(idx+1),hx,yLocal);hx+=6;
+      doc.text(e.date||"",hx,yLocal);hx+=17;
+      doc.text(e.time||"-",hx,yLocal);hx+=12;
+      doc.text(e.ambient!=null?String(Math.round(e.ambient)):"-",hx,yLocal);hx+=10;
       if(avg2!=null){
         var hxc=/^#[0-9a-fA-F]{6}$/.test(bandColor)?bandColor:"#3c3c3c";
         doc.setTextColor(parseInt(hxc.slice(1,3),16),parseInt(hxc.slice(3,5),16),parseInt(hxc.slice(5,7),16));
-        doc.text(String(Math.round(avg2)),hx,y);
+        doc.text(String(Math.round(avg2)),hx,yLocal);
         doc.setTextColor(60,60,60);
-      } else { doc.text("—",hx,y); }
-      hx+=16;
-      doc.text(e.moisture!=null?e.moisture+"%":"—",hx,y);hx+=18;
-      doc.text(e.turned?"YES":"",hx,y);
-      y+=5;
-      // Inline note directly under the entry row
+      } else { doc.text("-",hx,yLocal); }
+      hx+=10;
+      doc.text(e.moisture!=null?e.moisture+"%":"-",hx,yLocal);hx+=12;
+      doc.text(e.turned?"YES":"",hx,yLocal);
+      yLocal+=5;
       if(hasNote){
-        doc.setFont("helvetica","italic");doc.setFontSize(6.8);doc.setTextColor(110,110,110);
-        var noteLines=doc.splitTextToSize("Note: "+e.notes.trim(),CW-10);
-        noteLines.forEach(function(ln){check(4);doc.text(ln,M+8,y);y+=3.6;});
-        y+=1.2;
+        doc.setFont("helvetica","italic");doc.setFontSize(6.5);doc.setTextColor(110,110,110);
+        var noteLines=doc.splitTextToSize("Note: "+e.notes.trim(),COLW-6);
+        noteLines.forEach(function(ln){doc.text(ln,x0+3,yLocal);yLocal+=3.4;});
+        yLocal+=1.2;
         doc.setTextColor(60,60,60);
       }
+      return yLocal;
+    }
+    // Measure an entry's height without drawing (for page-fit checks).
+    function entryHeight(e){
+      var h=5;
+      if(e.notes&&e.notes.trim()){
+        doc.setFontSize(6.5);
+        var n=doc.splitTextToSize("Note: "+e.notes.trim(),COLW-6).length;
+        h+=n*3.4+1.2;
+      }
+      return h;
+    }
+    var n=sortedEntries.length;
+    var leftCount=Math.ceil(n/2);
+    var columns=[sortedEntries.slice(0,leftCount), sortedEntries.slice(leftCount)];
+    var startIdx=[0, leftCount];
+    var topY=y;                        // shared top of both columns on this page
+    var maxBottom=topY;
+    columns.forEach(function(colEntries,ci){
+      var yL=drawColHeader(colX[ci],topY);
+      colEntries.forEach(function(e,k){
+        var globalIdx=startIdx[ci]+k;
+        // Page-break guard: if this entry won't fit, move to a fresh page.
+        if(yL+entryHeight(e)>282){
+          // finish measuring this column's bottom, then (rare) overflow to next page
+          doc.addPage();
+          topY=20; yL=drawColHeader(colX[ci],topY);
+        }
+        yL=drawEntry(e,globalIdx,colX[ci],yL,k);
+      });
+      if(yL>maxBottom)maxBottom=yL;
     });
+    // light divider between the two columns
+    doc.setDrawColor(225,225,225);doc.line(M+COLW+GUT/2,topY-2,M+COLW+GUT/2,maxBottom-3);
+    y=maxBottom+2;
     // Maturity Assessment section
     var assess2=getPileAssessment(pile,sortedEntries);
     if(assess2){
@@ -3387,10 +3449,16 @@ function exportPDF(){
                   return{text:ds.label,fillStyle:ds.borderColor,strokeStyle:ds.borderColor,
                     lineWidth:3,hidden:false,datasetIndex:i,pointStyle:"line"};
                 });
-              }}},annotation:{annotations:{
+              }}},annotation:{annotations:Object.assign({
             r131:{type:"line",yMin:crPDF(131),yMax:crPDF(131),borderColor:"#f59e0b",borderWidth:1,borderDash:[5,4],yScaleID:"y"},
             r175:{type:"line",yMin:crPDF(175),yMax:crPDF(175),borderColor:"#ff0000",borderWidth:1,borderDash:[3,3],yScaleID:"y"}
-          }}},
+          },(function(){
+            var ta={};
+            sortedEntries.forEach(function(e,i){
+              if(e.turned){ta["turn"+i]={type:"line",xMin:i+1,xMax:i+1,borderColor:"#f97316",borderWidth:1.5,label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#c2410c",font:{size:7},padding:1,rotation:90}};}
+            });
+            return ta;
+          })())}},
           scales:{
             x:{ticks:{color:"#333",font:{size:9}},grid:{color:"#eee"},title:{display:true,text:"Entry #",color:"#333",font:{size:9}}},
             y:{min:crPDF(80),max:crPDF(180),position:"left",ticks:{color:"#333",font:{size:9}},grid:{color:"#eee"},title:{display:true,text:"\u00B0"+tempUnit,color:"#333",font:{size:9}}},
@@ -3584,7 +3652,7 @@ async function initDriveStorage(){
       }
     }
   } else {
-    var f=await driveCreateFile("compost_data_beta.json",folderId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit});
+    var f=await driveCreateFile("compost_data.json",folderId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit});
     driveFileId=f.id;
   }
 }
@@ -3767,6 +3835,21 @@ window.addEventListener("beforeunload",function(e){
 // CSV IMPORT + TEMPLATE
 // ============================================================
 
+function toggleImportMenu(ev){
+  if(ev)ev.stopPropagation();
+  var m=document.getElementById("import-menu");
+  if(m)m.classList.toggle("hidden");
+}
+function closeImportMenu(){
+  var m=document.getElementById("import-menu");
+  if(m)m.classList.add("hidden");
+}
+// Close the menu when clicking outside its wrapper
+document.addEventListener("click",function(ev){
+  var m=document.getElementById("import-menu");
+  if(!m||m.classList.contains("hidden"))return;
+  if(!ev.target.closest(".import-menu-wrap"))m.classList.add("hidden");
+});
 function downloadCSVTemplate(){
   var lines=[
     "[PILE]",

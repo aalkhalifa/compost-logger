@@ -129,12 +129,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <span class="hd" style="font-size:1.5rem;color:#fff">YOUR PILES</span>
       <div style="display:flex;gap:0.4rem;flex-wrap:nowrap;overflow-x:auto">
         <div style="position:relative;flex-shrink:0" class="import-menu-wrap">
-          <button onclick="toggleImportMenu(event)" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem">IMPORT / TEMPLATE &#9662;</button>
-          <div id="import-menu" class="hidden" style="position:absolute;top:110%;left:0;z-index:50;background:#0a0a0a;border:1px solid #222;border-radius:4px;min-width:160px;box-shadow:0 6px 20px rgba(0,0,0,0.6)">
-            <button onclick="closeImportMenu();downloadCSVTemplate()" class="import-menu-item">DOWNLOAD TEMPLATE</button>
-            <button onclick="closeImportMenu();document.getElementById('csv-import-input').click()" class="import-menu-item">IMPORT CSV</button>
-            <button onclick="closeImportMenu();document.getElementById('xlsx-import-input').click()" class="import-menu-item">IMPORT EXCEL</button>
-          </div>
+          <button id="import-menu-btn" onclick="toggleImportMenu(event)" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem">IMPORT / TEMPLATE &#9662;</button>
         </div>
         <button onclick="showOpSummary()" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem;flex-shrink:0">OPERATION SUMMARY</button>
         <button onclick="showView('setup')" class="btn" style="width:auto;padding:0.45rem 0.9rem;flex-shrink:0">+ NEW PILE</button>
@@ -816,11 +811,31 @@ function toggleExportMenu(){
 function buildCycles(entries){
   if(!entries.length)return[];
   var sorted=entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  // A turn only ENDS a cycle if the pile first reached thermophilic Stage 1
+  // (>=131F held for >=72h cumulative) within the current cycle's entries.
+  // A turn logged before that threshold is reached stays part of the same cycle
+  // (e.g. an initial mixing turn on the very first log).
+  var STAGE1=BANDS[0]; // {min:131, hours:72}
+  function reachedStage1(cycleEntries){
+    var rel=cycleEntries.filter(function(e){return complianceTemp(e)!=null;});
+    var streakStart=null;
+    for(var i=0;i<rel.length;i++){
+      var hot=complianceTemp(rel[i])>=STAGE1.min;
+      if(hot){
+        if(streakStart===null)streakStart=new Date(rel[i].ts);
+        var end=i<rel.length-1?new Date(rel[i+1].ts):new Date(rel[i].ts);
+        if((end-streakStart)/3600000>=STAGE1.hours)return true;
+      } else { streakStart=null; }
+    }
+    return false;
+  }
   var cycles=[];var current=[];
   for(var i=0;i<sorted.length;i++){
     var e=sorted[i];
     current.push(e);
-    if(e.turned){cycles.push({entries:current.slice(),turnEntry:e});current=[];}
+    if(e.turned&&reachedStage1(current)){
+      cycles.push({entries:current.slice(),turnEntry:e});current=[];
+    }
   }
   if(current.length)cycles.push({entries:current,turnEntry:null});
   return cycles;
@@ -2562,7 +2577,7 @@ function renderChart(sorted){
     var bandRows=sorted.filter(function(e){return coreSpread(e)!=null;});
     if(bandRows.length){
       tempDatasets.push({label:"Probe max",data:bandRows.map(function(e){var v=[e.core1,e.core2,e.core3].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.max.apply(null,v))};}),
-        borderColor:"transparent",backgroundColor:"rgba(255,255,255,0.05)",pointRadius:0,fill:"+1",tension:0.3,yAxisID:"y",order:20});
+        borderColor:"transparent",backgroundColor:"rgba(255,255,255,0.09)",pointRadius:0,fill:"+1",tension:0.3,yAxisID:"y",order:20});
       tempDatasets.push({label:"Probe min",data:bandRows.map(function(e){var v=[e.core1,e.core2,e.core3].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.min.apply(null,v))};}),
         borderColor:"transparent",backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,yAxisID:"y",order:21});
     }
@@ -3838,17 +3853,31 @@ window.addEventListener("beforeunload",function(e){
 function toggleImportMenu(ev){
   if(ev)ev.stopPropagation();
   var m=document.getElementById("import-menu");
-  if(m)m.classList.toggle("hidden");
+  var btn=document.getElementById("import-menu-btn");
+  if(!m||!btn)return;
+  if(m.classList.contains("hidden")){
+    var r=btn.getBoundingClientRect();
+    m.style.top=(r.bottom+4)+"px";
+    // align right edge of menu under button, but keep on screen
+    var left=r.left;
+    if(left+180>window.innerWidth)left=window.innerWidth-180;
+    if(left<8)left=8;
+    m.style.left=left+"px";
+    m.classList.remove("hidden");
+  } else {
+    m.classList.add("hidden");
+  }
 }
 function closeImportMenu(){
   var m=document.getElementById("import-menu");
   if(m)m.classList.add("hidden");
 }
-// Close the menu when clicking outside its wrapper
+// Close on any outside click
 document.addEventListener("click",function(ev){
   var m=document.getElementById("import-menu");
   if(!m||m.classList.contains("hidden"))return;
-  if(!ev.target.closest(".import-menu-wrap"))m.classList.add("hidden");
+  if(ev.target.closest("#import-menu")||ev.target.closest("#import-menu-btn"))return;
+  m.classList.add("hidden");
 });
 function downloadCSVTemplate(){
   var lines=[
@@ -4643,5 +4672,10 @@ window.addEventListener("resize",function(){
 </script>
 
 <div id="toast-container"></div>
+<div id="import-menu" class="hidden" style="position:fixed;z-index:9999;background:#0a0a0a;border:1px solid #222;border-radius:4px;min-width:170px;box-shadow:0 6px 24px rgba(0,0,0,0.7)">
+  <button onclick="closeImportMenu();downloadCSVTemplate()" class="import-menu-item">DOWNLOAD TEMPLATE</button>
+  <button onclick="closeImportMenu();document.getElementById('csv-import-input').click()" class="import-menu-item">IMPORT CSV</button>
+  <button onclick="closeImportMenu();document.getElementById('xlsx-import-input').click()" class="import-menu-item">IMPORT EXCEL</button>
+</div>
 </body>
 </html>

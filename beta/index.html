@@ -585,7 +585,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.76e";
+var BUILD_VER="v3.76f";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -816,21 +816,27 @@ function toggleExportMenu(){
 function buildCycles(entries){
   if(!entries.length)return[];
   var sorted=entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
-  // A turn only ENDS a cycle if the pile first reached thermophilic Stage 1
-  // (>=131F held for >=72h cumulative) within the current cycle's entries.
-  // A turn logged before that threshold is reached stays part of the same cycle
-  // (e.g. an initial mixing turn on the very first log).
-  var STAGE1=BANDS[0]; // {min:131, hours:72}
-  function reachedStage1(cycleEntries){
+  // A turn ENDS a cycle if, before it, the pile satisfied ANY stage's required hold
+  // (>=131F for 72h, OR >=150F for 48h, OR >=156F for 24h, OR >=165F for 12h),
+  // measured by complianceTemp (the governing probe) as the longest continuous streak
+  // at-or-above each band's floor. Higher temps clear the bar faster, so any one of
+  // these completing means the cycle did its pathogen-reduction work.
+  // A turn before any stage is satisfied stays part of the same cycle (e.g. a mixing turn).
+  function anyStageSatisfied(cycleEntries){
     var rel=cycleEntries.filter(function(e){return complianceTemp(e)!=null;});
-    var streakStart=null;
-    for(var i=0;i<rel.length;i++){
-      var hot=complianceTemp(rel[i])>=STAGE1.min;
-      if(hot){
-        if(streakStart===null)streakStart=new Date(rel[i].ts);
-        var end=i<rel.length-1?new Date(rel[i+1].ts):new Date(rel[i].ts);
-        if((end-streakStart)/3600000>=STAGE1.hours)return true;
-      } else { streakStart=null; }
+    var stageBands=BANDS.filter(function(b){return b.hours>0;});
+    for(var bi=0;bi<stageBands.length;bi++){
+      var band=stageBands[bi];
+      var streakStart=null;
+      for(var i=0;i<rel.length;i++){
+        // "at or above this band's floor" — being hotter still counts toward the floor
+        var atFloor=complianceTemp(rel[i])>=band.min;
+        if(atFloor){
+          if(streakStart===null)streakStart=new Date(rel[i].ts);
+          var end=i<rel.length-1?new Date(rel[i+1].ts):new Date(rel[i].ts);
+          if((end-streakStart)/3600000>=band.hours)return true;
+        } else { streakStart=null; }
+      }
     }
     return false;
   }
@@ -838,7 +844,7 @@ function buildCycles(entries){
   for(var i=0;i<sorted.length;i++){
     var e=sorted[i];
     current.push(e);
-    if(e.turned&&reachedStage1(current)){
+    if(e.turned&&anyStageSatisfied(current)){
       cycles.push({entries:current.slice(),turnEntry:e});current=[];
     }
   }
@@ -873,7 +879,7 @@ function computeSatisfiedStages(cycleEntries){
 // for days or weeks. A stale-data badge is shown separately instead.
 function computeIndependentStages(cycleEntries){
   var result={};
-  var rel=cycleEntries.filter(function(e){return e.core1!=null;});
+  var rel=cycleEntries.filter(function(e){return complianceTemp(e)!=null;});
   // Detect completed cycle (last entry is a turn)
   var lastEntry=rel[rel.length-1];
   var isCompletedCycle=lastEntry&&lastEntry.turned;
@@ -882,10 +888,11 @@ function computeIndependentStages(cycleEntries){
     if(band.hours===0)continue;
     var streakStart=null;
     var streakElapsed=0;
+    var maxStreak=0;
     var satisfied=false;
     var everReached=false;
     for(var i=0;i<rel.length;i++){
-      var temp=rel[i].core1;
+      var temp=complianceTemp(rel[i]);
       var aboveFloor=temp>=band.min;
       if(aboveFloor){
         everReached=true;
@@ -894,6 +901,7 @@ function computeIndependentStages(cycleEntries){
         // Completed cycles stop at their last entry (the turn).
         var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?new Date(rel[i].ts):new Date());
         streakElapsed=(streakEnd-streakStart)/3600000;
+        if(streakElapsed>maxStreak)maxStreak=streakElapsed;
         if(streakElapsed>=band.hours)satisfied=true;
       } else {
         streakStart=null;
@@ -903,6 +911,7 @@ function computeIndependentStages(cycleEntries){
     result[band.label]={
       streakStart:streakStart,
       elapsed:streakElapsed,
+      maxStreak:maxStreak,
       satisfied:satisfied,
       everReached:everReached,
       active:streakStart!==null,
@@ -2249,51 +2258,62 @@ function renderStatusCard(pile,sorted,lat,band){
         var STAGE_COLORS={"Stage 1":"#eab308","Stage 2":"#f97316","Stage 3":"#ef4444","Stage 4":"#dc2626"};
         var fmtH=function(h){if(h<1)return Math.round(h*60)+"m";return Math.floor(h)+"h"+(Math.round((h%1)*60)>0?" "+Math.round((h%1)*60)+"m":"");};
 
-        // Only show stages that have been reached
+        // Stages reached in THIS cycle = how many bars we show.
         var reachedBands=stageBands.filter(function(b){
           var s=indep[b.label];return s&&s.everReached;
         });
 
-        if(!reachedBands.length){
-          // Not thermophilic yet — show blue stub with heating up message
-          return '<div style="margin-bottom:0.3rem">'+
-            '<div style="display:flex;justify-content:space-between;margin-bottom:0.25rem">'+
-              '<span class="mono" style="font-size:0.6rem;color:#3b82f6">'+trendLabel+'</span>'+
-              '<span class="mono" style="font-size:0.6rem;color:#555">BELOW 131°F</span>'+
+        // Current governing temperature (compliance probe) of the latest reading.
+        var curTemp=relEntries.length?complianceTemp(relEntries[relEntries.length-1]):null;
+        var belowThermo=(curTemp==null||curTemp<131);
+
+        // BLUE WAITING BAR — shown whenever the pile is currently below thermophilic.
+        // It grows over a 72h reference window based on how long the pile has been
+        // sub-thermophilic since its last drop below 131F (or since the cycle's first
+        // entry if it never reached heat). Small at first, full at 72h.
+        var waitingBarHTML="";
+        if(belowThermo){
+          // find when the current sub-thermophilic stretch began
+          var subStart=null;
+          for(var wi=0;wi<relEntries.length;wi++){
+            var t=complianceTemp(relEntries[wi]);
+            if(t!=null&&t>=131){subStart=null;} // reset on any thermophilic reading
+            else if(subStart===null){subStart=new Date(relEntries[wi].ts);}
+          }
+          var waitHrs=subStart?(new Date()-subStart)/3600000:0;
+          var waitPct=Math.max(2,Math.min(100,(waitHrs/72)*100));
+          waitingBarHTML='<div style="margin-bottom:0.55rem">'+
+            '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
+              '<span class="mono" style="font-size:0.65rem;color:#3b82f6;letter-spacing:0.05em">SUB-THERMOPHILIC</span>'+
+              '<span class="mono" style="font-size:0.65rem;color:#3b82f6">'+(curTemp!=null?"BELOW 131\u00B0F":"WAITING")+'</span>'+
             '</div>'+
             '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
-              '<div style="width:3%;background:#3b82f6;height:10px"></div>'+
+              '<div style="width:'+waitPct+'%;background:#3b82f6;height:10px"></div>'+
             '</div>'+
+            '<div style="font-size:0.55rem;color:#555;margin-top:0.18rem">'+fmtH(waitHrs)+' waiting \u00B7 heat to begin Stage 1</div>'+
           '</div>';
         }
 
-        // Show completed (satisfied) stages plus the single active stage (highest
-        // reached-but-unsatisfied). Hide lower unsatisfied stages that would render
-        // as dead/empty bars.
-        var unsatReached=reachedBands.filter(function(b){var s=indep[b.label];return s&&!s.satisfied;});
-        var activeLabel=null;
-        if(unsatReached.length){
-          // "highest" = the one furthest along the stage order (Stage 3 over Stage 2)
-          var orderRank={"Stage 1":1,"Stage 2":2,"Stage 3":3,"Stage 4":4};
-          activeLabel=unsatReached.reduce(function(hi,b){
-            return (orderRank[b.label]||0)>(orderRank[hi.label]||0)?b:hi;
-          },unsatReached[0]).label;
+        // If nothing reached yet AND below thermophilic, the waiting bar is the whole story.
+        if(!reachedBands.length){
+          return waitingBarHTML||('<div class="mono" style="font-size:0.6rem;color:#555;padding:0.5rem 0;text-align:center">LOG FIRST ENTRY TO START</div>');
         }
-        var visibleBands=reachedBands.filter(function(b){
-          var s=indep[b.label];
-          return (s&&s.satisfied)||b.label===activeLabel;
-        });
 
-        return visibleBands.map(function(b){
+        // One bar per stage reached this cycle, each showing the MAX time actually held
+        // at that stage's temperature (not the current streak, which may have cooled).
+        var barsHTML=reachedBands.map(function(b){
           var s=indep[b.label];
           var color=STAGE_COLORS[b.label]||b.color;
-          var pct=s.satisfied?100:Math.min(100,(s.elapsed/b.hours)*100);
-          var statusLabel=s.satisfied?"✓ DONE":fmtH(s.remaining)+" LEFT";
-          var statusColor=s.satisfied?"#4ade80":color;
-          var elapsedLabel=s.satisfied?b.hours+"h+ · SATISFIED":fmtH(s.elapsed)+" / "+b.hours+"H";
+          var held=s.maxStreak||0;
+          var pct=s.satisfied?100:Math.min(100,(held/b.hours)*100);
+          var statusLabel,statusColor;
+          if(s.satisfied){statusLabel="\u2713 DONE";statusColor="#4ade80";}
+          else if(s.active){statusLabel=fmtH(Math.max(0,b.hours-held))+" LEFT";statusColor=color;}
+          else {statusLabel="PEAKED "+fmtH(held);statusColor="#777";} // reached & cooled, never satisfied
+          var elapsedLabel=s.satisfied?(b.hours+"h+ \u00B7 SATISFIED"):(fmtH(held)+" / "+b.hours+"H held");
           return '<div style="margin-bottom:0.55rem">'+
             '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
-              '<span class="mono" style="font-size:0.65rem;color:'+color+';letter-spacing:0.05em">'+b.label+' · '+b.hours+'H</span>'+
+              '<span class="mono" style="font-size:0.65rem;color:'+color+';letter-spacing:0.05em">'+b.label+' \u00B7 '+b.hours+'H</span>'+
               '<span class="mono" style="font-size:0.65rem;color:'+statusColor+'">'+statusLabel+'</span>'+
             '</div>'+
             '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
@@ -2302,6 +2322,9 @@ function renderStatusCard(pile,sorted,lat,band){
             '<div style="font-size:0.55rem;color:#555;margin-top:0.18rem">'+elapsedLabel+'</div>'+
           '</div>';
         }).join("");
+
+        // Waiting bar goes on top (it's the current live state), then the reached stages.
+        return waitingBarHTML+barsHTML;
       })()+
     '</div>'+
   '</div>';

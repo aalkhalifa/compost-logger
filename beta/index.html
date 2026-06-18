@@ -22,7 +22,7 @@ html,body{background:#000;color:#fff;font-family:Inter,sans-serif;min-height:100
 .hd{font-family:"Bebas Neue",cursive;letter-spacing:0.08em}
 .mono{font-family:"Share Tech Mono",monospace}
 .card{background:#0a0a0a;border:1px solid #1e1e1e;border-radius:4px;padding:1rem;margin-bottom:1rem}
-.lbl{display:block;font-size:0.65rem;letter-spacing:0.1em;color:#555;font-weight:600;margin-bottom:0.3rem}
+.lbl{display:block;font-size:0.72rem;letter-spacing:0.1em;color:#666;font-weight:600;margin-bottom:0.3rem}
 input[type=text],input[type=number],input[type=date],input[type=time],textarea{
   background:#050505;border:1px solid #222;border-radius:3px;color:#fff;
   padding:0.6rem 0.75rem;font-size:0.9rem;font-family:Inter,sans-serif;width:100%;box-sizing:border-box}
@@ -86,8 +86,8 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   display:flex;justify-content:space-between;align-items:center}
 .status-temp{font-family:"Share Tech Mono",monospace;font-size:3rem;font-weight:bold;line-height:1}
 .status-time{font-family:"Share Tech Mono",monospace;font-size:2rem;font-weight:bold;line-height:1;text-align:right}
-.status-detail{display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid #0f0f0f;font-size:0.78rem}
-.status-key{color:#555;font-size:0.65rem;letter-spacing:0.08em;font-weight:600;font-family:Inter,sans-serif}
+.status-detail{display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid #0f0f0f;font-size:0.82rem}
+.status-key{color:#666;font-size:0.72rem;letter-spacing:0.08em;font-weight:600;font-family:Inter,sans-serif}
 .status-val{font-family:"Share Tech Mono",monospace;color:#ccc;text-align:right}
 .turn-icon{width:44px;height:44px;border-radius:50%;border:2px solid #ccc;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
@@ -127,12 +127,14 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div class="wrap">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.5rem">
       <span class="hd" style="font-size:1.5rem;color:#fff">YOUR PILES</span>
-      <div style="display:flex;gap:0.4rem;flex-wrap:nowrap;overflow-x:auto">
-        <div style="position:relative;flex-shrink:0" class="import-menu-wrap">
-          <button id="import-menu-btn" onclick="toggleImportMenu(event)" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem">IMPORT / TEMPLATE &#9662;</button>
+      <div style="display:flex;gap:0.4rem;align-items:center;min-width:0">
+        <div style="display:flex;gap:0.4rem;flex-wrap:nowrap;overflow-x:auto;min-width:0;flex:1">
+          <div style="position:relative;flex-shrink:0" class="import-menu-wrap">
+            <button id="import-menu-btn" onclick="toggleImportMenu(event)" class="btn-sm" style="font-size:0.7rem;padding:0.45rem 0.6rem">IMPORT / TEMPLATE &#9662;</button>
+          </div>
+          <button onclick="showOpSummary()" class="btn-sm" style="font-size:0.7rem;padding:0.45rem 0.6rem;flex-shrink:0">OPERATION SUMMARY</button>
         </div>
-        <button onclick="showOpSummary()" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem;flex-shrink:0">OPERATION SUMMARY</button>
-        <button onclick="showView('setup')" class="btn" style="width:auto;padding:0.45rem 0.9rem;flex-shrink:0">+ NEW PILE</button>
+        <button onclick="showView('setup')" class="btn" style="width:auto;padding:0.45rem 0.9rem;flex-shrink:0;white-space:nowrap">+ NEW PILE</button>
       </div>
     </div>
     <input type="file" id="scan-photos-input" accept="image/*" multiple style="display:none" onchange="handleScanPhotos(event)"/>
@@ -247,7 +249,10 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <button id="card-btn-logentry" onclick="toggleCard('logentry')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
   </div>
   <div id="card-body-logentry">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:0.5rem;width:100%">
+  <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-bottom:0.5rem;width:100%;flex-wrap:wrap">
+    <button onclick="document.getElementById('scan-photos-input').click()" style="background:none;border:1px solid #333;color:#888;border-radius:3px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;padding:0.4rem 0.75rem;display:flex;align-items:center;gap:0.4rem">
+      <span style="font-size:0.85rem">&#128247;</span> SCAN PHOTOS
+    </button>
     <button onclick="quickLog()" style="background:none;border:1px solid #f97316;color:#f97316;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;padding:0.4rem 0.75rem;border-radius:3px;font-weight:600">USE CURRENT TIME</button>
   </div>
   <div style="margin-bottom:0.6rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
@@ -260,9 +265,6 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <input type="time" class="temp-input" id="f-time" style="font-size:1rem"/>
     </div>
   </div>
-  <button onclick="document.getElementById('scan-photos-input').click()" style="background:none;border:1px solid #333;color:#555;border-radius:3px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;padding:0.35rem 0.75rem;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.4rem">
-    <span style="font-size:0.8rem">&#128247;</span> SCAN THERMOMETER PHOTOS
-  </button>
   <div id="entry-error" class="error-msg hidden"></div>
   <div style="margin-bottom:0.6rem">
     <label class="lbl" style="color:#f59e0b">AMBIENT TEMP <span id="unit-lbl-amb"></span></label>
@@ -596,7 +598,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.76g";
+var BUILD_VER="v3.76h";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -2293,62 +2295,68 @@ function renderStatusCard(pile,sorted,lat,band){
           return '<div class="mono" style="font-size:0.6rem;color:#555;padding:0.5rem 0;text-align:center">LOG FIRST ENTRY TO START</div>';
         }
 
-        // UNIFIED with the Turn Timer: render cycles using the same segmented-bar
-        // functions (renderCompletedCycleBar / renderStageBarActive) so the two cards
-        // can never disagree on cycle count or styling. Both read buildCycles().
+        // STATUS CARD = CURRENT CYCLE ONLY, as stacked stage bars.
+        // (The Turn Timer card owns the full segmented cycle history.)
+        // Cycle number stays unified via buildCycles so the two cards always agree.
         var allCycles=buildCycles(sorted);
-        var fmtH=function(h){if(h<1)return Math.round(h*60)+"m";return Math.floor(h)+"h"+(Math.round((h%1)*60)>0?" "+Math.round((h%1)*60)+"m":"");};
-        var curTemp=relEntries.length?displayTemp(relEntries[relEntries.length-1]):null;
-
-        // Show the active (current) cycle's bar. If it's still sub-thermophilic, show the
-        // growing blue waiting bar (fills over 72h). Otherwise use the segmented stage bar.
         var activeC=allCycles[allCycles.length-1];
         var activeIdx=allCycles.length;
+        var fmtH=function(h){if(h<1)return Math.round(h*60)+"m";return Math.floor(h)+"h"+(Math.round((h%1)*60)>0?" "+Math.round((h%1)*60)+"m":"");};
+        var curTemp=relEntries.length?displayTemp(relEntries[relEntries.length-1]):null;
+        var STAGE_COLORS={"Stage 1":"#eab308","Stage 2":"#f97316","Stage 3":"#ef4444","Stage 4":"#dc2626"};
+
+        var cycleEntriesNow=activeC?activeC.entries:[];
+        var indep=computeIndependentStages(cycleEntriesNow);
+        var stageBands=BANDS.filter(function(b){return b.hours>0;});
+        var reachedBands=stageBands.filter(function(b){var s=indep[b.label];return s&&s.everReached;});
+
         var out="";
-        if(activeC){
-          var classifiedA=classifyCycleTime(activeC.entries);
-          var reachedA=BANDS.filter(function(b){return b.hours>0&&classifiedA.stages[b.label]&&classifiedA.stages[b.label].everReached;});
-          if(reachedA.length===0){
-            // Sub-thermophilic: blue waiting bar growing over 72h
-            var subStart=null;
-            for(var wi=0;wi<relEntries.length;wi++){
-              var tt=displayTemp(relEntries[wi]);
-              if(tt!=null&&tt>=131){subStart=null;}
-              else if(subStart===null){subStart=new Date(relEntries[wi].ts);}
-            }
-            var waitHrs=subStart?(new Date()-subStart)/3600000:0;
-            var waitPct=Math.max(2,Math.min(100,(waitHrs/72)*100));
-            out='<div style="margin-bottom:0.55rem">'+
-              '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
-                '<span class="mono" style="font-size:0.65rem;color:#3b82f6;letter-spacing:0.05em">CYCLE '+activeIdx+' \u00B7 SUB-THERMOPHILIC</span>'+
-                '<span class="mono" style="font-size:0.65rem;color:#3b82f6">'+(curTemp!=null?"BELOW 131\u00B0F":"WAITING")+'</span>'+
-              '</div>'+
-              '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
-                '<div style="width:'+waitPct+'%;background:#3b82f6;height:10px"></div>'+
-              '</div>'+
-              '<div style="font-size:0.55rem;color:#555;margin-top:0.18rem">'+fmtH(waitHrs)+' waiting \u00B7 heat to begin Stage 1</div>'+
-            '</div>';
-          } else {
-            var bestBand=null,bestPct=-1,bestTimes=null;
-            reachedA.forEach(function(b){
-              var ct=classifiedA.stages[b.label];
-              var refMs=b.hours*3600000;
-              var totalMs=ct.mesoMs+ct.thermoMs+ct.readyMs;
-              var pct=ct.satisfied?100:Math.min(100,(totalMs/refMs)*100);
-              if(pct>bestPct){bestPct=pct;bestBand=b;bestTimes=ct;}
-            });
-            var latC=activeC.entries[activeC.entries.length-1];
-            out=renderStageBarActive(bestBand,bestTimes,latC?latC.core1:null,activeC.entries)
-              .replace(bestBand.label+' \u00B7 '+bestBand.hours+'H','CYCLE '+activeIdx+' \u00B7 '+bestBand.label+' \u00B7 '+bestBand.hours+'H');
+        // Blue sub-thermophilic waiting bar (grows over 72h) when currently below 131F.
+        var belowNow=(curTemp==null||curTemp<131);
+        if(belowNow){
+          var subStart=null;
+          for(var wi=0;wi<relEntries.length;wi++){
+            var tt=displayTemp(relEntries[wi]);
+            if(tt!=null&&tt>=131){subStart=null;}
+            else if(subStart===null){subStart=new Date(relEntries[wi].ts);}
           }
+          var waitHrs=subStart?(new Date()-subStart)/3600000:0;
+          var waitPct=Math.max(2,Math.min(100,(waitHrs/72)*100));
+          out+='<div style="margin-bottom:0.55rem">'+
+            '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
+              '<span class="mono" style="font-size:0.7rem;color:#3b82f6;letter-spacing:0.05em">CYCLE '+activeIdx+' \u00B7 SUB-THERMOPHILIC</span>'+
+              '<span class="mono" style="font-size:0.7rem;color:#3b82f6">BELOW 131\u00B0F</span>'+
+            '</div>'+
+            '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
+              '<div style="width:'+waitPct+'%;background:#3b82f6;height:10px"></div>'+
+            '</div>'+
+            '<div style="font-size:0.62rem;color:#666;margin-top:0.18rem">'+fmtH(waitHrs)+' waiting \u00B7 heat to begin Stage 1</div>'+
+          '</div>';
         }
-        // Also show the most recently COMPLETED cycle's segmented bar for context,
-        // so a freshly-turned pile still shows what the prior cycle achieved.
-        if(allCycles.length>=2){
-          var prevC=allCycles[allCycles.length-2];
-          out=renderCompletedCycleBar(prevC.entries,prevC.turnEntry,activeIdx-1)+out;
-        }
-        return out||'<div class="mono" style="font-size:0.6rem;color:#555;padding:0.5rem 0;text-align:center">LOG FIRST ENTRY TO START</div>';
+        // One stacked bar per stage reached in the CURRENT cycle, each showing max held.
+        out+=reachedBands.map(function(b){
+          var s=indep[b.label];
+          var color=STAGE_COLORS[b.label]||b.color;
+          var held=s.maxStreak||0;
+          var pct=s.satisfied?100:Math.min(100,(held/b.hours)*100);
+          var statusLabel,statusColor;
+          if(s.satisfied){statusLabel="\u2713 SATISFIED";statusColor="#4ade80";}
+          else if(s.active){statusLabel=fmtH(Math.max(0,b.hours-held))+" LEFT";statusColor=color;}
+          else {statusLabel="PEAKED "+fmtH(held);statusColor="#999";}
+          var sub=s.satisfied?(b.hours+"h+ \u00B7 SATISFIED"):(fmtH(held)+" / "+b.hours+"H held");
+          return '<div style="margin-bottom:0.55rem">'+
+            '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
+              '<span class="mono" style="font-size:0.7rem;color:'+color+';letter-spacing:0.05em">'+b.label+' \u00B7 '+b.hours+'H</span>'+
+              '<span class="mono" style="font-size:0.7rem;color:'+statusColor+'">'+statusLabel+'</span>'+
+            '</div>'+
+            '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
+              '<div style="width:'+pct+'%;background:'+(s.satisfied?"#4ade80":color)+';height:10px"></div>'+
+            '</div>'+
+            '<div style="font-size:0.62rem;color:#666;margin-top:0.18rem">'+sub+'</div>'+
+          '</div>';
+        }).join("");
+
+        return out||'<div class="mono" style="font-size:0.62rem;color:#555;padding:0.5rem 0;text-align:center">LOG FIRST ENTRY TO START</div>';
       })()+
     '</div>'+
   '</div>';

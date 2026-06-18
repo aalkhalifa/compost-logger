@@ -495,15 +495,26 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
           <button id="s-unit-c" onclick="setTempUnit('C')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.9rem">&deg;C</button>
         </div>
       </div>
-      <!-- Compliance basis -->
+      <!-- Display basis -->
       <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid #111">
         <div>
-          <div class="mono" style="font-size:0.85rem;color:#ccc">COMPLIANCE BASIS</div>
-          <div style="font-size:0.65rem;color:#555;margin-top:0.15rem">Probe used for degree-hours &amp; PFRP</div>
+          <div class="mono" style="font-size:0.85rem;color:#ccc">DISPLAY BASIS</div>
+          <div style="font-size:0.65rem;color:#555;margin-top:0.15rem">AVG = Compost Academy &middot; MIN = strict (coldest probe)</div>
         </div>
         <div style="display:flex;gap:0.4rem">
-          <button id="s-basis-min" onclick="setComplianceBasis('min')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">MIN</button>
-          <button id="s-basis-avg" onclick="setComplianceBasis('avg')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">AVG</button>
+          <button id="s-basis-avg" onclick="setDisplayBasis('avg')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">AVG</button>
+          <button id="s-basis-min" onclick="setDisplayBasis('min')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">MIN</button>
+        </div>
+      </div>
+      <!-- Show PFRP -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid #111">
+        <div>
+          <div class="mono" style="font-size:0.85rem;color:#ccc">SHOW PFRP COMPLIANCE</div>
+          <div style="font-size:0.65rem;color:#555;margin-top:0.15rem">Regulatory pass/fail (always strict). Off = hide everywhere</div>
+        </div>
+        <div style="display:flex;gap:0.4rem">
+          <button id="s-pfrp-on" onclick="setShowPFRP(true)" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">ON</button>
+          <button id="s-pfrp-off" onclick="setShowPFRP(false)" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">OFF</button>
         </div>
       </div>
       <!-- Volume -->
@@ -585,7 +596,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.76f";
+var BUILD_VER="v3.76g";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -624,7 +635,23 @@ var entriesSortMode=localStorage.getItem("ca_entriesSort")||"newest";
 var piles=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
 var activeId=null,tempMode="three",tempUnit="F";
 var volumeUnit="gal";
-var complianceBasis=localStorage.getItem("ca_complianceBasis")||"min"; // "min" or "avg"
+// DISPLAY BASIS governs the numbers shown across the app (headline temp, stage bars,
+// cycle detection, maturity): "avg" = Compost Academy style (average of probes),
+// "min" = strict (coldest probe governs). Default AVG.
+var displayBasis=localStorage.getItem("ca_displayBasis")||"avg"; // "avg" or "min"
+// Back-compat: an older build stored "ca_complianceBasis". If present and the new key
+// isn't, adopt it once so existing users keep their choice.
+(function(){
+  if(!localStorage.getItem("ca_displayBasis")){
+    var old=localStorage.getItem("ca_complianceBasis");
+    if(old==="min"||old==="avg"){displayBasis=old;localStorage.setItem("ca_displayBasis",old);}
+  }
+})();
+// PFRP is regulatory: it ALWAYS computes on the coldest probe (min), regardless of
+// displayBasis, so the compliance verdict never bends to a display preference.
+// showPFRP only controls whether the PFRP box/section is visible anywhere.
+var showPFRP=(localStorage.getItem("ca_showPFRP")!=="off"); // default ON
+var complianceBasis=displayBasis; // legacy alias kept for any remaining references
 var containerUnit={name:"5 gal",size:5};
 var tempChart=null;
 var driveToken=null,driveFileId=null,driveStatus="disconnected";
@@ -661,17 +688,27 @@ function avgCore(e){
   if(!vals.length)return null;
   return Math.round((vals.reduce(function(a,b){return a+b;},0)/vals.length)*10)/10;
 }
-// The temperature basis used for compliance metrics (degree-hours, PFRP).
-// "min" = coldest probe governs (most defensible). "avg" = mean of probes.
-function complianceTemp(e){
+// DISPLAY temperature for one entry, per the displayBasis toggle.
+// "avg" = mean of probes (Compost Academy); "min" = coldest probe (strict).
+// This drives the headline temp, stage bars, cycle detection, and maturity.
+function displayTemp(e){
   if(!e)return null;
   var vals=[e.core1,e.core2,e.core3].filter(function(v){return v!=null&&v>0;});
   if(!vals.length)return null;
-  if(complianceBasis==="avg"){
-    return Math.round((vals.reduce(function(a,b){return a+b;},0)/vals.length)*10)/10;
-  }
+  if(displayBasis==="min")return Math.min.apply(null,vals);
+  return Math.round((vals.reduce(function(a,b){return a+b;},0)/vals.length)*10)/10;
+}
+// STRICT minimum temperature (coldest probe). PFRP compliance ALWAYS uses this,
+// independent of displayBasis, because the regulatory definition is about the
+// coldest point in the mass reaching kill temperature.
+function strictMinTemp(e){
+  if(!e)return null;
+  var vals=[e.core1,e.core2,e.core3].filter(function(v){return v!=null&&v>0;});
+  if(!vals.length)return null;
   return Math.min.apply(null,vals);
 }
+// Legacy name kept so existing call sites keep working — now follows displayBasis.
+function complianceTemp(e){return displayTemp(e);}
 // Spread between hottest and coldest probe for one entry. Null if <2 probes.
 function coreSpread(e){
   if(!e)return null;
@@ -707,7 +744,7 @@ function degreeHoursAbove(sorted,threshold){
 function pfrpStatus(sorted){
   var bestMs=0,bestTurns=0,runStart=null,turnsInRun=0;
   for(var i=0;i<sorted.length;i++){
-    var t=complianceTemp(sorted[i]);
+    var t=strictMinTemp(sorted[i]); // PFRP is always strict: coldest probe governs
     var hot=(t!=null&&t>=131);
     if(hot){
       if(runStart===null){runStart=new Date(sorted[i].ts);turnsInRun=0;}
@@ -1501,14 +1538,16 @@ function renderOpSummary(){
   function avg(key){var v=rows.map(function(r){return r[key];}).filter(function(x){return x!=null;});return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:null;}
   var baseDh=avg("dh"),basePeak=avg("peak"),baseT=avg("tTo131"),basePf=avg("pfrpDays"),baseCy=avg("cycles");
   var passCount=rows.filter(function(r){return r.windrow;}).length;
-  var baseHtml='<div class="card"><div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">YOUR BASELINES \u00B7 '+rows.length+' MATURED PILE'+(rows.length>1?"S":"")+'</div>'+
-    [['Avg degree-hours >131\u00B0F',baseDh!=null?Math.round(baseDh).toLocaleString()+' \u00B0F\u00B7h':'\u2014'],
+  var baseRows=[['Avg degree-hours >131\u00B0F',baseDh!=null?Math.round(baseDh).toLocaleString()+' \u00B0F\u00B7h':'\u2014'],
      ['Avg peak temp',basePeak!=null?Math.round(basePeak)+'\u00B0F':'\u2014'],
      ['Avg time to 131\u00B0F',baseT!=null?fmtDuration(baseT*3600000):'\u2014'],
-     ['Avg PFRP days',basePf!=null?(Math.round(basePf*10)/10)+' days':'\u2014'],
-     ['Avg cycles to maturity',baseCy!=null?(Math.round(baseCy*10)/10):'\u2014'],
-     ['Windrow-PFRP pass rate',passCount+' of '+rows.length]
-    ].map(function(r){return '<div class="status-detail"><span class="status-key">'+r[0]+'</span><span class="status-val" style="color:#ccc">'+r[1]+'</span></div>';}).join("")+'</div>';
+     ['Avg cycles to maturity',baseCy!=null?(Math.round(baseCy*10)/10):'\u2014']];
+  if(showPFRP){
+    baseRows.splice(3,0,['Avg PFRP days',basePf!=null?(Math.round(basePf*10)/10)+' days':'\u2014']);
+    baseRows.push(['Windrow-PFRP pass rate',passCount+' of '+rows.length]);
+  }
+  var baseHtml='<div class="card"><div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">YOUR BASELINES \u00B7 '+rows.length+' MATURED PILE'+(rows.length>1?"S":"")+'</div>'+
+    baseRows.map(function(r){return '<div class="status-detail"><span class="status-key">'+r[0]+'</span><span class="status-val" style="color:#ccc">'+r[1]+'</span></div>';}).join("")+'</div>';
   var sortedRows=rows.slice().sort(function(a,b){return b.dh-a.dh;});
   var tableRows=sortedRows.map(function(r){
     return '<tr style="border-bottom:1px solid #080808">'+
@@ -1517,12 +1556,14 @@ function renderOpSummary(){
       '<td class="mono" style="padding:0.35rem 0.4rem;color:#d97706;font-size:0.7rem;text-align:right">'+r.brown+'%</td>'+
       '<td class="mono" style="padding:0.35rem 0.4rem;color:#f59e0b;font-size:0.7rem;text-align:right">'+(r.tTo131!=null?Math.round(r.tTo131)+'h':'\u2014')+'</td>'+
       '<td class="mono" style="padding:0.35rem 0.4rem;color:#f97316;font-size:0.7rem;text-align:right">'+r.dh.toLocaleString()+'</td>'+
-      '<td class="mono" style="padding:0.35rem 0.4rem;font-size:0.7rem;text-align:center;color:'+(r.windrow?"#4ade80":"#ef4444")+'">'+(r.windrow?"\u2713":"\u2717")+' '+r.pfrpDays+'d</td>'+
+      (showPFRP?('<td class="mono" style="padding:0.35rem 0.4rem;font-size:0.7rem;text-align:center;color:'+(r.windrow?"#4ade80":"#ef4444")+'">'+(r.windrow?"\u2713":"\u2717")+' '+r.pfrpDays+'d</td>'):'')+
     '</tr>';
   }).join("");
+  var tableHeaders=["PILE","FAST-N","BROWN","\u2192131\u00B0","\u00B0F\u00B7h"];
+  if(showPFRP)tableHeaders.push("PFRP");
   var tableHtml='<div class="card"><div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">RECIPE \u2192 OUTCOME</div>'+
     '<div style="overflow:auto"><table style="width:100%;border-collapse:collapse">'+
-    '<thead><tr>'+["PILE","FAST-N","BROWN","\u2192131\u00B0","\u00B0F\u00B7h","PFRP"].map(function(h){return '<th class="mono" style="text-align:right;padding:0.3rem 0.4rem;border-bottom:1px solid #111;color:#555;font-size:0.6rem;font-weight:normal">'+h+'</th>';}).join("")+'</tr></thead>'+
+    '<thead><tr>'+tableHeaders.map(function(h){return '<th class="mono" style="text-align:right;padding:0.3rem 0.4rem;border-bottom:1px solid #111;color:#555;font-size:0.6rem;font-weight:normal">'+h+'</th>';}).join("")+'</tr></thead>'+
     '<tbody>'+tableRows+'</tbody></table></div></div>';
   var takeaway='';
   if(rows.length>=4){
@@ -2252,79 +2293,62 @@ function renderStatusCard(pile,sorted,lat,band){
           return '<div class="mono" style="font-size:0.6rem;color:#555;padding:0.5rem 0;text-align:center">LOG FIRST ENTRY TO START</div>';
         }
 
-        // Build independent per-stage bars
-        var indep=computeIndependentStages(cycleEntries);
-        var stageBands=BANDS.filter(function(b){return b.hours>0;});
-        var STAGE_COLORS={"Stage 1":"#eab308","Stage 2":"#f97316","Stage 3":"#ef4444","Stage 4":"#dc2626"};
+        // UNIFIED with the Turn Timer: render cycles using the same segmented-bar
+        // functions (renderCompletedCycleBar / renderStageBarActive) so the two cards
+        // can never disagree on cycle count or styling. Both read buildCycles().
+        var allCycles=buildCycles(sorted);
         var fmtH=function(h){if(h<1)return Math.round(h*60)+"m";return Math.floor(h)+"h"+(Math.round((h%1)*60)>0?" "+Math.round((h%1)*60)+"m":"");};
+        var curTemp=relEntries.length?displayTemp(relEntries[relEntries.length-1]):null;
 
-        // Stages reached in THIS cycle = how many bars we show.
-        var reachedBands=stageBands.filter(function(b){
-          var s=indep[b.label];return s&&s.everReached;
-        });
-
-        // Current governing temperature (compliance probe) of the latest reading.
-        var curTemp=relEntries.length?complianceTemp(relEntries[relEntries.length-1]):null;
-        var belowThermo=(curTemp==null||curTemp<131);
-
-        // BLUE WAITING BAR — shown whenever the pile is currently below thermophilic.
-        // It grows over a 72h reference window based on how long the pile has been
-        // sub-thermophilic since its last drop below 131F (or since the cycle's first
-        // entry if it never reached heat). Small at first, full at 72h.
-        var waitingBarHTML="";
-        if(belowThermo){
-          // find when the current sub-thermophilic stretch began
-          var subStart=null;
-          for(var wi=0;wi<relEntries.length;wi++){
-            var t=complianceTemp(relEntries[wi]);
-            if(t!=null&&t>=131){subStart=null;} // reset on any thermophilic reading
-            else if(subStart===null){subStart=new Date(relEntries[wi].ts);}
+        // Show the active (current) cycle's bar. If it's still sub-thermophilic, show the
+        // growing blue waiting bar (fills over 72h). Otherwise use the segmented stage bar.
+        var activeC=allCycles[allCycles.length-1];
+        var activeIdx=allCycles.length;
+        var out="";
+        if(activeC){
+          var classifiedA=classifyCycleTime(activeC.entries);
+          var reachedA=BANDS.filter(function(b){return b.hours>0&&classifiedA.stages[b.label]&&classifiedA.stages[b.label].everReached;});
+          if(reachedA.length===0){
+            // Sub-thermophilic: blue waiting bar growing over 72h
+            var subStart=null;
+            for(var wi=0;wi<relEntries.length;wi++){
+              var tt=displayTemp(relEntries[wi]);
+              if(tt!=null&&tt>=131){subStart=null;}
+              else if(subStart===null){subStart=new Date(relEntries[wi].ts);}
+            }
+            var waitHrs=subStart?(new Date()-subStart)/3600000:0;
+            var waitPct=Math.max(2,Math.min(100,(waitHrs/72)*100));
+            out='<div style="margin-bottom:0.55rem">'+
+              '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
+                '<span class="mono" style="font-size:0.65rem;color:#3b82f6;letter-spacing:0.05em">CYCLE '+activeIdx+' \u00B7 SUB-THERMOPHILIC</span>'+
+                '<span class="mono" style="font-size:0.65rem;color:#3b82f6">'+(curTemp!=null?"BELOW 131\u00B0F":"WAITING")+'</span>'+
+              '</div>'+
+              '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
+                '<div style="width:'+waitPct+'%;background:#3b82f6;height:10px"></div>'+
+              '</div>'+
+              '<div style="font-size:0.55rem;color:#555;margin-top:0.18rem">'+fmtH(waitHrs)+' waiting \u00B7 heat to begin Stage 1</div>'+
+            '</div>';
+          } else {
+            var bestBand=null,bestPct=-1,bestTimes=null;
+            reachedA.forEach(function(b){
+              var ct=classifiedA.stages[b.label];
+              var refMs=b.hours*3600000;
+              var totalMs=ct.mesoMs+ct.thermoMs+ct.readyMs;
+              var pct=ct.satisfied?100:Math.min(100,(totalMs/refMs)*100);
+              if(pct>bestPct){bestPct=pct;bestBand=b;bestTimes=ct;}
+            });
+            var latC=activeC.entries[activeC.entries.length-1];
+            out=renderStageBarActive(bestBand,bestTimes,latC?latC.core1:null,activeC.entries)
+              .replace(bestBand.label+' \u00B7 '+bestBand.hours+'H','CYCLE '+activeIdx+' \u00B7 '+bestBand.label+' \u00B7 '+bestBand.hours+'H');
           }
-          var waitHrs=subStart?(new Date()-subStart)/3600000:0;
-          var waitPct=Math.max(2,Math.min(100,(waitHrs/72)*100));
-          waitingBarHTML='<div style="margin-bottom:0.55rem">'+
-            '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
-              '<span class="mono" style="font-size:0.65rem;color:#3b82f6;letter-spacing:0.05em">SUB-THERMOPHILIC</span>'+
-              '<span class="mono" style="font-size:0.65rem;color:#3b82f6">'+(curTemp!=null?"BELOW 131\u00B0F":"WAITING")+'</span>'+
-            '</div>'+
-            '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
-              '<div style="width:'+waitPct+'%;background:#3b82f6;height:10px"></div>'+
-            '</div>'+
-            '<div style="font-size:0.55rem;color:#555;margin-top:0.18rem">'+fmtH(waitHrs)+' waiting \u00B7 heat to begin Stage 1</div>'+
-          '</div>';
         }
-
-        // If nothing reached yet AND below thermophilic, the waiting bar is the whole story.
-        if(!reachedBands.length){
-          return waitingBarHTML||('<div class="mono" style="font-size:0.6rem;color:#555;padding:0.5rem 0;text-align:center">LOG FIRST ENTRY TO START</div>');
+        // Also show the most recently COMPLETED cycle's segmented bar for context,
+        // so a freshly-turned pile still shows what the prior cycle achieved.
+        if(allCycles.length>=2){
+          var prevC=allCycles[allCycles.length-2];
+          out=renderCompletedCycleBar(prevC.entries,prevC.turnEntry,activeIdx-1)+out;
         }
-
-        // One bar per stage reached this cycle, each showing the MAX time actually held
-        // at that stage's temperature (not the current streak, which may have cooled).
-        var barsHTML=reachedBands.map(function(b){
-          var s=indep[b.label];
-          var color=STAGE_COLORS[b.label]||b.color;
-          var held=s.maxStreak||0;
-          var pct=s.satisfied?100:Math.min(100,(held/b.hours)*100);
-          var statusLabel,statusColor;
-          if(s.satisfied){statusLabel="\u2713 DONE";statusColor="#4ade80";}
-          else if(s.active){statusLabel=fmtH(Math.max(0,b.hours-held))+" LEFT";statusColor=color;}
-          else {statusLabel="PEAKED "+fmtH(held);statusColor="#777";} // reached & cooled, never satisfied
-          var elapsedLabel=s.satisfied?(b.hours+"h+ \u00B7 SATISFIED"):(fmtH(held)+" / "+b.hours+"H held");
-          return '<div style="margin-bottom:0.55rem">'+
-            '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
-              '<span class="mono" style="font-size:0.65rem;color:'+color+';letter-spacing:0.05em">'+b.label+' \u00B7 '+b.hours+'H</span>'+
-              '<span class="mono" style="font-size:0.65rem;color:'+statusColor+'">'+statusLabel+'</span>'+
-            '</div>'+
-            '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
-              '<div style="width:'+pct+'%;background:'+(s.satisfied?"#4ade80":color)+';height:10px"></div>'+
-            '</div>'+
-            '<div style="font-size:0.55rem;color:#555;margin-top:0.18rem">'+elapsedLabel+'</div>'+
-          '</div>';
-        }).join("");
-
-        // Waiting bar goes on top (it's the current live state), then the reached stages.
-        return waitingBarHTML+barsHTML;
+        return out||'<div class="mono" style="font-size:0.6rem;color:#555;padding:0.5rem 0;text-align:center">LOG FIRST ENTRY TO START</div>';
       })()+
     '</div>'+
   '</div>';
@@ -2391,6 +2415,7 @@ function renderStatusCard(pile,sorted,lat,band){
       '<div style="font-size:0.62rem;color:#666;line-height:1.4;margin-top:0.3rem;font-family:Inter,sans-serif">'+a.desc+'</div>'+
       '<div style="font-size:0.6rem;color:#555;margin-top:0.25rem;font-family:Inter,sans-serif">→ '+a.rec+'</div>'+
       (function(){
+        if(!showPFRP)return "";
         var v=pfrpVerdict(sorted);
         return '<div style="margin-top:0.6rem;padding:0.6rem 0.7rem;background:#050505;border:1px solid '+v.color+'33;border-left:3px solid '+v.color+';border-radius:3px">'+
           '<div style="display:flex;justify-content:space-between;align-items:baseline">'+
@@ -2462,10 +2487,8 @@ function renderTimer(pile){
   card.style.borderLeftColor=activeCycleColor;
   var displayCycles=cycles;
   var displayOffset=0;
-  if(cycles.length>1){
-    displayCycles=cycles.slice(1);
-    displayOffset=1;
-  }
+  // (Removed the slice(1) offset: cycle numbering now matches buildCycles() exactly,
+  //  so the Turn Timer and the Temperature Status card always agree.)
   var cycleRows=displayCycles.map(function(cycle,idx){
     var displayIdx=idx+1;
     var isActive=cycle.turnEntry===null;
@@ -3155,6 +3178,7 @@ function exportPDF(){
   // ---- VERDICT-FIRST SUMMARY ----
   var sortedV=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var vAssess=getPileAssessment(pile,sortedV);
+  if(showPFRP){
   var vPfrp=pfrpVerdict(sortedV);
   function pdfRgb(hex){if(!/^#[0-9a-fA-F]{6}$/.test(hex))hex="#666666";return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
   var pc=pdfRgb(vPfrp.color);
@@ -3168,6 +3192,7 @@ function exportPDF(){
   doc.text(vPfrp.detail.replace(/\u00B7/g,"-")+"  -  "+vPfrp.sub.replace(/\u2265/g,">=")+".",M+5,y+12);
   doc.setTextColor(140,140,140);doc.text("On-pile temperature record only - not a certified pathogen test.",M+5,y+16);
   y+=24;
+  }
   if(sortedV.length>=2){
     var dhV=degreeHoursAbove(sortedV,131);
     var peakV=0;sortedV.forEach(function(e){var mx=Math.max(e.core1||0,e.core2||0,e.core3||0);if(mx>peakV)peakV=mx;});
@@ -4465,8 +4490,12 @@ function openSettings(){
   if(cBtn)cBtn.style.borderColor=tempUnit==="C"?"#38bdf8":"#222";
   var minB=document.getElementById("s-basis-min");
   var avgB=document.getElementById("s-basis-avg");
-  if(minB){minB.style.color=complianceBasis==="min"?"#fff":"#555";minB.style.borderColor=complianceBasis==="min"?"#fff":"#222";}
-  if(avgB){avgB.style.color=complianceBasis==="avg"?"#fff":"#555";avgB.style.borderColor=complianceBasis==="avg"?"#fff":"#222";}
+  if(minB){minB.style.color=displayBasis==="min"?"#fff":"#555";minB.style.borderColor=displayBasis==="min"?"#fff":"#222";}
+  if(avgB){avgB.style.color=displayBasis==="avg"?"#fff":"#555";avgB.style.borderColor=displayBasis==="avg"?"#fff":"#222";}
+  var onB=document.getElementById("s-pfrp-on");
+  var offB=document.getElementById("s-pfrp-off");
+  if(onB){onB.style.color=showPFRP?"#4ade80":"#555";onB.style.borderColor=showPFRP?"#4ade80":"#222";}
+  if(offB){offB.style.color=!showPFRP?"#fff":"#555";offB.style.borderColor=!showPFRP?"#fff":"#222";}
   // Sync volume buttons
   ["gal","l","yd"].forEach(function(k){
     var el=document.getElementById("s-vol-"+k);if(!el)return;
@@ -4508,13 +4537,24 @@ function setTempUnit(unit){
   if(fBtn){fBtn.style.color=unit==="F"?"#fff":"#555";fBtn.style.borderColor=unit==="F"?"#fff":"#222";}
   if(cBtn){cBtn.style.color=unit==="C"?"#38bdf8":"#555";cBtn.style.borderColor=unit==="C"?"#38bdf8":"#222";}
 }
-function setComplianceBasis(b){
-  complianceBasis=b;
-  localStorage.setItem("ca_complianceBasis",b);
+function setDisplayBasis(b){
+  displayBasis=b;
+  complianceBasis=b; // keep legacy alias in sync
+  localStorage.setItem("ca_displayBasis",b);
   var minB=document.getElementById("s-basis-min");
   var avgB=document.getElementById("s-basis-avg");
   if(minB){minB.style.color=b==="min"?"#fff":"#555";minB.style.borderColor=b==="min"?"#fff":"#222";}
   if(avgB){avgB.style.color=b==="avg"?"#fff":"#555";avgB.style.borderColor=b==="avg"?"#fff":"#222";}
+  var dash=document.getElementById("view-dashboard");
+  if(dash&&!dash.classList.contains("hidden"))renderDashboard();
+}
+function setShowPFRP(on){
+  showPFRP=!!on;
+  localStorage.setItem("ca_showPFRP",on?"on":"off");
+  var onB=document.getElementById("s-pfrp-on");
+  var offB=document.getElementById("s-pfrp-off");
+  if(onB){onB.style.color=on?"#4ade80":"#555";onB.style.borderColor=on?"#4ade80":"#222";}
+  if(offB){offB.style.color=!on?"#fff":"#555";offB.style.borderColor=!on?"#fff":"#222";}
   var dash=document.getElementById("view-dashboard");
   if(dash&&!dash.classList.contains("hidden"))renderDashboard();
 }

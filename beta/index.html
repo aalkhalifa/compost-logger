@@ -111,7 +111,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.76</div>
+    <div id="app-version-home" class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.76</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -571,7 +571,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.76</div>
+        <div id="app-version-settings">COMPOST LOGGER &middot; FIELD LOGGER v3.76</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -582,6 +582,11 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 
 <script>
 var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercontent.com";
+// Single source of truth for the build version. Bump BUILD_VER on every change;
+// it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
+// is added automatically when the app is served from a /beta/ path.
+var BUILD_VER="v3.76e";
+var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
   {min:150,max:155,hours:48,label:"Stage 2",color:"#f97316"},
@@ -4653,6 +4658,12 @@ var BANNER_B64="data:image/jpeg;base64,"+
 "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";
 document.getElementById("logo-img").src=BANNER_B64;
+(function(){
+  var vh=document.getElementById("app-version-home");
+  if(vh)vh.textContent=APP_VERSION;
+  var vs=document.getElementById("app-version-settings");
+  if(vs)vs.innerHTML="COMPOST LOGGER &middot; "+APP_VERSION;
+})();
 load();
 renderHome();
 showView("home");

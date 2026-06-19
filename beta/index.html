@@ -66,7 +66,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 .dropdown-list.open{display:block}
 .dropdown-item{padding:0.5rem 0.75rem;cursor:pointer;border-bottom:1px solid #111;color:#bbb;font-size:0.85rem}
 .dropdown-item:hover{background:#111}
-.wrap{padding:1rem;max-width:700px;margin:0 auto}
+.wrap{padding:1rem;max-width:1000px;margin:0 auto}
 .hidden{display:none}
 .warn-banner{background:#ff0000;color:#fff;padding:1rem;text-align:center;
   font-weight:bold;font-size:1rem;letter-spacing:0.05em;margin-bottom:1rem;
@@ -250,7 +250,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   </div>
   <div id="card-body-logentry">
   <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-bottom:0.5rem;width:100%;flex-wrap:wrap">
-    <button onclick="document.getElementById('scan-photos-input').click()" style="background:none;border:1px solid #333;color:#888;border-radius:3px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;padding:0.4rem 0.75rem;display:flex;align-items:center;gap:0.4rem">
+    <button id="scan-photos-btn" onclick="document.getElementById('scan-photos-input').click()" style="background:none;border:1px solid #333;color:#888;border-radius:3px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;padding:0.4rem 0.75rem;display:none;align-items:center;gap:0.4rem">
       <span style="font-size:0.85rem">&#128247;</span> SCAN PHOTOS
     </button>
     <button onclick="quickLog()" style="background:none;border:1px solid #f97316;color:#f97316;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;padding:0.4rem 0.75rem;border-radius:3px;font-weight:600">USE CURRENT TIME</button>
@@ -519,6 +519,17 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
           <button id="s-pfrp-off" onclick="setShowPFRP(false)" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">OFF</button>
         </div>
       </div>
+      <!-- Anthropic API key (for photo scan) -->
+      <div style="padding:0.6rem 0;border-bottom:1px solid #111">
+        <div class="mono" style="font-size:0.85rem;color:#ccc;margin-bottom:0.15rem">PHOTO SCAN API KEY</div>
+        <div style="font-size:0.65rem;color:#555;margin-bottom:0.5rem;line-height:1.4">Optional. Enables reading thermometers from photos. Get a key at <span style="color:#60a5fa">console.anthropic.com</span> &rarr; API Keys. Stored only on this device; the SCAN button appears once a key is saved.</div>
+        <div style="display:flex;gap:0.4rem;align-items:center">
+          <input type="password" id="s-anthropic-key" placeholder="sk-ant-..." class="temp-input" style="font-size:0.8rem;flex:1" oninput="onKeyFieldInput()"/>
+          <button onclick="saveAnthropicKey()" class="btn-sm" style="font-size:0.72rem;padding:0.45rem 0.8rem;flex-shrink:0">SAVE</button>
+          <button onclick="clearAnthropicKey()" class="btn-sm" style="font-size:0.72rem;padding:0.45rem 0.6rem;flex-shrink:0;color:#888">CLEAR</button>
+        </div>
+        <div id="s-key-status" style="font-size:0.62rem;color:#4ade80;margin-top:0.35rem;min-height:0.8rem"></div>
+      </div>
       <!-- Volume -->
       <div style="padding:0.5rem 0;border-bottom:1px solid #111">
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -598,7 +609,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.76h";
+var BUILD_VER="v3.76i";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -762,16 +773,22 @@ function pfrpStatus(sorted){
   return {days:Math.round(days*100)/100,turns:bestTurns,longestRunMs:bestMs,
     windrowMet:(days>=3&&bestTurns>=5),staticMet:(days>=3)};
 }
-// Human-readable PFRP verdict for display.
+// Human-readable PFRP verdict for display. Framed for a HAND-TURNED thermophilic
+// (windrow-style) pile as the primary method, with the static pathway also shown.
 function pfrpVerdict(sorted){
   var p=pfrpStatus(sorted);
-  var detail=p.days+" day"+(p.days===1?"":"s")+" continuous \u00B7 "+p.turns+" turn"+(p.turns===1?"":"s")+" in run";
+  var detail=p.days+" day"+(p.days===1?"":"s")+" continuous \u2265131\u00B0F \u00B7 "+p.turns+" turn"+(p.turns===1?"":"s")+" during hot phase";
   if(p.windrowMet){
-    return {verdict:"PASS \u2014 WINDROW & STATIC",color:"#4ade80",detail:detail,sub:"Meets \u22653 days \u2265131\u00B0F with \u22655 turns",p:p};
+    return {verdict:"PASS \u2014 TURNED (WINDROW-STYLE)",color:"#4ade80",detail:detail,
+      sub:"Meets turned pathway: \u22653 days \u2265131\u00B0F with \u22655 turns",p:p};
   } else if(p.staticMet){
-    return {verdict:"PASS \u2014 STATIC PILE ONLY",color:"#f59e0b",detail:detail,sub:"Meets \u22653 days \u2265131\u00B0F; needs \u22655 turns for windrow",p:p};
+    // Hot long enough, but not yet 5 turns during the hot phase. For a hand-turned
+    // thermophilic pile this is "on track" — the static threshold is already cleared.
+    return {verdict:"PASS \u2014 THERMOPHILIC (3+ DAYS)",color:"#f59e0b",detail:detail,
+      sub:"Cleared \u22653 days \u2265131\u00B0F. For full turned-pathway credit: \u22655 turns during the hot phase ("+p.turns+" so far)",p:p};
   }
-  return {verdict:"NOT MET",color:"#ef4444",detail:detail,sub:"Needs \u22653 continuous days \u2265131\u00B0F",p:p};
+  return {verdict:"NOT MET",color:"#ef4444",detail:detail,
+    sub:"Needs \u22653 continuous days \u2265131\u00B0F",p:p};
 }
 // Fastest sustained heating rate (F/hr) during initial climb to 131F.
 function peakHeatingRate(sorted){
@@ -1358,27 +1375,39 @@ function hoursSinceLastTurn(entries){
 function buildTurnHistory(entries){
   if(!entries.length)return[];
   var sorted=entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
-  var turns=sorted.filter(function(e){return e.turned;});
+  // Exclude the initial pile build: a "turned" flag on the very first entry is the
+  // build event, not a real turn of an established pile.
+  var buildTs=sorted.length?new Date(sorted[0].ts).getTime():0;
+  var turns=sorted.filter(function(e,idx){
+    if(!e.turned)return false;
+    if(idx===0)return false;                       // first entry = build, not a turn
+    if(new Date(e.ts).getTime()===buildTs)return false;
+    return true;
+  });
   if(!turns.length)return[];
   var cycles=buildCycles(sorted);
+  // Only cycles that were actually CLOSED by a turn (have a turnEntry) correspond to
+  // a real turn in the history. Pair each turn with its closing cycle by matching ts.
   var result=[];
   for(var i=0;i<turns.length;i++){
     var turn=turns[i];
-    var cycle=cycles[i];if(!cycle)continue;
-    var prevTurnTime=i>0?new Date(turns[i-1].ts):null;
-    var sinceMs=prevTurnTime?new Date(turn.ts)-prevTurnTime:null;
+    // find the cycle whose turnEntry is this turn
+    var cycle=null;
+    for(var ci=0;ci<cycles.length;ci++){
+      if(cycles[ci].turnEntry&&new Date(cycles[ci].turnEntry.ts).getTime()===new Date(turn.ts).getTime()){cycle=cycles[ci];break;}
+    }
+    if(!cycle)cycle={entries:[]};
+    var prevTurnTime=i>0?new Date(turns[i-1].ts):new Date(sorted[0].ts);
+    var sinceMs=new Date(turn.ts)-prevTurnTime;
     var satisfiedStages=computeSatisfiedStages(cycle.entries);
     var highestSatisfied=getHighestSatisfied(satisfiedStages);
-    var cycleStartTime=prevTurnTime||new Date(sorted[0].ts);
-    var cycleElapsedMs=new Date(turn.ts)-cycleStartTime;
-    var activeBandAtTurn=getBand(avgCore(turn));
-    var isWarning=false;
-    if(!highestSatisfied&&activeBandAtTurn){
-      isWarning=cycleElapsedMs>activeBandAtTurn.hours*3600000;
-    }
+    var activeBandAtTurn=getBand(displayTemp(turn));
+    // A turn is "good" if the pile was thermophilic when turned OR a stage was satisfied.
+    // (Turning a hot pile to homogenize is correct practice, not a warning.)
+    var turnedHot=(displayTemp(turn)!=null&&displayTemp(turn)>=131);
     result.push({num:i+1,date:turn.date,time:turn.time,ts:turn.ts,sinceMs:sinceMs,
-      satisfiedStages:satisfiedStages,highestSatisfied:highestSatisfied,core1:turn.core1,avgTemp:avgCore(turn),
-      isWarning:isWarning,activeBand:activeBandAtTurn});
+      satisfiedStages:satisfiedStages,highestSatisfied:highestSatisfied,core1:turn.core1,avgTemp:displayTemp(turn),
+      turnedHot:turnedHot,isWarning:false,activeBand:activeBandAtTurn});
   }
   return result;
 }
@@ -2295,23 +2324,20 @@ function renderStatusCard(pile,sorted,lat,band){
           return '<div class="mono" style="font-size:0.6rem;color:#555;padding:0.5rem 0;text-align:center">LOG FIRST ENTRY TO START</div>';
         }
 
-        // STATUS CARD = CURRENT CYCLE ONLY, as stacked stage bars.
-        // (The Turn Timer card owns the full segmented cycle history.)
-        // Cycle number stays unified via buildCycles so the two cards always agree.
+        // STATUS CARD = CURRENT CYCLE ONLY, using the SAME segmented bar style as the
+        // Turn Timer card (user preference). The blue sub-thermophilic waiting bar shows
+        // when below 131F; once heating, the segmented stage bar (meso->thermo->stages).
         var allCycles=buildCycles(sorted);
         var activeC=allCycles[allCycles.length-1];
         var activeIdx=allCycles.length;
         var fmtH=function(h){if(h<1)return Math.round(h*60)+"m";return Math.floor(h)+"h"+(Math.round((h%1)*60)>0?" "+Math.round((h%1)*60)+"m":"");};
         var curTemp=relEntries.length?displayTemp(relEntries[relEntries.length-1]):null;
-        var STAGE_COLORS={"Stage 1":"#eab308","Stage 2":"#f97316","Stage 3":"#ef4444","Stage 4":"#dc2626"};
 
         var cycleEntriesNow=activeC?activeC.entries:[];
-        var indep=computeIndependentStages(cycleEntriesNow);
-        var stageBands=BANDS.filter(function(b){return b.hours>0;});
-        var reachedBands=stageBands.filter(function(b){var s=indep[b.label];return s&&s.everReached;});
+        var classifiedNow=classifyCycleTime(cycleEntriesNow);
+        var reachedNow=BANDS.filter(function(b){return b.hours>0&&classifiedNow.stages[b.label]&&classifiedNow.stages[b.label].everReached;});
 
         var out="";
-        // Blue sub-thermophilic waiting bar (grows over 72h) when currently below 131F.
         var belowNow=(curTemp==null||curTemp<131);
         if(belowNow){
           var subStart=null;
@@ -2333,28 +2359,20 @@ function renderStatusCard(pile,sorted,lat,band){
             '<div style="font-size:0.62rem;color:#666;margin-top:0.18rem">'+fmtH(waitHrs)+' waiting \u00B7 heat to begin Stage 1</div>'+
           '</div>';
         }
-        // One stacked bar per stage reached in the CURRENT cycle, each showing max held.
-        out+=reachedBands.map(function(b){
-          var s=indep[b.label];
-          var color=STAGE_COLORS[b.label]||b.color;
-          var held=s.maxStreak||0;
-          var pct=s.satisfied?100:Math.min(100,(held/b.hours)*100);
-          var statusLabel,statusColor;
-          if(s.satisfied){statusLabel="\u2713 SATISFIED";statusColor="#4ade80";}
-          else if(s.active){statusLabel=fmtH(Math.max(0,b.hours-held))+" LEFT";statusColor=color;}
-          else {statusLabel="PEAKED "+fmtH(held);statusColor="#999";}
-          var sub=s.satisfied?(b.hours+"h+ \u00B7 SATISFIED"):(fmtH(held)+" / "+b.hours+"H held");
-          return '<div style="margin-bottom:0.55rem">'+
-            '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
-              '<span class="mono" style="font-size:0.7rem;color:'+color+';letter-spacing:0.05em">'+b.label+' \u00B7 '+b.hours+'H</span>'+
-              '<span class="mono" style="font-size:0.7rem;color:'+statusColor+'">'+statusLabel+'</span>'+
-            '</div>'+
-            '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
-              '<div style="width:'+pct+'%;background:'+(s.satisfied?"#4ade80":color)+';height:10px"></div>'+
-            '</div>'+
-            '<div style="font-size:0.62rem;color:#666;margin-top:0.18rem">'+sub+'</div>'+
-          '</div>';
-        }).join("");
+        // Segmented current-cycle bar (only when the cycle reached thermophilic).
+        if(reachedNow.length){
+          var bestBand=null,bestPct=-1,bestTimes=null;
+          reachedNow.forEach(function(b){
+            var ct=classifiedNow.stages[b.label];
+            var refMs=b.hours*3600000;
+            var totalMs=ct.mesoMs+ct.thermoMs+ct.readyMs;
+            var pct=ct.satisfied?100:Math.min(100,(totalMs/refMs)*100);
+            if(pct>bestPct){bestPct=pct;bestBand=b;bestTimes=ct;}
+          });
+          var latC=cycleEntriesNow[cycleEntriesNow.length-1];
+          out+=renderStageBarActive(bestBand,bestTimes,latC?latC.core1:null,cycleEntriesNow)
+            .replace(bestBand.label+' \u00B7 '+bestBand.hours+'H','CYCLE '+activeIdx+' \u00B7 '+bestBand.label+' \u00B7 '+bestBand.hours+'H');
+        }
 
         return out||'<div class="mono" style="font-size:0.62rem;color:#555;padding:0.5rem 0;text-align:center">LOG FIRST ENTRY TO START</div>';
       })()+
@@ -2604,7 +2622,9 @@ function renderChart(sorted){
     var midnight=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,0,0,0).getTime();
     var tx=xValTs(midnight);
     if(tx<0)tx=0;
-    dayTicks.push({x:tx,label:monthNames[d.getMonth()]+" "+d.getDate()});
+    var dayNum=Math.floor((midnight-new Date(pile.created).getTime())/86400000)+1;
+    if(dayNum<1)dayNum=1;
+    dayTicks.push({x:tx,label:"Day "+dayNum});
   });
   var turnAnnotations={};
   turnDays.forEach(function(idx,i){
@@ -3181,7 +3201,7 @@ function exportPDF(){
   doc.text("COMPOST LOGGER - PILE REPORT",M,12);
   doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(180,180,180);
   doc.text(pile.name,M,20);
-  doc.text("Created: "+new Date(pile.created).toLocaleDateString()+" - Days: "+(pile.entries.length?Math.round((new Date(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);})[pile.entries.length-1].ts)-new Date(pile.created).getTime())/86400000)+1:0)+" - Turns: "+pile.entries.filter(function(e){return e.turned;}).length,M,26);
+  doc.text("Created: "+new Date(pile.created).toLocaleDateString()+" - Days: "+(pile.entries.length?Math.round((new Date(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);})[pile.entries.length-1].ts)-new Date(pile.created).getTime())/86400000)+1:0)+" - Turns: "+buildTurnHistory(pile.entries).length,M,26);
   y=38;
   // ---- VERDICT-FIRST SUMMARY ----
   var sortedV=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
@@ -3190,16 +3210,19 @@ function exportPDF(){
   var vPfrp=pfrpVerdict(sortedV);
   function pdfRgb(hex){if(!/^#[0-9a-fA-F]{6}$/.test(hex))hex="#666666";return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
   var pc=pdfRgb(vPfrp.color);
-  doc.setFillColor(245,245,245);doc.rect(M,y-3,CW,20,"F");
-  doc.setFillColor(pc[0],pc[1],pc[2]);doc.rect(M,y-3,2,20,"F");
+  doc.setFillColor(245,245,245);doc.rect(M,y-3,CW,24,"F");
+  doc.setFillColor(pc[0],pc[1],pc[2]);doc.rect(M,y-3,2,24,"F");
   doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(90,90,90);
   doc.text("PFRP - PROCESS TO FURTHER REDUCE PATHOGENS (TEMPERATURE RECORD)",M+5,y+1);
   doc.setTextColor(pc[0],pc[1],pc[2]);doc.setFontSize(12);
-  doc.text(vPfrp.verdict.replace(/\u2014/g,"-"),M+5,y+7);
-  doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(90,90,90);
-  doc.text(vPfrp.detail.replace(/\u00B7/g,"-")+"  -  "+vPfrp.sub.replace(/\u2265/g,">=")+".",M+5,y+12);
-  doc.setTextColor(140,140,140);doc.text("On-pile temperature record only - not a certified pathogen test.",M+5,y+16);
-  y+=24;
+  function ascii(s){return s.replace(/\u2014/g,"-").replace(/\u2265/g,">=").replace(/\u00B7/g,"-").replace(/\u00B0/g,"deg ").replace(/deg F/g,"F").replace(/deg /g,"");}
+  doc.text(ascii(vPfrp.verdict),M+5,y+7);
+  doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(90,90,90);
+  doc.text(ascii(vPfrp.detail),M+5,y+12);
+  var subLines=doc.splitTextToSize(ascii(vPfrp.sub)+".",CW-10);
+  doc.text(subLines[0]||"",M+5,y+15.5);
+  doc.setTextColor(140,140,140);doc.text("On-pile temperature record only - not a certified pathogen test.",M+5,y+19);
+  y+=27;
   }
   if(sortedV.length>=2){
     var dhV=degreeHoursAbove(sortedV,131);
@@ -3250,7 +3273,29 @@ function exportPDF(){
   // Summary table
   doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(100,100,100);
   doc.text("Total Volume: "+pdfTot.toFixed(1)+" "+pdfVL,M,y);y+=5;
-  doc.text("C:N  Fast N: "+pdfRatio.fastN+"% | Slow N: "+pdfRatio.slowN+"% | Brown: "+pdfRatio.brown+"%",M,y);y+=6;
+  doc.text("C:N  Fast N: "+pdfRatio.fastN+"% | Slow N: "+pdfRatio.slowN+"% | Brown: "+pdfRatio.brown+"%",M,y);y+=3;
+  // Visual C:N ratio bar (fast-N red, slow-N green, brown amber)
+  (function(){
+    var segs=[{pct:pdfRatio.fastN,rgb:[239,68,68],lbl:"FAST N"},{pct:pdfRatio.slowN,rgb:[74,222,128],lbl:"SLOW N"},{pct:pdfRatio.brown,rgb:[217,119,6],lbl:"BROWN"}];
+    var barW=CW,barH=4,bx=M;
+    segs.forEach(function(s){
+      var sw=(s.pct/100)*barW;
+      if(sw<=0)return;
+      doc.setFillColor(s.rgb[0],s.rgb[1],s.rgb[2]);
+      doc.rect(bx,y,sw,barH,"F");
+      bx+=sw;
+    });
+    y+=barH+2;
+    // small legend under the bar
+    doc.setFont("helvetica","normal");doc.setFontSize(6.5);
+    var lx=M;
+    segs.forEach(function(s){
+      doc.setFillColor(s.rgb[0],s.rgb[1],s.rgb[2]);doc.rect(lx,y-2,2.5,2.5,"F");
+      doc.setTextColor(100,100,100);doc.text(s.lbl+" "+s.pct+"%",lx+3.5,y);
+      lx+=28;
+    });
+    y+=5;
+  })();
   var tCols=[55,28,22,22,28];
   var tX=[M,M+tCols[0],M+tCols[0]+tCols[1],M+tCols[0]+tCols[1]+tCols[2],M+tCols[0]+tCols[1]+tCols[2]+tCols[3]];
   doc.setFillColor(240,240,240);doc.rect(M,y-3,CW,6,"F");
@@ -3321,7 +3366,7 @@ function exportPDF(){
       check(14);
       doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(60,60,60);
       var hsBand=BANDS.find(function(b){return b.label===t.highestSatisfied;});
-      var icon=t.highestSatisfied?(hsBand?hsBand.hours+"H":"")+" SATISFIED":t.isWarning?"WARNING":"TURN "+t.num;
+      var icon=t.highestSatisfied?(hsBand?hsBand.hours+"H":"")+" SATISFIED":(t.turnedHot?"TURNED HOT":"TURN "+t.num);
       doc.text("Turn "+t.num+" - "+icon,M,y);y+=5;
       // Multicolor cycle bar in PDF
       var cycleForBar=cycles2PDF[turnIdx];
@@ -3357,21 +3402,11 @@ function exportPDF(){
         }
         if(peak!=null)peakStr=" | Peak: "+Math.round(peak)+"F";
       }
-      // Cooling rate: compare turn temp to next entry
+      // (Post-turn cooldown is normal and no longer flagged as a warning.)
       var coolingStr="";
-      if(t.core1&&sortedAll[turnIdx+1]){
-        var nextE=null;
-        for(var ni=0;ni<sortedAll.length;ni++){if(sortedAll[ni].turned&&ni>0){var prevTurnTs=new Date(sortedAll[ni].ts).getTime();if(prevTurnTs>new Date(t.ts||t.date+"T"+t.time).getTime()){break;}}
-        }
-        // Find first entry after this turn
-        var turnTs=new Date(t.date+"T"+t.time).getTime();
-        for(var xi=0;xi<sortedAll.length;xi++){if(new Date(sortedAll[xi].ts).getTime()>turnTs&&sortedAll[xi].core1){nextE=sortedAll[xi];break;}}
-        if(nextE){var drop=Math.round((avgCore(t)||t.core1||0)-(avgCore(nextE)||nextE.core1||0));var hrs=Math.round((new Date(nextE.ts).getTime()-turnTs)/3600000);if(drop>0)coolingStr=" | Dropped "+drop+"°F in "+hrs+"h";}
-      }
       doc.text("Date: "+t.date+" "+t.time+(t.core1?" | Core at turn: "+t.core1+"F":"")+peakStr+(t.activeBand?" | "+t.activeBand.label:"")+coolingStr,M+4,y);y+=4;
       if(t.sinceMs!=null){doc.text("Since previous turn: "+fmtHours(t.sinceMs),M+4,y);y+=4;}
       if(t.highestSatisfied){doc.text("Stage satisfied: "+t.highestSatisfied,M+4,y);y+=4;}
-      if(t.isWarning){doc.setTextColor(200,60,60);doc.text("Warning: turned without satisfying stage requirement",M+4,y);doc.setTextColor(100,100,100);y+=4;}
       y+=1;
     });
   }
@@ -3500,7 +3535,10 @@ function exportPDF(){
       var exportChart=new Chart(exportCanvas,{
         type:"line",
         data:{
-          labels:sortedEntries.map(function(e,i){return i+1;}),
+          labels:sortedEntries.map(function(e){
+            var dnum=Math.floor((new Date(e.ts).getTime()-new Date(pile.created).getTime())/86400000)+1;
+            return "Day "+dnum;
+          }),
           datasets:[
             {label:"Core 1",data:sortedEntries.map(function(e){return e.core1!=null?crPDF(e.core1):null;}),borderColor:"#ff4444",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
             {label:"Core 2",data:sortedEntries.map(function(e){return e.core2!=null?crPDF(e.core2):null;}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
@@ -3531,12 +3569,12 @@ function exportPDF(){
           },(function(){
             var ta={};
             sortedEntries.forEach(function(e,i){
-              if(e.turned){ta["turn"+i]={type:"line",xMin:i+1,xMax:i+1,borderColor:"#f97316",borderWidth:1.5,label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#c2410c",font:{size:7},padding:1,rotation:90}};}
+              if(e.turned){ta["turn"+i]={type:"line",xMin:i,xMax:i,borderColor:"#f97316",borderWidth:1.5,label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#c2410c",font:{size:7},padding:1,rotation:90}};}
             });
             return ta;
           })())}},
           scales:{
-            x:{ticks:{color:"#333",font:{size:9}},grid:{color:"#eee"},title:{display:true,text:"Entry #",color:"#333",font:{size:9}}},
+            x:{ticks:{color:"#333",font:{size:9},maxTicksLimit:12},grid:{color:"#eee"},title:{display:true,text:"Day",color:"#333",font:{size:9}}},
             y:{min:crPDF(80),max:crPDF(180),position:"left",ticks:{color:"#333",font:{size:9}},grid:{color:"#eee"},title:{display:true,text:"\u00B0"+tempUnit,color:"#333",font:{size:9}}},
             y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:9},callback:function(v){return v+"%";}},grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:9}}}
           }
@@ -4504,6 +4542,11 @@ function openSettings(){
   var offB=document.getElementById("s-pfrp-off");
   if(onB){onB.style.color=showPFRP?"#4ade80":"#555";onB.style.borderColor=showPFRP?"#4ade80":"#222";}
   if(offB){offB.style.color=!showPFRP?"#fff":"#555";offB.style.borderColor=!showPFRP?"#fff":"#222";}
+  var keyEl=document.getElementById("s-anthropic-key");
+  var keySt=document.getElementById("s-key-status");
+  var savedKey=localStorage.getItem("ca_anthropicKey")||"";
+  if(keyEl)keyEl.value=savedKey;
+  if(keySt){if(savedKey){keySt.style.color="#4ade80";keySt.textContent="\u2713 Key saved on this device.";}else{keySt.textContent="";}}
   // Sync volume buttons
   ["gal","l","yd"].forEach(function(k){
     var el=document.getElementById("s-vol-"+k);if(!el)return;
@@ -4555,6 +4598,25 @@ function setDisplayBasis(b){
   if(avgB){avgB.style.color=b==="avg"?"#fff":"#555";avgB.style.borderColor=b==="avg"?"#fff":"#222";}
   var dash=document.getElementById("view-dashboard");
   if(dash&&!dash.classList.contains("hidden"))renderDashboard();
+}
+function saveAnthropicKey(){
+  var el=document.getElementById("s-anthropic-key");
+  if(!el)return;
+  var k=(el.value||"").trim();
+  var st=document.getElementById("s-key-status");
+  if(!k){if(st){st.style.color="#ef4444";st.textContent="Enter a key first.";}return;}
+  localStorage.setItem("ca_anthropicKey",k);
+  if(st){st.style.color="#4ade80";st.textContent="\u2713 Key saved on this device. SCAN button is now available.";}
+  updateScanButtonVisibility();
+}
+function clearAnthropicKey(){
+  localStorage.removeItem("ca_anthropicKey");
+  var el=document.getElementById("s-anthropic-key");if(el)el.value="";
+  var st=document.getElementById("s-key-status");if(st){st.style.color="#888";st.textContent="Key removed.";}
+  updateScanButtonVisibility();
+}
+function onKeyFieldInput(){
+  var st=document.getElementById("s-key-status");if(st)st.textContent="";
 }
 function setShowPFRP(on){
   showPFRP=!!on;
@@ -4642,9 +4704,20 @@ async function handleScanPhotos(event){
     // Add text prompt
     imageBlocks.push({type:"text",text:"You are reading compost temperature monitoring instruments. Identify each instrument in the photos:\n1. REOTEMP analog gauge (circular dial with needle, \u00b0F scale 0-200) \u2014 these show CORE temperatures\n2. ETHMEAS digital display (black box with red buttons, shows OUT temperature) \u2014 this shows AMBIENT temperature\n\nFor each instrument, read the temperature value as accurately as possible.\nIf the analog needle is between marks, estimate to the nearest 2\u00b0F.\nReturn ONLY valid JSON in this exact format:\n{\"ambient\": null_or_number, \"core1\": null_or_number, \"core2\": null_or_number, \"core3\": null_or_number, \"confidence\": \"high\" or \"medium\" or \"low\", \"notes\": \"brief note about any uncertainty\"}\nAll temperatures should be in Fahrenheit. Return null for any reading you cannot determine."});
 
+    var apiKey=localStorage.getItem("ca_anthropicKey")||"";
+    if(!apiKey){
+      status.textContent="No API key set. Add your Anthropic key in Settings to use photo scan.";
+      actions.style.display="none";
+      return;
+    }
     var resp=await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{
+        "Content-Type":"application/json",
+        "x-api-key":apiKey,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"
+      },
       body:JSON.stringify({
         model:"claude-sonnet-4-6",
         max_tokens:400,
@@ -4652,6 +4725,7 @@ async function handleScanPhotos(event){
       })
     });
 
+    if(resp.status===401){throw new Error("Invalid API key \u2014 check it in Settings.");}
     if(!resp.ok)throw new Error("API error: "+resp.status);
     var data=await resp.json();
     var text=(data.content||[]).filter(function(b){return b.type==="text";}).map(function(b){return b.text;}).join("");
@@ -4734,7 +4808,14 @@ document.getElementById("logo-img").src=BANNER_B64;
   if(vh)vh.textContent=APP_VERSION;
   var vs=document.getElementById("app-version-settings");
   if(vs)vs.innerHTML="COMPOST LOGGER &middot; "+APP_VERSION;
+  updateScanButtonVisibility();
 })();
+function updateScanButtonVisibility(){
+  var btn=document.getElementById("scan-photos-btn");
+  if(!btn)return;
+  var hasKey=!!(localStorage.getItem("ca_anthropicKey")||"").trim();
+  btn.style.display=hasKey?"flex":"none";
+}
 load();
 renderHome();
 showView("home");

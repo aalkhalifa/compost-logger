@@ -609,7 +609,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.76i";
+var BUILD_VER="v3.76j";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -2622,7 +2622,11 @@ function renderChart(sorted){
     var midnight=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,0,0,0).getTime();
     var tx=xValTs(midnight);
     if(tx<0)tx=0;
-    var dayNum=Math.floor((midnight-new Date(pile.created).getTime())/86400000)+1;
+    // Day number relative to the first reading's calendar day (day 1 = build day).
+    // (renderChart only receives `sorted`, not `pile`, so anchor on the first entry.)
+    var firstDay=sorted.length?new Date(sorted[0].ts):d;
+    var firstMidnight=new Date(firstDay.getFullYear(),firstDay.getMonth(),firstDay.getDate(),0,0,0,0).getTime();
+    var dayNum=Math.floor((midnight-firstMidnight)/86400000)+1;
     if(dayNum<1)dayNum=1;
     dayTicks.push({x:tx,label:"Day "+dayNum});
   });

@@ -204,11 +204,14 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 
 <div id="chart-section" class="hidden">
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem;flex-wrap:wrap;gap:0.4rem">
       <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMP + MOISTURE</div>
-      <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
-      <button id="btn-toggle-ambient" class="btn-sm" onclick="toggleAmbient()" style="font-size:0.65rem;color:#555">AMBIENT OFF</button>
-      <button id="btn-toggle-delta" class="btn-sm" onclick="toggleDelta()" style="font-size:0.65rem;color:#555">DELTA OFF</button>
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+        <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
+        <button id="btn-toggle-shade" class="btn-sm" onclick="toggleShade()" style="font-size:0.65rem;color:#555">SHADE OFF</button>
+        <button id="btn-toggle-ambient" class="btn-sm" onclick="toggleAmbient()" style="font-size:0.65rem;color:#555">AMBIENT OFF</button>
+        <button id="btn-toggle-delta" class="btn-sm" onclick="toggleDelta()" style="font-size:0.65rem;color:#555">DELTA OFF</button>
+      </div>
     </div>
     <div id="chart-scroll-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative">
       <div id="chart-inner" style="min-width:100%;position:relative">
@@ -609,7 +612,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.76k";
+var BUILD_VER="v3.76l";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -646,7 +649,7 @@ var N_PRESETS={
 var pilesSortMode=localStorage.getItem("ca_pilesSort")||"recent";
 var entriesSortMode=localStorage.getItem("ca_entriesSort")||"newest";
 var piles=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
-var activeId=null,tempMode="three",tempUnit="F";
+var activeId=null,tempMode="three",tempUnit="F",shadeProbes=false;
 var volumeUnit="gal";
 // DISPLAY BASIS governs the numbers shown across the app (headline temp, stage bars,
 // cycle detection, maturity): "avg" = Compost Academy style (average of probes),
@@ -1625,11 +1628,11 @@ function renderOpSummary(){
   var tableRows=sortedRows.map(function(r){
     return '<tr style="border-bottom:1px solid #080808">'+
       '<td style="padding:0.35rem 0.4rem;color:#ddd;font-size:0.72rem">'+r.name+'</td>'+
-      '<td class="mono" style="padding:0.35rem 0.4rem;color:#ef4444;font-size:0.7rem;text-align:right">'+r.fastN+'%</td>'+
-      '<td class="mono" style="padding:0.35rem 0.4rem;color:#d97706;font-size:0.7rem;text-align:right">'+r.brown+'%</td>'+
-      '<td class="mono" style="padding:0.35rem 0.4rem;color:#f59e0b;font-size:0.7rem;text-align:right">'+(r.tTo131!=null?Math.round(r.tTo131)+'h':'\u2014')+'</td>'+
-      '<td class="mono" style="padding:0.35rem 0.4rem;color:#f97316;font-size:0.7rem;text-align:right">'+r.dh.toLocaleString()+'</td>'+
-      (showPFRP?('<td class="mono" style="padding:0.35rem 0.4rem;font-size:0.7rem;text-align:center;color:'+(r.windrow?"#4ade80":"#ef4444")+'">'+(r.windrow?"\u2713":"\u2717")+' '+r.pfrpDays+'d</td>'):'')+
+      '<td class="mono" style="padding:0.35rem 0.4rem;color:#ef4444;font-size:0.8rem;text-align:right">'+r.fastN+'%</td>'+
+      '<td class="mono" style="padding:0.35rem 0.4rem;color:#d97706;font-size:0.8rem;text-align:right">'+r.brown+'%</td>'+
+      '<td class="mono" style="padding:0.35rem 0.4rem;color:#f59e0b;font-size:0.8rem;text-align:right">'+(r.tTo131!=null?Math.round(r.tTo131)+'h':'\u2014')+'</td>'+
+      '<td class="mono" style="padding:0.35rem 0.4rem;color:#f97316;font-size:0.8rem;text-align:right">'+r.dh.toLocaleString()+'</td>'+
+      (showPFRP?('<td class="mono" style="padding:0.35rem 0.4rem;font-size:0.8rem;text-align:center;color:'+(r.windrow?"#4ade80":"#ef4444")+'">'+(r.windrow?"\u2713":"\u2717")+' '+r.pfrpDays+'d</td>'):'')+
     '</tr>';
   }).join("");
   var tableHeaders=["PILE","FAST-N","BROWN","\u2192131\u00B0","\u00B0F\u00B7h"];
@@ -1780,7 +1783,7 @@ function togglePileStatus(id){
   ];
   var assess=getPileAssessment(p,sorted);
   document.getElementById("maturity-summary").innerHTML=
-    '<div style="margin-bottom:0.75rem;font-size:0.7rem;color:#555;font-family:Share Tech Mono,monospace">'+
+    '<div style="margin-bottom:0.75rem;font-size:0.8rem;color:#555;font-family:Share Tech Mono,monospace">'+
     'This pile journey at a glance:</div>'+
     rows.map(function(r){return '<div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid #111">'+
       '<span class="mono" style="font-size:0.75rem;color:#555">'+r.label+'</span>'+
@@ -1883,7 +1886,7 @@ function renderCatEditors(mode){
     return '<div style="margin-bottom:1.5rem">'+
       '<div style="display:flex;justify-content:space-between;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:1px solid #111">'+
         '<div><span class="hd" style="font-size:1rem;color:'+cat.color+'">'+cat.label+'</span>'+
-        '<span style="font-size:0.7rem;color:#555;margin-left:0.5rem">'+cat.sub+'</span></div>'+
+        '<span style="font-size:0.8rem;color:#555;margin-left:0.5rem">'+cat.sub+'</span></div>'+
         '<span class="mono" style="font-size:0.75rem;color:#555" id="'+prefix+'-vol-'+cat.key+'">0.0 gal</span>'+
       '</div>'+
       '<div id="'+prefix+'-items-'+cat.key+'"></div>'+
@@ -2331,12 +2334,12 @@ function renderStatusCard(pile,sorted,lat,band){
       '<div>'+
         '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">AVG TEMP</div>'+
         '<div class="mono" style="font-size:2.8rem;color:'+band.color+';font-weight:bold;line-height:1">'+dispStr(avgCore(lat))+'</div>'+
-        '<div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+band.label+(band.hours>0?' \u00B7 '+bandRange(band):' \u00B7 BELOW 131\u00B0F')+'</div>'+
+        '<div style="font-size:0.8rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+band.label+(band.hours>0?' \u00B7 '+bandRange(band):' \u00B7 BELOW 131\u00B0F')+'</div>'+
       '</div>'+
       '<div style="text-align:right">'+
         '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">'+(isDone?"ACTION":"TIME LEFT")+'</div>'+
         '<div class="mono" style="font-size:'+(isDone?"1.4rem":"2rem")+';color:'+timeColor+';font-weight:bold;line-height:1">'+timeLeft+'</div>'+
-        '<div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+(band.hours>0?band.hours+'H REQUIRED':'WAITING FOR HEAT')+'</div>'+
+        '<div style="font-size:0.8rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+(band.hours>0?band.hours+'H REQUIRED':'WAITING FOR HEAT')+'</div>'+
       '</div>'+
     '</div>'+
     '<div style="margin-top:0.85rem">'+
@@ -2624,7 +2627,26 @@ function renderChart(sorted){
     if(dx<0)return;
     dayAnnotations["day"+dayKey]={type:"line",xMin:dx,xMax:dx,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
   });
-  var tempDatasets=tempMode==="three"?[
+  var tempDatasets;
+  if(tempMode==="three"&&shadeProbes){
+    // SHADED PROBE MODE: a filled band between the coldest and hottest probe, with
+    // visible left/right border lines, and NO individual core lines (cleaner).
+    var bandRowsS=sorted.filter(function(e){return coreSpread(e)!=null;});
+    // Fallback: if there's no multi-probe spread, just show core1 as a single line.
+    if(bandRowsS.length){
+      tempDatasets=[
+        {label:"Probe max",data:bandRowsS.map(function(e){var v=[e.core1,e.core2,e.core3].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.max.apply(null,v))};}),
+          borderColor:"#ff6b6b",borderWidth:2,backgroundColor:"rgba(255,140,90,0.22)",pointRadius:0,fill:"+1",tension:0.3,yAxisID:"y",order:2},
+        {label:"Probe min",data:bandRowsS.map(function(e){var v=[e.core1,e.core2,e.core3].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.min.apply(null,v))};}),
+          borderColor:"#a855f7",borderWidth:2,backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,yAxisID:"y",order:3}
+      ];
+    } else {
+      tempDatasets=[
+        {label:"Core 1",data:sorted.filter(function(e){return e.core1!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core1)};}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:3,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1}
+      ];
+    }
+  } else {
+  tempDatasets=tempMode==="three"?[
     {label:"Core 1",data:sorted.filter(function(e){return e.core1!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core1)};}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
     {label:"Core 2",data:sorted.filter(function(e){return e.core2!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core2)};}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#4ade80",spanGaps:true,yAxisID:"y",order:2},
     {label:"Core 3",data:sorted.filter(function(e){return e.core3!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core3)};}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#a855f7",spanGaps:true,yAxisID:"y",order:3}
@@ -2641,6 +2663,7 @@ function renderChart(sorted){
       tempDatasets.push({label:"Probe min",data:bandRows.map(function(e){var v=[e.core1,e.core2,e.core3].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.min.apply(null,v))};}),
         borderColor:"transparent",backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,yAxisID:"y",order:21});
     }
+  }
   }
   tempChart=new Chart(document.getElementById("temp-chart"),{
     type:"line",
@@ -2796,6 +2819,13 @@ function toggleAmbient(){
   var pile=getActivePile();if(!pile)return;
   renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
 }
+function toggleShade(){
+  shadeProbes=!shadeProbes;
+  var btn=document.getElementById("btn-toggle-shade");
+  if(btn){btn.textContent=shadeProbes?"SHADE ON":"SHADE OFF";btn.style.color=shadeProbes?"#ff8c5a":"#555";}
+  var pile=getActivePile();if(!pile)return;
+  renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+}
 function toggleChart(){
   tempMode=tempMode==="three"?"average":"three";
   document.getElementById("btn-toggle-chart").textContent=tempMode==="three"?"SHOW AVG":"SHOW 3 LINES";
@@ -2932,26 +2962,26 @@ function renderLogTable(sorted,pile){
   var table=document.getElementById("log-table");
   if(!sorted.length){table.innerHTML="";return;}
   var headers=["DAY","DATE","TIME","AMB","C1","C2","C3","MOIST","TURN",""];
-  var thead='<thead><tr>'+headers.map(function(h){return '<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#555;font-size:0.62rem;letter-spacing:0.05em">'+h+'</th>';}).join("")+'</tr></thead>';
+  var thead='<thead><tr>'+headers.map(function(h){return '<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#555;font-size:0.7rem;letter-spacing:0.05em">'+h+'</th>';}).join("")+'</tr></thead>';
   var sortedDisplay=entriesSortMode==="oldest"?sorted.slice():sorted.slice().reverse();
   var tbody='<tbody>'+sortedDisplay.map(function(en,i){
-    var moistCell=en.moisture!=null?'<span style="background:'+mColor(en.moisture)+';color:#fff;padding:0.05rem 0.25rem;border-radius:2px;font-family:Share Tech Mono,monospace;font-size:0.65rem">'+en.moisture+'%</span>':"-";
+    var moistCell=en.moisture!=null?'<span style="background:'+mColor(en.moisture)+';color:#fff;padding:0.05rem 0.25rem;border-radius:2px;font-family:Share Tech Mono,monospace;font-size:0.72rem">'+en.moisture+'%</span>':"-";
     var earliestTs=sorted.length?new Date(sorted[0].ts):new Date(pile.created);
     var earliestDay=new Date(earliestTs.getFullYear(),earliestTs.getMonth(),earliestTs.getDate());
     var entryDate=new Date(en.ts);
     var entryDayOnly=new Date(entryDate.getFullYear(),entryDate.getMonth(),entryDate.getDate());
     var dayNum=Math.floor((entryDayOnly-earliestDay)/86400000)+1;
     return '<tr style="border-bottom:1px solid #080808">'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+dayNum+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+en.date+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+(en.time||"-")+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#f59e0b;font-size:0.7rem">'+(en.ambient!=null?dispStr(en.ambient):"-")+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.7rem">'+(en.core1!=null?dispStr(en.core1):"-")+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.7rem">'+(en.core2!=null?dispStr(en.core2):"-")+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.7rem">'+(en.core3!=null?dispStr(en.core3):"-")+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+dayNum+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+en.date+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+(en.time||"-")+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#f59e0b;font-size:0.8rem">'+(en.ambient!=null?dispStr(en.ambient):"-")+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.8rem">'+(en.core1!=null?dispStr(en.core1):"-")+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.8rem">'+(en.core2!=null?dispStr(en.core2):"-")+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.8rem">'+(en.core3!=null?dispStr(en.core3):"-")+'</td>'+
       '<td style="padding:0.3rem 0.4rem">'+moistCell+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:'+(en.turned?"#f97316":"#1a1a1a")+';font-size:0.7rem">'+(en.turned?"YES":"-")+'</td>'+
-      '<td style="padding:0.3rem 0.3rem"><button onclick="openEdit(\''+en.id+'\')" class="btn-sm" style="padding:0.2rem 0.4rem;font-size:0.6rem">EDIT</button></td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:'+(en.turned?"#f97316":"#1a1a1a")+';font-size:0.8rem">'+(en.turned?"YES":"-")+'</td>'+
+      '<td style="padding:0.3rem 0.3rem"><button onclick="openEdit(\''+en.id+'\')" class="btn-sm" style="padding:0.2rem 0.4rem;font-size:0.66rem">EDIT</button></td>'+
     '</tr>';
   }).join("")+'</tbody>';
   table.innerHTML=thead+tbody;
@@ -3306,35 +3336,30 @@ function exportPDF(){
     doc.text(cat.label,M,y);y+=5;
     var catTotalVol=0;
     items.forEach(function(item){
-      check(9);
+      check(8);
       var iVol=parseFloat(item.volume)||0;
       catTotalVol+=iVol;
       var iCount=iVol>0?containerCount(String(iVol),pdfCU):null;
-      // Name (left) and volume (right), aligned columns
-      doc.setFont("helvetica","normal");doc.setFontSize(8.5);doc.setTextColor(60,60,60);
-      doc.text("- "+item.name,M+2,y);
+      // Name + inline note (left), volume (right) — compact single line.
+      doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(55,55,55);
+      var nameLine="- "+item.name+(item.notes?" \u2014 "+item.notes:"");
+      doc.text(nameLine,M+2,y);
       if(iVol>0){doc.setTextColor(90,90,90);doc.text(iVol.toFixed(1)+" "+pdfVL+(iCount?" \u00B7 "+iCount+" "+cuLabel:""),W-M,y,{align:"right"});}
       y+=4;
-      // Note (indented, lighter) on its own aligned line
-      if(item.notes){
-        doc.setFontSize(7);doc.setTextColor(140,140,140);
-        doc.text(item.notes,M+6,y);y+=3.5;
-      }
       // F/S/B breakdown (volume-weighted from the ingredient's own split)
       var fn=item.fastN||0,sn=item.slowN||0,b=item.brown||0;
       if(fn+sn+b===0&&item.name){var pp=getPreset(item.name);if(pp){fn=pp.fastN;sn=pp.slowN;b=pp.brown;}}
       if(fn+sn+b>0){
-        doc.setFontSize(6.5);
+        doc.setFontSize(7);
         var bx2=M+6;
         var parts=[["F",fn,[239,68,68]],["S",sn,[74,222,128]],["B",b,[217,119,6]]];
         parts.forEach(function(pr){
           doc.setTextColor(pr[2][0],pr[2][1],pr[2][2]);
           doc.text(pr[0]+" "+pr[1]+"%",bx2,y);
-          bx2+=16;
+          bx2+=15;
         });
-        y+=4;
-      }
-      y+=1;
+        y+=4.5;
+      } else { y+=1; }
     });
     doc.setDrawColor(210,210,210);doc.line(M+4,y,W-M,y);y+=3;
     doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(60,60,60);
@@ -3410,7 +3435,7 @@ function exportPDF(){
   }
   var sortedEntries=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   function finishPDF(){
-  check(20);
+  doc.addPage();y=20;   // Log Entries always begins on a fresh page (no orphan rows)
     doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
     doc.text("LOG ENTRIES",M,y);y+=5;
     doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
@@ -3437,7 +3462,7 @@ function exportPDF(){
       var avg2=avgCore(e);
       var hasNote=e.notes&&e.notes.trim();
       if(zebra%2===1){doc.setFillColor(246,246,246);doc.rect(x0,yLocal-3.2,COLW-2,5,"F");}
-      doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(60,60,60);
+      doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(55,55,55);
       var hx=x0;
       doc.text(String(idx+1),hx,yLocal);hx+=6;
       doc.text(e.date||"",hx,yLocal);hx+=17;
@@ -3454,9 +3479,9 @@ function exportPDF(){
       doc.text(e.turned?"YES":"",hx,yLocal);
       yLocal+=5;
       if(hasNote){
-        doc.setFont("helvetica","italic");doc.setFontSize(6.5);doc.setTextColor(110,110,110);
+        doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(110,110,110);
         var noteLines=doc.splitTextToSize("Note: "+e.notes.trim(),COLW-6);
-        noteLines.forEach(function(ln){doc.text(ln,x0+3,yLocal);yLocal+=3.4;});
+        noteLines.forEach(function(ln){doc.text(ln,x0+3,yLocal);yLocal+=3.7;});
         yLocal+=1.2;
         doc.setTextColor(60,60,60);
       }
@@ -3466,9 +3491,9 @@ function exportPDF(){
     function entryHeight(e){
       var h=5;
       if(e.notes&&e.notes.trim()){
-        doc.setFontSize(6.5);
+        doc.setFontSize(7);
         var n=doc.splitTextToSize("Note: "+e.notes.trim(),COLW-6).length;
-        h+=n*3.4+1.2;
+        h+=n*3.7+1.2;
       }
       return h;
     }

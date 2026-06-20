@@ -209,6 +209,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
         <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
         <button id="btn-toggle-shade" class="btn-sm" onclick="toggleShade()" style="font-size:0.65rem;color:#555">SHADE OFF</button>
+        <button id="btn-toggle-rate" class="btn-sm" onclick="toggleRate()" style="font-size:0.65rem;color:#555">RATE OFF</button>
         <button id="btn-toggle-ambient" class="btn-sm" onclick="toggleAmbient()" style="font-size:0.65rem;color:#555">AMBIENT OFF</button>
         <button id="btn-toggle-delta" class="btn-sm" onclick="toggleDelta()" style="font-size:0.65rem;color:#555">DELTA OFF</button>
       </div>
@@ -612,7 +613,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.76l";
+var BUILD_VER="v3.76m";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -649,7 +650,7 @@ var N_PRESETS={
 var pilesSortMode=localStorage.getItem("ca_pilesSort")||"recent";
 var entriesSortMode=localStorage.getItem("ca_entriesSort")||"newest";
 var piles=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
-var activeId=null,tempMode="three",tempUnit="F",shadeProbes=false;
+var activeId=null,tempMode="three",tempUnit="F",shadeProbes=false,showRate=false;
 var volumeUnit="gal";
 // DISPLAY BASIS governs the numbers shown across the app (headline temp, stage bars,
 // cycle detection, maturity): "avg" = Compost Academy style (average of probes),
@@ -850,6 +851,25 @@ function disp(f){if(f==null)return null;return tempUnit==="C"?toC(f):f;}
 function dispStr(f){var v=disp(f);if(v==null)return"-";var rounded=Math.round(v);return rounded+"\u00B0"+tempUnit;}
 function fromInput(v){if(v==null||v==="")return null;var n=parseFloat(v);if(isNaN(n))return null;return tempUnit==="C"?toF(n):n;}
 function unitLbl(){return"\u00B0"+tempUnit;}
+// Heating-rate series: change in average core temp per hour between consecutive
+// readings, in the active display unit (F/h or C/h). The rate for the first reading
+// is null (no prior point). A tiny time gap is clamped to 0.25h so two near-identical
+// timestamps don't produce a divide-by-near-zero spike.
+function heatingRateSeries(sorted){
+  var out=[];
+  for(var i=0;i<sorted.length;i++){
+    if(i===0){out.push(null);continue;}
+    var a=avgCore(sorted[i-1]),b=avgCore(sorted[i]);
+    if(a==null||b==null){out.push(null);continue;}
+    var hrs=(new Date(sorted[i].ts)-new Date(sorted[i-1].ts))/3600000;
+    if(hrs<0.25)hrs=0.25;
+    var dF=b-a; // raw Fahrenheit delta
+    var rate=dF/hrs;
+    if(tempUnit==="C")rate=rate*5/9; // convert the per-hour delta to C
+    out.push(Math.round(rate*100)/100);
+  }
+  return out;
+}
 function bandRange(b){
   if(tempUnit==="F")return b.min+"-"+(b.max===Infinity?"175+":b.max)+"\u00B0F";
   return Math.round(toC(b.min))+"-"+(b.max===Infinity?"80+":Math.round(toC(b.max)))+"\u00B0C";
@@ -2636,9 +2656,9 @@ function renderChart(sorted){
     if(bandRowsS.length){
       tempDatasets=[
         {label:"Probe max",data:bandRowsS.map(function(e){var v=[e.core1,e.core2,e.core3].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.max.apply(null,v))};}),
-          borderColor:"#ff6b6b",borderWidth:2,backgroundColor:"rgba(255,140,90,0.22)",pointRadius:0,fill:"+1",tension:0.3,yAxisID:"y",order:2},
+          borderColor:"rgba(255,255,255,0.85)",borderWidth:2,backgroundColor:"rgba(255,255,255,0.13)",pointRadius:0,fill:"+1",tension:0.3,yAxisID:"y",order:2},
         {label:"Probe min",data:bandRowsS.map(function(e){var v=[e.core1,e.core2,e.core3].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.min.apply(null,v))};}),
-          borderColor:"#a855f7",borderWidth:2,backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,yAxisID:"y",order:3}
+          borderColor:"rgba(255,255,255,0.85)",borderWidth:2,backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,yAxisID:"y",order:3}
       ];
     } else {
       tempDatasets=[
@@ -2682,7 +2702,13 @@ function renderChart(sorted){
       {label:"Ambient",data:sorted.filter(function(e){return e.ambient!=null;}).map(function(e){return {x:xVal(e),y:disp(e.ambient)};}),
         borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,
         pointRadius:3,pointBackgroundColor:"#f59e0b",spanGaps:true,yAxisID:"y",order:4,borderDash:[4,3]}
-    ]:[]))},
+    ]:[])
+    .concat(showRate?(function(){
+      var rs=heatingRateSeries(sorted);
+      return [{label:"Heating rate",data:sorted.map(function(e,i){return rs[i]==null?null:{x:xVal(e),y:rs[i]};}),
+        borderColor:"#22d3ee",backgroundColor:"transparent",tension:0.3,
+        pointRadius:2,pointBackgroundColor:"#22d3ee",spanGaps:true,yAxisID:"yRate",order:6,borderWidth:1.5}];
+    })():[]))},
     options:{
       responsive:true,maintainAspectRatio:false,animation:false,
       interaction:{mode:"index",intersect:false},
@@ -2692,7 +2718,7 @@ function renderChart(sorted){
           r131:{type:"line",yMin:cr(131),yMax:cr(131),borderColor:"#f59e0b77",borderWidth:1,borderDash:[5,4],yScaleID:"y",label:{display:true,content:"PFRP 131\u00B0",position:"start",backgroundColor:"rgba(245,158,11,0.15)",color:"#f59e0b",font:{size:9},padding:2}},
           r175:{type:"line",yMin:cr(175),yMax:cr(175),borderColor:"#ff000055",borderWidth:1,borderDash:[3,3],yScaleID:"y",label:{display:true,content:"TURN 175\u00B0",position:"start",backgroundColor:"rgba(255,0,0,0.12)",color:"#ff6666",font:{size:9},padding:2}},
           danger:{type:"box",yMin:cr(175),yMax:cMax+5,backgroundColor:"rgba(255,0,0,0.04)",borderColor:"rgba(255,0,0,0.15)",borderWidth:1,yScaleID:"y"}
-        },dayAnnotations,turnAnnotations)}
+        },dayAnnotations,turnAnnotations,showRate?{rateZero:{type:"line",yMin:0,yMax:0,yScaleID:"yRate",borderColor:"rgba(34,211,238,0.35)",borderWidth:1,borderDash:[4,3],label:{display:true,content:"0\u00B0/h",position:"end",backgroundColor:"rgba(34,211,238,0.12)",color:"#22d3ee",font:{size:8},padding:1}}}:{})}
       },
       scales:{
         x:{type:"linear",min:0,max:xMaxVal,
@@ -2706,7 +2732,11 @@ function renderChart(sorted){
         y:{min:showDelta?0:cMin,max:cMax,position:"left",ticks:{color:"#888",font:{size:11}},grid:{color:"#111"},
           title:{display:true,text:"\u00B0"+tempUnit,color:"#555",font:{size:11}}},
         y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:9},padding:1,callback:function(v){return v+"%";}},
-          grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:9},padding:{top:0,bottom:0}}}
+          grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:9},padding:{top:0,bottom:0}}},
+        yRate:{display:showRate,position:"right",ticks:{color:"#22d3ee",font:{size:8},callback:function(v){return v+"\u00B0/h";}},
+          grid:{drawOnChartArea:false},
+          title:{display:false},
+          suggestedMin:-6,suggestedMax:8}
       }
     }
   });
@@ -2816,6 +2846,13 @@ function toggleAmbient(){
   var btn=document.getElementById("btn-toggle-ambient");
   if(btn){btn.textContent=showAmbient?"AMBIENT ON":"AMBIENT OFF";btn.style.color=showAmbient?"#f59e0b":"#555";}
   var legAmb=document.getElementById("legend-ambient");if(legAmb)legAmb.style.display=showAmbient?"flex":"none";
+  var pile=getActivePile();if(!pile)return;
+  renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+}
+function toggleRate(){
+  showRate=!showRate;
+  var btn=document.getElementById("btn-toggle-rate");
+  if(btn){btn.textContent=showRate?"RATE ON":"RATE OFF";btn.style.color=showRate?"#06b6d4":"#555";}
   var pile=getActivePile();if(!pile)return;
   renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
 }
@@ -3273,7 +3310,9 @@ function exportPDF(){
     y+=Math.ceil(metrics.length/2)*5+4;
   }
   doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=6;
-  // ---- RECIPE ----
+  // ---- RECIPE (defined as a function; called later so it renders AFTER the chart) ----
+  function drawRecipe(){
+  check(40);
   doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
   doc.text("MATERIAL RECIPE",M,y);y+=5;
   doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
@@ -3367,6 +3406,7 @@ function exportPDF(){
     doc.text("TOTAL: "+catTotalVol.toFixed(1)+" "+pdfVL+(catCount?" · "+catCount+" "+cuLabel:""),M+4,y);
     y+=7;
   });
+  } // end drawRecipe
   y+=2;
   var history=buildTurnHistory(pile.entries);
   if(history.length){
@@ -3435,91 +3475,68 @@ function exportPDF(){
   }
   var sortedEntries=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   function finishPDF(){
+  // Recipe renders here so the PDF order is: PFRP/metrics -> Turn History -> Chart ->
+  // Recipe -> Log. drawRecipe() continues from the current y (right after the chart).
+  try{drawRecipe();}catch(e){console.error("recipe draw failed",e);}
   doc.addPage();y=20;   // Log Entries always begins on a fresh page (no orphan rows)
     doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
     doc.text("LOG ENTRIES",M,y);y+=5;
     doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
 
-    // Two-column log. Entries split evenly: first half fills left column top-to-bottom,
-    // second half fills right column. Each entry keeps its row + (optional) note beneath.
-    var GUT=6;                          // gutter between columns
-    var COLW=(CW-GUT)/2;                // width of each column
-    var colX=[M, M+COLW+GUT];          // x-origin of left / right columns
-    // Column header (drawn once per column at the top of each column block)
-    function drawColHeader(x0,yy){
-      doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(80,80,80);
-      var cols=[["#",6],["Date",17],["Time",12],["Amb",10],["Avg",10],["Moist",12],["Turn",0]];
-      var hx=x0;
-      cols.forEach(function(h){doc.text(h[0],hx,yy);hx+=h[1];});
-      doc.setDrawColor(180,180,180);doc.line(x0,yy+1.2,x0+COLW-2,yy+1.2);
-      return yy+5;
+    // Full-width single-column log so every reading shows ambient + all three probes
+    // plus the basis figure (Avg or Min per the display-basis setting).
+    var basisLabel=(typeof displayBasis!=="undefined"&&displayBasis==="min")?"Min":"Avg";
+    // Column layout (x-offsets from left margin), tuned to fit CW (~180mm).
+    var cols=[["#",0,8],["Date",8,30],["Time",38,20],["Amb",58,16],
+              ["C1",74,16],["C2",90,16],["C3",106,16],[basisLabel,122,18],
+              ["Moist",140,18],["Turn",158,0]];
+    function drawFullHeader(yy){
+      doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(80,80,80);
+      cols.forEach(function(c){doc.text(c[0],M+c[1],yy);});
+      doc.setDrawColor(180,180,180);doc.line(M,yy+1.4,W-M,yy+1.4);
+      return yy+5.5;
     }
-    // Draw one entry at column origin x0, starting at vertical yLocal. Returns new yLocal.
-    // zebra index controls the alternating row background.
-    function drawEntry(e,idx,x0,yLocal,zebra){
-      var band2=getBand(avgCore(e));
-      var bandColor=band2?band2.color:"#555";
-      var avg2=avgCore(e);
+    function colColor(hex){var h=/^#[0-9a-fA-F]{6}$/.test(hex)?hex:"#3c3c3c";return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+    function drawFullEntry(e,idx,yLocal,zebra){
+      var rowH=5;
       var hasNote=e.notes&&e.notes.trim();
-      if(zebra%2===1){doc.setFillColor(246,246,246);doc.rect(x0,yLocal-3.2,COLW-2,5,"F");}
-      doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(55,55,55);
-      var hx=x0;
-      doc.text(String(idx+1),hx,yLocal);hx+=6;
-      doc.text(e.date||"",hx,yLocal);hx+=17;
-      doc.text(e.time||"-",hx,yLocal);hx+=12;
-      doc.text(e.ambient!=null?String(Math.round(e.ambient)):"-",hx,yLocal);hx+=10;
-      if(avg2!=null){
-        var hxc=/^#[0-9a-fA-F]{6}$/.test(bandColor)?bandColor:"#3c3c3c";
-        doc.setTextColor(parseInt(hxc.slice(1,3),16),parseInt(hxc.slice(3,5),16),parseInt(hxc.slice(5,7),16));
-        doc.text(String(Math.round(avg2)),hx,yLocal);
-        doc.setTextColor(60,60,60);
-      } else { doc.text("-",hx,yLocal); }
-      hx+=10;
-      doc.text(e.moisture!=null?e.moisture+"%":"-",hx,yLocal);hx+=12;
-      doc.text(e.turned?"YES":"",hx,yLocal);
-      yLocal+=5;
+      if(zebra%2===1){doc.setFillColor(247,247,247);doc.rect(M,yLocal-3.2,CW,5,"F");}
+      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(55,55,55);
+      doc.text(String(idx+1),M+cols[0][1],yLocal);
+      doc.text(e.date||"",M+cols[1][1],yLocal);
+      doc.text(e.time||"-",M+cols[2][1],yLocal);
+      doc.text(e.ambient!=null?String(Math.round(e.ambient)):"-",M+cols[3][1],yLocal);
+      // probes, each in its color
+      var p1=colColor("#ff4444");doc.setTextColor(p1[0],p1[1],p1[2]);doc.text(e.core1!=null?String(Math.round(disp(e.core1))):"-",M+cols[4][1],yLocal);
+      var p2=colColor("#16a34a");doc.setTextColor(p2[0],p2[1],p2[2]);doc.text(e.core2!=null?String(Math.round(disp(e.core2))):"-",M+cols[5][1],yLocal);
+      var p3=colColor("#9333ea");doc.setTextColor(p3[0],p3[1],p3[2]);doc.text(e.core3!=null?String(Math.round(disp(e.core3))):"-",M+cols[6][1],yLocal);
+      // basis figure (avg or min)
+      var basisVal=(basisLabel==="Min")?strictMinTemp(e):avgCore(e);
+      var band2=getBand(basisVal);var bc=colColor(band2?band2.color:"#3c3c3c");
+      doc.setTextColor(bc[0],bc[1],bc[2]);doc.text(basisVal!=null?String(Math.round(disp(basisVal))):"-",M+cols[7][1],yLocal);
+      doc.setTextColor(55,55,55);
+      doc.text(e.moisture!=null?e.moisture+"%":"-",M+cols[8][1],yLocal);
+      if(e.turned){var tc=colColor("#f97316");doc.setTextColor(tc[0],tc[1],tc[2]);doc.text("YES",M+cols[9][1],yLocal);doc.setTextColor(55,55,55);}
+      yLocal+=rowH;
       if(hasNote){
         doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(110,110,110);
-        var noteLines=doc.splitTextToSize("Note: "+e.notes.trim(),COLW-6);
-        noteLines.forEach(function(ln){doc.text(ln,x0+3,yLocal);yLocal+=3.7;});
-        yLocal+=1.2;
-        doc.setTextColor(60,60,60);
+        var noteLines=doc.splitTextToSize("Note: "+e.notes.trim(),CW-8);
+        noteLines.forEach(function(ln){doc.text(ln,M+4,yLocal);yLocal+=3.7;});
+        yLocal+=1.2;doc.setTextColor(55,55,55);
       }
       return yLocal;
     }
-    // Measure an entry's height without drawing (for page-fit checks).
-    function entryHeight(e){
+    function fullEntryHeight(e){
       var h=5;
-      if(e.notes&&e.notes.trim()){
-        doc.setFontSize(7);
-        var n=doc.splitTextToSize("Note: "+e.notes.trim(),COLW-6).length;
-        h+=n*3.7+1.2;
-      }
+      if(e.notes&&e.notes.trim()){doc.setFontSize(7);h+=doc.splitTextToSize("Note: "+e.notes.trim(),CW-8).length*3.7+1.2;}
       return h;
     }
-    var n=sortedEntries.length;
-    var leftCount=Math.ceil(n/2);
-    var columns=[sortedEntries.slice(0,leftCount), sortedEntries.slice(leftCount)];
-    var startIdx=[0, leftCount];
-    var topY=y;                        // shared top of both columns on this page
-    var maxBottom=topY;
-    columns.forEach(function(colEntries,ci){
-      var yL=drawColHeader(colX[ci],topY);
-      colEntries.forEach(function(e,k){
-        var globalIdx=startIdx[ci]+k;
-        // Page-break guard: if this entry won't fit, move to a fresh page.
-        if(yL+entryHeight(e)>282){
-          // finish measuring this column's bottom, then (rare) overflow to next page
-          doc.addPage();
-          topY=20; yL=drawColHeader(colX[ci],topY);
-        }
-        yL=drawEntry(e,globalIdx,colX[ci],yL,k);
-      });
-      if(yL>maxBottom)maxBottom=yL;
+    var yL=drawFullHeader(y);
+    sortedEntries.forEach(function(e,k){
+      if(yL+fullEntryHeight(e)>284){doc.addPage();yL=drawFullHeader(20);}
+      yL=drawFullEntry(e,k,yL,k);
     });
-    // light divider between the two columns
-    doc.setDrawColor(225,225,225);doc.line(M+COLW+GUT/2,topY-2,M+COLW+GUT/2,maxBottom-3);
-    y=maxBottom+2;
+    y=yL+2;
     // Maturity Assessment section
     var assess2=getPileAssessment(pile,sortedEntries);
     if(assess2){
@@ -3562,12 +3579,16 @@ function exportPDF(){
             var dnum=Math.floor((new Date(e.ts).getTime()-new Date(pile.created).getTime())/86400000)+1;
             return "Day "+dnum;
           }),
-          datasets:[
+          datasets:(shadeProbes&&sortedEntries.some(function(e){return coreSpread(e)!=null;})?[
+            {label:"Probe max",data:sortedEntries.map(function(e){var v=[e.core1,e.core2,e.core3].filter(function(x){return x!=null&&x>0;});return v.length?crPDF(Math.max.apply(null,v)):null;}),borderColor:"rgba(120,120,120,0.9)",borderWidth:1.5,backgroundColor:"rgba(150,150,150,0.18)",pointRadius:0,fill:"+1",tension:0.3,spanGaps:true,yAxisID:"y"},
+            {label:"Probe min",data:sortedEntries.map(function(e){var v=[e.core1,e.core2,e.core3].filter(function(x){return x!=null&&x>0;});return v.length?crPDF(Math.min.apply(null,v)):null;}),borderColor:"rgba(120,120,120,0.9)",borderWidth:1.5,backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,spanGaps:true,yAxisID:"y"},
+            {label:"Moisture",data:sortedEntries.map(function(e){return e.moisture;}),borderColor:"#1e88e5",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y2"}
+          ]:[
             {label:"Core 1",data:sortedEntries.map(function(e){return e.core1!=null?crPDF(e.core1):null;}),borderColor:"#ff4444",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
             {label:"Core 2",data:sortedEntries.map(function(e){return e.core2!=null?crPDF(e.core2):null;}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
             {label:"Core 3",data:sortedEntries.map(function(e){return e.core3!=null?crPDF(e.core3):null;}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
             {label:"Moisture",data:sortedEntries.map(function(e){return e.moisture;}),borderColor:"#1e88e5",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y2"}
-          ].concat(tempMode==="average"?[
+          ]).concat(tempMode==="average"?[
             {label:"Average",data:sortedEntries.map(function(e){var a=avgCore(e);return a!=null?crPDF(a):null;}),borderColor:"#ffffff",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[6,3]}
           ]:[])
           .concat(showAmbient&&sortedEntries.some(function(e){return e.ambient!=null;})?[
@@ -3576,6 +3597,7 @@ function exportPDF(){
           .concat(showDelta&&sortedEntries.some(function(e){return e.ambient!=null&&avgCore(e)!=null;})?[
             {label:"Delta",data:sortedEntries.map(function(e){var a=avgCore(e);return(a!=null&&e.ambient!=null)?Math.round((crPDF(a)-crPDF(e.ambient))*10)/10:null;}),borderColor:"#06b6d4",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[2,2]}
           ]:[])
+          .concat(showRate?(function(){var rs=heatingRateSeries(sortedEntries);return [{label:"Rate \u00B0/h",data:rs,borderColor:"#0891b2",backgroundColor:"transparent",tension:0.3,pointRadius:1.5,spanGaps:true,yAxisID:"yRate",borderWidth:1.2}];})():[])
         },
         options:{
           responsive:false,maintainAspectRatio:false,animation:false,
@@ -3599,7 +3621,8 @@ function exportPDF(){
           scales:{
             x:{ticks:{color:"#333",font:{size:9},maxTicksLimit:12},grid:{color:"#eee"},title:{display:true,text:"Day",color:"#333",font:{size:9}}},
             y:{min:crPDF(80),max:crPDF(180),position:"left",ticks:{color:"#333",font:{size:9}},grid:{color:"#eee"},title:{display:true,text:"\u00B0"+tempUnit,color:"#333",font:{size:9}}},
-            y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:9},callback:function(v){return v+"%";}},grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:9}}}
+            y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:9},callback:function(v){return v+"%";}},grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:9}}},
+            yRate:{display:showRate,position:"right",ticks:{color:"#0891b2",font:{size:8},callback:function(v){return v+"\u00B0/h";}},grid:{drawOnChartArea:false},suggestedMin:-6,suggestedMax:8}
           }
         }
       });

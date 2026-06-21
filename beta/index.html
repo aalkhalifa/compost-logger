@@ -613,7 +613,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.76m";
+var BUILD_VER="v3.76o";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -2585,15 +2585,19 @@ function renderChart(sorted){
   if(chartInner&&chartCanvas){
     var n=sorted.length;
     var daySpan=Math.ceil(xMaxVal)+1;
+    var isLandscapeW=window.innerWidth>window.innerHeight;
     if(daySpan>7){
-      var pxPerDay=90;
+      // Fit a target number of days to the visible width: 12 in landscape, 6 in portrait
+      // (built around the 3-day stage rhythm). Each day's pixel width = chart area / target.
+      var targetDays=isLandscapeW?12:6;
+      var chartArea=Math.max(320,(window.innerWidth||700)-80);
+      var pxPerDay=Math.max(50,Math.floor(chartArea/targetDays));
       var totalW=Math.max(500,daySpan*pxPerDay);
       chartInner.style.width=totalW+"px";
       chartCanvas.style.width=totalW+"px";
       chartCanvas.width=totalW;
-      var isLandscape=window.innerWidth>window.innerHeight;
-      chartCanvas.height=isLandscape?380:280;
-      if(hintEl)hintEl.style.display="block";
+      chartCanvas.height=isLandscapeW?380:280;
+      if(hintEl)hintEl.style.display=daySpan>targetDays?"block":"none";
     } else {
       var wrap=document.getElementById("chart-scroll-wrap");
       var w=wrap?wrap.clientWidth:600;
@@ -2616,14 +2620,9 @@ function renderChart(sorted){
     var dk=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();
     if(seenDayTick[dk])return;
     seenDayTick[dk]=true;
-    // Anchor the label at midnight of this calendar day so gaps are exactly 1 day apart.
-    // The first day's midnight is before the first reading (negative x); clamp it to 0
-    // so its label still shows at the left edge without adding empty space.
     var midnight=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,0,0,0).getTime();
     var tx=xValTs(midnight);
     if(tx<0)tx=0;
-    // Day number relative to the first reading's calendar day (day 1 = build day).
-    // (renderChart only receives `sorted`, not `pile`, so anchor on the first entry.)
     var firstDay=sorted.length?new Date(sorted[0].ts):d;
     var firstMidnight=new Date(firstDay.getFullYear(),firstDay.getMonth(),firstDay.getDate(),0,0,0,0).getTime();
     var dayNum=Math.floor((midnight-firstMidnight)/86400000)+1;
@@ -2705,7 +2704,9 @@ function renderChart(sorted){
     ]:[])
     .concat(showRate?(function(){
       var rs=heatingRateSeries(sorted);
-      return [{label:"Heating rate",data:sorted.map(function(e,i){return rs[i]==null?null:{x:xVal(e),y:rs[i]};}),
+      var pts=[];
+      sorted.forEach(function(e,i){if(rs[i]!=null)pts.push({x:xVal(e),y:rs[i]});});
+      return [{label:"Heating rate",data:pts,
         borderColor:"#22d3ee",backgroundColor:"transparent",tension:0.3,
         pointRadius:2,pointBackgroundColor:"#22d3ee",spanGaps:true,yAxisID:"yRate",order:6,borderWidth:1.5}];
     })():[]))},

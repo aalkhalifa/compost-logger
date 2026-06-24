@@ -193,6 +193,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
         <div id="export-menu" class="export-menu hidden">
           <div class="export-item" onclick="exportCSV()">CSV - SPREADSHEET</div>
           <div class="export-item" onclick="exportPDF()">PDF - FULL REPORT</div>
+          <div class="export-item" onclick="exportGraphImage()">GRAPH - IMAGE (PNG)</div>
         </div>
       </div>
       <button id="unit-toggle" onclick="toggleUnit()" class="btn-sm" style="font-size:0.65rem;padding:0.25rem 0.5rem">&deg;F/&deg;C</button>
@@ -227,6 +228,8 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">MOISTURE</span></div>
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">TURN</span></div>
       <div id="legend-ambient" style="display:flex;align-items:center;gap:0.4rem;display:none"><div style="width:16px;height:3px;background:#f59e0b;border-radius:1px;border-top:1px dashed #f59e0b"></div><span class="mono" style="font-size:0.65rem;color:#f59e0b">AMBIENT</span></div>
+      <div id="legend-delta" style="display:none;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#06b6d4;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#06b6d4">DELTA</span></div>
+      <div id="legend-rate" style="display:none;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#22d3ee;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#22d3ee">RATE</span></div>
     </div>
 
 <div class="card" id="status-card" style="border-left:3px solid #222;padding:0">
@@ -393,8 +396,8 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     </div>
     <div class="card">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.6rem">
-        <div><label class="lbl">DATE</label><input type="date" id="e-date"/></div>
-        <div><label class="lbl">TIME</label><input type="time" id="e-time"/></div>
+        <div><label class="lbl">DATE</label><input type="date" class="temp-input" id="e-date" style="font-size:1rem"/></div>
+        <div><label class="lbl">TIME</label><input type="time" class="temp-input" id="e-time" style="font-size:1rem"/></div>
       </div>
       <div id="edit-error" class="error-msg hidden"></div>
       <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#f59e0b">AMBIENT <span id="e-unit-amb"></span></label><input type="number" class="temp-input" id="e-ambient" placeholder="-" inputmode="decimal"/></div>
@@ -402,7 +405,15 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#4ade80">CORE 2 <span id="e-unit-top"></span></label><input type="number" class="temp-input" id="e-top" placeholder="-" inputmode="decimal"/></div>
       <div style="margin-bottom:0.75rem"><label class="lbl" style="color:#a855f7">CORE 3 <span id="e-unit-bot"></span></label><input type="number" class="temp-input" id="e-bottom" placeholder="-" inputmode="decimal"/></div>
       <div style="margin-bottom:0.75rem">
-        <label class="lbl" style="display:flex;justify-content:space-between"><span>MOISTURE %</span><span id="e-moist-val" class="mono" style="color:#1e88e5">50%</span></label>
+        <label class="lbl" style="display:flex;justify-content:space-between;align-items:center"><span>MOISTURE %</span>
+          <span style="display:flex;align-items:center;gap:0.5rem">
+            <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer">
+              <input type="checkbox" id="e-moisture-skip" onchange="toggleEditMoistureSkip()" style="width:14px;height:14px;accent-color:#555"/>
+              <span class="mono" style="font-size:0.58rem;color:#555">NOT MEASURED</span>
+            </label>
+            <span id="e-moist-val" class="mono" style="color:#1e88e5">50%</span>
+          </span>
+        </label>
         <input type="range" id="e-moisture" min="0" max="100" step="5" value="50" style="--rc:#1e88e5;--pct:50%" oninput="updateEditSlider(this)"/>
       </div>
       <div style="margin-bottom:0.75rem;padding:0.75rem;background:#050505;border:1px solid #1a1a1a;border-radius:3px">
@@ -613,7 +624,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.76o";
+var BUILD_VER="v3.76q";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -937,9 +948,9 @@ function computeSatisfiedStages(cycleEntries){
     var band=BANDS[bi];
     if(band.hours===0)continue;
     var maxStreak=0;var streakStart=null;
-    var rel=cycleEntries.filter(function(e){return e.core1!=null;});
+    var rel=cycleEntries.filter(function(e){return displayTemp(e)!=null;});
     for(var i=0;i<rel.length;i++){
-      var inBand=getBand(rel[i].core1)&&getBand(rel[i].core1).label===band.label;
+      var inBand=getBand(displayTemp(rel[i]))&&getBand(displayTemp(rel[i])).label===band.label;
       if(inBand){
         if(streakStart===null)streakStart=new Date(rel[i].ts);
         var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):new Date();
@@ -1015,7 +1026,7 @@ function computeIndependentStages(cycleEntries){
 // A separate stale-data badge tells the user when logging is overdue.
 
 function classifyCycleTime(cycleEntries){
-  var rel=cycleEntries.filter(function(e){return e.core1!=null;});
+  var rel=cycleEntries.filter(function(e){return displayTemp(e)!=null;});
   if(!rel.length)return {stages:{}};
   var sorted=rel.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var now=new Date();
@@ -1044,8 +1055,8 @@ function classifyCycleTime(cycleEntries){
       }
       var intervalMs=endTs-startTs;
       if(intervalMs<=0)continue;
-      var temp=sorted[i].core1;
-      var aboveFloor=temp>=band.min;
+      var temp=displayTemp(sorted[i]);
+      var aboveFloor=temp!=null&&temp>=band.min;
       if(aboveFloor){
         everReached=true;
         if(streakStart===null)streakStart=startTs;
@@ -2270,7 +2281,7 @@ function renderDashboard(){
   timerInterval=setInterval(function(){
     var p=getActivePile();if(!p)return;
     var s=p.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
-    var l=s[s.length-1];var b=l?getBand(avgCore(l)):null;
+    var l=s[s.length-1];var b=l?getBand(displayTemp(l)):null;
     renderStatusCard(p,s,l,b);renderTimer(p);
   },60000);
 }
@@ -2282,6 +2293,15 @@ function toggleMoistureSkip(){
   if(slider)slider.disabled=skip;
   if(slider)slider.style.opacity=skip?"0.3":"1";
   if(val)val.textContent=skip?"—":slider.value+"%";
+  if(val)val.style.color=skip?"#555":"#1e88e5";
+}
+function toggleEditMoistureSkip(){
+  var skip=document.getElementById("e-moisture-skip").checked;
+  var slider=document.getElementById("e-moisture");
+  var val=document.getElementById("e-moist-val");
+  if(slider)slider.disabled=skip;
+  if(slider)slider.style.opacity=skip?"0.3":"1";
+  if(val)val.textContent=skip?"\u2014":slider.value+"%";
   if(val)val.style.color=skip?"#555":"#1e88e5";
 }
 function updateSlider(el){
@@ -2839,6 +2859,7 @@ function toggleDelta(){
   showDelta=!showDelta;
   var btn=document.getElementById("btn-toggle-delta");
   if(btn){btn.textContent=showDelta?"DELTA ON":"DELTA OFF";btn.style.color=showDelta?"#06b6d4":"#555";}
+  var legDl=document.getElementById("legend-delta");if(legDl)legDl.style.display=showDelta?"flex":"none";
   var pile=getActivePile();if(!pile)return;
   renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
 }
@@ -2854,6 +2875,7 @@ function toggleRate(){
   showRate=!showRate;
   var btn=document.getElementById("btn-toggle-rate");
   if(btn){btn.textContent=showRate?"RATE ON":"RATE OFF";btn.style.color=showRate?"#06b6d4":"#555";}
+  var legR=document.getElementById("legend-rate");if(legR)legR.style.display=showRate?"flex":"none";
   var pile=getActivePile();if(!pile)return;
   renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
 }
@@ -3141,6 +3163,7 @@ function openEdit(entryId){
   document.getElementById("e-top").value=entry.core2!=null?disp(entry.core2):"";
   document.getElementById("e-bottom").value=entry.core3!=null?disp(entry.core3):"";
   var sl=document.getElementById("e-moisture");sl.value=entry.moisture!=null?entry.moisture:50;updateEditSlider(sl);
+  var eskip=document.getElementById("e-moisture-skip");if(eskip){eskip.checked=(entry.moisture==null);toggleEditMoistureSkip();}
   document.getElementById("e-turned").checked=entry.turned;
   document.getElementById("e-notes").value=entry.notes||"";
   var eAmbLbl=document.getElementById("e-unit-amb");if(eAmbLbl)eAmbLbl.textContent=unitLbl();
@@ -3192,7 +3215,7 @@ function saveEdit(){
   entry.core1=eCore;
   entry.core2=eTop;
   entry.core3=eBot;
-  entry.moisture=parseInt(document.getElementById("e-moisture").value);
+  entry.moisture=document.getElementById("e-moisture-skip")&&document.getElementById("e-moisture-skip").checked?null:parseInt(document.getElementById("e-moisture").value);
   entry.turned=document.getElementById("e-turned").checked;
   entry.notes=document.getElementById("e-notes").value;
   save();closeEdit();renderDashboard();
@@ -3235,6 +3258,23 @@ function exportCSV(){
   a.click();
 }
 
+function exportGraphImage(){
+  toggleExportMenu();
+  var pile=getActivePile();if(!pile){alert("No pile selected.");return;}
+  var srcCanvas=document.getElementById("temp-chart");
+  if(!srcCanvas){alert("Chart not ready yet.");return;}
+  try{
+    var out=document.createElement("canvas");
+    out.width=srcCanvas.width;out.height=srcCanvas.height;
+    var ctx=out.getContext("2d");
+    ctx.fillStyle="#000";ctx.fillRect(0,0,out.width,out.height);
+    ctx.drawImage(srcCanvas,0,0);
+    var url=out.toDataURL("image/png");
+    var a=document.createElement("a");
+    a.href=url;a.download=pile.name.replace(/\s+/g,"-")+"-graph.png";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  }catch(e){alert("Could not export graph image: "+e.message);}
+}
 function exportPDF(){
   document.getElementById("export-menu").classList.add("hidden");
   var pile=getActivePile();if(!pile)return;

@@ -624,7 +624,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.76q";
+var BUILD_VER="v3.76s";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -661,7 +661,7 @@ var N_PRESETS={
 var pilesSortMode=localStorage.getItem("ca_pilesSort")||"recent";
 var entriesSortMode=localStorage.getItem("ca_entriesSort")||"newest";
 var piles=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
-var activeId=null,tempMode="three",tempUnit="F",shadeProbes=false,showRate=false;
+var activeId=null,tempMode="three",tempUnit="F",shadeProbes=false,showRate=false,__chartEntries=[];
 var volumeUnit="gal";
 // DISPLAY BASIS governs the numbers shown across the app (headline temp, stage bars,
 // cycle detection, maturity): "avg" = Compost Academy style (average of probes),
@@ -2574,7 +2574,22 @@ function renderTimer(pile){
     '<div style="margin-bottom:1rem;display:flex;align-items:baseline;gap:0.7rem">'+
       '<span class="hd" style="color:#fff;font-size:1rem">TURN CYCLES</span>'+
       '<span class="mono" style="color:#ccc;font-size:0.85rem;font-weight:600">'+displayCycles.length+' '+(displayCycles.length===1?"CYCLE":"CYCLES")+'</span>'+
-    '</div>'+cyclesWrap;
+    '</div>'+cyclesWrap+
+    (function(){
+      // Thermophilic-started line: shows which reading the current cycle's 72h streak
+      // counts from, so the start point is always transparent. Says "not yet
+      // thermophilic" before the pile crosses 131F (on the display basis).
+      var ts=t&&t.thermophilicStart?t.thermophilicStart:null;
+      var txt;
+      if(ts){
+        var dd=new Date(ts);
+        var dstr=(dd.getMonth()+1)+"/"+dd.getDate()+" "+("0"+dd.getHours()).slice(-2)+":"+("0"+dd.getMinutes()).slice(-2);
+        txt="THERMOPHILIC STARTED: "+dstr;
+      } else {
+        txt="NOT YET THERMOPHILIC";
+      }
+      return '<div class="mono" style="margin-top:0.7rem;font-size:0.6rem;color:#666;letter-spacing:0.05em">'+txt+'</div>';
+    })();
   var isDone=t&&(t.complete||t.stageDone);
   if(isDone&&"Notification"in window&&Notification.permission==="granted")
     new Notification("Compost Logger",{body:pile.name+" is ready to turn!"});
@@ -2592,6 +2607,9 @@ function renderChart(sorted){
   var firstTs=sorted.length?new Date(sorted[0].ts).getTime():Date.now();
   function xVal(e){return (new Date(e.ts).getTime()-firstTs)/86400000;}
   function xValTs(ts){return (ts-firstTs)/86400000;}
+  // Stash entries with their x-position so the tooltip can recover the 3 cores for
+  // computing Probe average / Probe min under the cursor.
+  __chartEntries=sorted.map(function(e){return {core1:e.core1,core2:e.core2,core3:e.core3,_x:xVal(e)};});
   var xMaxVal=sorted.length?xVal(sorted[sorted.length-1]):1;
   var xMinVal=0;
   if(sorted.length){
@@ -2735,6 +2753,36 @@ function renderChart(sorted){
       interaction:{mode:"index",intersect:false},
       plugins:{
         legend:{display:false},
+        tooltip:{
+          callbacks:{
+            // Show Core 1/2/3 and Moisture as-is; hide the band helper line "Probe max";
+            // then append computed Probe average and Probe min from the three cores.
+            label:function(ctx){
+              var lbl=ctx.dataset.label||"";
+              if(lbl==="Probe max"||lbl==="Probe min")return null; // drop band helper rows
+              if(lbl==="Heating rate")return "Rate: "+ctx.parsed.y+"\u00B0/h";
+              return lbl+": "+ctx.parsed.y;
+            },
+            afterBody:function(items){
+              if(!items||!items.length)return [];
+              // Find the entry under the cursor via its x to recover the 3 cores.
+              var xv=items[0].parsed.x;
+              var best=null,bestD=1e9;
+              for(var i=0;i<__chartEntries.length;i++){
+                var ex=__chartEntries[i]._x;
+                if(ex==null)continue;
+                var dd=Math.abs(ex-xv);
+                if(dd<bestD){bestD=dd;best=__chartEntries[i];}
+              }
+              if(!best)return [];
+              var vals=[best.core1,best.core2,best.core3].filter(function(v){return v!=null&&v>0;});
+              if(vals.length<1)return [];
+              var avg=Math.round((vals.reduce(function(a,b){return a+b;},0)/vals.length));
+              var mn=Math.min.apply(null,vals);
+              return ["Probe average: "+disp(avg),"Probe min: "+disp(mn)];
+            }
+          }
+        },
         annotation:{annotations:Object.assign({
           r131:{type:"line",yMin:cr(131),yMax:cr(131),borderColor:"#f59e0b77",borderWidth:1,borderDash:[5,4],yScaleID:"y",label:{display:true,content:"PFRP 131\u00B0",position:"start",backgroundColor:"rgba(245,158,11,0.15)",color:"#f59e0b",font:{size:9},padding:2}},
           r175:{type:"line",yMin:cr(175),yMax:cr(175),borderColor:"#ff000055",borderWidth:1,borderDash:[3,3],yScaleID:"y",label:{display:true,content:"TURN 175\u00B0",position:"start",backgroundColor:"rgba(255,0,0,0.12)",color:"#ff6666",font:{size:9},padding:2}},
@@ -3329,6 +3377,17 @@ function exportPDF(){
     doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(140,140,140);
     doc.text("(compliance basis: "+basisLbl+")",M+30,y);
     y+=4;doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=4.5;
+    // Current cycle's thermophilic start (which reading the live 72h counts from).
+    var curStartStr="not yet thermophilic";
+    (function(){
+      var allCyc=buildCycles(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+      var activeCyc=allCyc[allCyc.length-1];
+      if(activeCyc&&activeCyc.entries.length){
+        var ai=computeIndependentStages(activeCyc.entries);
+        var as1=ai&&ai["Stage 1"];
+        if(as1&&as1.streakStart){var d=new Date(as1.streakStart);curStartStr=(d.getMonth()+1)+"/"+d.getDate()+" "+("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);}
+      }
+    })();
     var metrics=[
       ["Degree-hours >131F",dhV.toLocaleString()+" F-h"],
       ["Peak temperature",Math.round(peakV)+"F"],
@@ -3336,6 +3395,7 @@ function exportPDF(){
       ["Peak heating rate",hrV!=null?hrV+" F/h":"-"],
       ["Max probe spread",maxSpreadV!=null?maxSpreadV+"F":"-"],
       ["Total turns",String(turnsV)],
+      ["Thermophilic started",curStartStr],
       ["Assessment",vAssess?vAssess.label.replace(/\u2014/g,"-"):"-"]
     ];
     doc.setFontSize(8);
@@ -3492,7 +3552,24 @@ function exportPDF(){
           // Background for unfilled portion
           doc.setFillColor(230,230,230);
           doc.rect(xOff,y,barW-(xOff-barX),barH,"F");
-          y+=8;
+          y+=4.5;
+          // Stage-duration breakdown under the bar (matches the dashboard).
+          var pdfMs={MESO:0,THERMO:0,READY:0};
+          cr2.segments.forEach(function(seg){
+            if(seg.label==="MESO")pdfMs.MESO+=seg.ms;
+            else if(seg.label==="READY")pdfMs.READY+=seg.ms;
+            else pdfMs.THERMO+=seg.ms;
+          });
+          var fmtPdfH=function(ms){var h=ms/3600000;if(h<1)return Math.round(h*60)+"m";return Math.floor(h)+"h"+(Math.round((h%1)*60)>0?" "+Math.round((h%1)*60)+"m":"");};
+          var dparts=[];
+          if(pdfMs.MESO>0)dparts.push("MESO "+fmtPdfH(pdfMs.MESO));
+          if(pdfMs.THERMO>0)dparts.push("THERMO "+fmtPdfH(pdfMs.THERMO));
+          if(pdfMs.READY>0)dparts.push("READY "+fmtPdfH(pdfMs.READY));
+          if(dparts.length){
+            doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(130,130,130);
+            doc.text(dparts.join("  \u00B7  "),M,y);
+            y+=4.5;
+          }
         }
       }
       doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(100,100,100);
@@ -3511,6 +3588,18 @@ function exportPDF(){
       doc.text("Date: "+t.date+" "+t.time+(t.core1?" | Core at turn: "+t.core1+"F":"")+peakStr+(t.activeBand?" | "+t.activeBand.label:"")+coolingStr,M+4,y);y+=4;
       if(t.sinceMs!=null){doc.text("Since previous turn: "+fmtHours(t.sinceMs),M+4,y);y+=4;}
       if(t.highestSatisfied){doc.text("Stage satisfied: "+t.highestSatisfied,M+4,y);y+=4;}
+      // Thermophilic-started line for this cycle (which reading the 72h counts from).
+      if(pkCycle&&pkCycle.entries.length){
+        var pkIndep=computeIndependentStages(pkCycle.entries);
+        var pkS1=pkIndep&&pkIndep["Stage 1"];
+        if(pkS1&&pkS1.streakStart){
+          var sd=new Date(pkS1.streakStart);
+          var sdstr=(sd.getMonth()+1)+"/"+sd.getDate()+" "+("0"+sd.getHours()).slice(-2)+":"+("0"+sd.getMinutes()).slice(-2);
+          doc.setTextColor(130,130,130);
+          doc.text("Thermophilic started: "+sdstr,M+4,y);y+=4;
+          doc.setTextColor(100,100,100);
+        }
+      }
       y+=1;
     });
   }

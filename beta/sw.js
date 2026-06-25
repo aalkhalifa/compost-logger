@@ -1,6 +1,6 @@
 // sw.js — Compost Logger offline cache
 // IMPORTANT: bump CACHE version on every app change, or clients keep the old copy.
-var CACHE="compost-logger-v3.77i";
+var CACHE="compost-logger-v3.77j";
 var SHELL=["./","./index.html","./manifest.json"];
 
 self.addEventListener("install",function(e){

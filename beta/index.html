@@ -703,7 +703,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.77h";
+var BUILD_VER="v3.77j";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -857,29 +857,50 @@ function degreeHoursAbove(sorted,threshold){
 // PFRP-style status: longest continuous run >=131F (by complianceTemp), turns in
 // that run, and pass flags. On-pile temperature record, NOT a certified test.
 function pfrpStatus(sorted){
-  var bestMs=0,bestTurns=0,runStart=null,turnsInRun=0;
+  // Cumulative days >=131F (strict min governs PFRP) summed across ALL hot intervals,
+  // and total qualifying turns during the thermophilic period (excluding the very
+  // first/"BUILT" entry). Turns naturally cause brief temperature dips, so counting
+  // only a single unbroken run undercounts them; the standard counts turns across the
+  // high-temperature period.
+  var firstId=sorted.length?sorted[0].id:null;
+  var cumulativeMs=0;
+  var longestMs=0,runStart=null;
+  var hotTurns=0;
+  var everHot=false;
   for(var i=0;i<sorted.length;i++){
     var t=strictMinTemp(sorted[i]); // PFRP is always strict: coldest probe governs
     var hot=(t!=null&&t>=131);
     if(hot){
-      if(runStart===null){runStart=new Date(sorted[i].ts);turnsInRun=0;}
-      if(sorted[i].turned)turnsInRun++;
+      everHot=true;
+      if(runStart===null)runStart=new Date(sorted[i].ts);
+      // accumulate time from this entry to the next (or itself if last)
       var end=i<sorted.length-1?new Date(sorted[i+1].ts):new Date(sorted[i].ts);
-      var ms=end-runStart;
-      if(ms>bestMs){bestMs=ms;bestTurns=turnsInRun;}
+      var seg=end-new Date(sorted[i].ts);
+      if(seg>0)cumulativeMs+=seg;
+      var runMs=end-runStart;
+      if(runMs>longestMs)longestMs=runMs;
     } else {
-      runStart=null;turnsInRun=0;
+      runStart=null;
+    }
+    // Count a turn during the thermophilic period: pile is hot now OR was hot at the
+    // immediately preceding reading (captures a turn that caused the dip). Exclude the
+    // build entry.
+    if(sorted[i].turned && sorted[i].id!==firstId){
+      var prevHot=(i>0)&&(function(){var pt=strictMinTemp(sorted[i-1]);return pt!=null&&pt>=131;})();
+      if(hot||prevHot)hotTurns++;
     }
   }
-  var days=bestMs/86400000;
-  return {days:Math.round(days*100)/100,turns:bestTurns,longestRunMs:bestMs,
-    windrowMet:(days>=3&&bestTurns>=5),staticMet:(days>=3)};
+  var days=cumulativeMs/86400000;
+  var longestDays=longestMs/86400000;
+  return {days:Math.round(days*100)/100,longestDays:Math.round(longestDays*100)/100,
+    turns:hotTurns,longestRunMs:longestMs,cumulativeMs:cumulativeMs,
+    windrowMet:(days>=3&&hotTurns>=5),staticMet:(days>=3)};
 }
 // Human-readable PFRP verdict for display. Framed for a HAND-TURNED thermophilic
 // (windrow-style) pile as the primary method, with the static pathway also shown.
 function pfrpVerdict(sorted){
   var p=pfrpStatus(sorted);
-  var detail=p.days+" day"+(p.days===1?"":"s")+" continuous \u2265131\u00B0F \u00B7 "+p.turns+" turn"+(p.turns===1?"":"s")+" during hot phase";
+  var detail=p.days+" cumulative day"+(p.days===1?"":"s")+" \u2265131\u00B0F \u00B7 "+p.turns+" turn"+(p.turns===1?"":"s")+" during hot phase";
   if(p.windrowMet){
     return {verdict:"PASS \u2014 TURNED (WINDROW-STYLE)",color:"#4ade80",detail:detail,
       sub:"Meets turned pathway: \u22653 days \u2265131\u00B0F with \u22655 turns",p:p};
@@ -3052,6 +3073,11 @@ function renderChart(sorted){
         borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,
         pointRadius:3,pointBackgroundColor:"#f59e0b",spanGaps:true,yAxisID:"y",order:4,borderDash:[4,3]}
     ]:[])
+    .concat(showAmbient&&sorted.some(function(e){return e.ambientApi!=null;})?[
+      {label:"Ambient API",data:sorted.filter(function(e){return e.ambientApi!=null;}).map(function(e){return {x:xVal(e),y:disp(e.ambientApi)};}),
+        borderColor:"#fbbf24",backgroundColor:"transparent",tension:0.3,
+        pointRadius:3,pointBackgroundColor:"#fbbf24",spanGaps:true,yAxisID:"y",order:4,borderDash:[2,2]}
+    ]:[])
     .concat(showRate?(function(){
       var rs=heatingRateSeries(sorted);
       var pts=[];
@@ -4120,6 +4146,9 @@ function exportPDF(){
           ]:[])
           .concat(showAmbient&&sortedEntries.some(function(e){return e.ambient!=null;})?[
             {label:"Ambient",data:sortedEntries.map(function(e){return e.ambient!=null?crPDF(e.ambient):null;}),borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[4,3]}
+          ]:[])
+          .concat(showAmbient&&sortedEntries.some(function(e){return e.ambientApi!=null;})?[
+            {label:"Ambient API",data:sortedEntries.map(function(e){return e.ambientApi!=null?crPDF(e.ambientApi):null;}),borderColor:"#d97706",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[2,2]}
           ]:[])
           .concat(showDelta&&sortedEntries.some(function(e){return e.ambient!=null&&avgCore(e)!=null;})?[
             {label:"Delta",data:sortedEntries.map(function(e){var a=avgCore(e);return(a!=null&&e.ambient!=null)?Math.round((crPDF(a)-crPDF(e.ambient))*10)/10:null;}),borderColor:"#06b6d4",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[2,2]}

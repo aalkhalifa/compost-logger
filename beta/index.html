@@ -702,7 +702,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.77c";
+var BUILD_VER="v3.77f";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -1519,6 +1519,14 @@ function hoursSinceLastTurn(entries){
   if(!t.length)return null;
   return Date.now()-new Date(t[0].ts);
 }
+// Count real turns, EXCLUDING the first chronological entry (the initial pile build,
+// which is often marked "turned" at creation but isn't an actual turn).
+function countTurns(entries){
+  if(!entries||!entries.length)return 0;
+  var sorted=entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  var firstId=sorted[0].id;
+  return sorted.filter(function(e){return e.turned&&e.id!==firstId;}).length;
+}
 
 function buildTurnHistory(entries){
   if(!entries.length)return[];
@@ -1926,7 +1934,7 @@ function renderPileCard(p){
     var t=calcSmartTimer(p.entries);
     var band=lat?getBand(avgCore(lat)):null;
     var sinceMs=hoursSinceLastTurn(p.entries);
-    var turnCount=p.entries.filter(function(e){return e.turned;}).length;
+    var turnCount=countTurns(p.entries);
     var isTurnNow=lat&&avgCore(lat)>=175;
     var isCompleted=p.status==="completed";
     var nextDue=(function(){
@@ -2023,7 +2031,7 @@ function togglePileStatus(id){
   var totalDays=firstEntry&&lastEntry?Math.round((new Date(lastEntry.ts)-new Date(firstEntry.ts))/86400000):0;
   var peakTemp=0;
   sorted.forEach(function(e){var c1=e.core1||0,c2=e.core2||0,c3=e.core3||0;var mx=Math.max(c1,c2,c3);if(mx>peakTemp)peakTemp=mx;});
-  var turns=sorted.filter(function(e){return e.turned;}).length;
+  var turns=countTurns(sorted);
   var daysAbove131=0;
   for(var i=1;i<sorted.length;i++){
     var prev=sorted[i-1],cur=sorted[i];
@@ -2068,7 +2076,7 @@ function confirmMatured(){
   var sorted=(p.entries||[]).slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var peakTemp=0;sorted.forEach(function(e){var mx=Math.max(e.core1||0,e.core2||0,e.core3||0);if(mx>peakTemp)peakTemp=mx;});
   var totalDays=sorted.length>1?Math.round((new Date(sorted[sorted.length-1].ts)-new Date(sorted[0].ts))/86400000):0;
-  p.maturityData={totalDays:totalDays,peakTemp:peakTemp,turns:sorted.filter(function(e){return e.turned;}).length,entries:sorted.length};
+  p.maturityData={totalDays:totalDays,peakTemp:peakTemp,turns:countTurns(sorted),entries:sorted.length};
   save();closeMaturityModal();renderHome();
 }
 function renamePile(id){
@@ -2964,10 +2972,24 @@ function renderChart(sorted){
     dayTicks.push({x:tx,label:"Day "+dayNum});
   });
   var turnAnnotations={};
+  var firstId=sorted.length?sorted[0].id:null;
   turnDays.forEach(function(idx,i){
-    var tx=xVal(sorted[idx]);
-    turnAnnotations["turn"+i]={type:"line",xMin:tx,xMax:tx,borderColor:"#f97316",borderWidth:2.5};
+    var e=sorted[idx];
+    var tx=xVal(e);
+    if(e.id===firstId){
+      // First entry = the initial BUILD, not a turn: distinct green dashed line + label.
+      turnAnnotations["built"]={type:"line",xMin:tx,xMax:tx,borderColor:"#4ade80",borderWidth:2,borderDash:[4,3],
+        label:{display:true,content:"BUILT",position:"end",backgroundColor:"rgba(74,222,128,0.15)",color:"#4ade80",font:{size:8},padding:2}};
+    } else {
+      turnAnnotations["turn"+i]={type:"line",xMin:tx,xMax:tx,borderColor:"#f97316",borderWidth:2.5,
+        label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#f97316",font:{size:8},padding:2}};
+    }
   });
+  // If the first entry was NOT marked turned, still mark the build origin with a line.
+  if(sorted.length&&!sorted[0].turned){
+    turnAnnotations["built"]={type:"line",xMin:xVal(sorted[0]),xMax:xVal(sorted[0]),borderColor:"#4ade80",borderWidth:2,borderDash:[4,3],
+      label:{display:true,content:"BUILT",position:"end",backgroundColor:"rgba(74,222,128,0.15)",color:"#4ade80",font:{size:8},padding:2}};
+  }
   var dayAnnotations={};
   var seenDay={};
   sorted.forEach(function(e,i){
@@ -3020,6 +3042,13 @@ function renderChart(sorted){
     }
   }
   }
+  // Ensure the annotation plugin is registered so threshold lines (131F/175F) render.
+  // The UMD build usually auto-registers, but registering explicitly guards against
+  // load-order/version issues that can make the reference lines silently disappear.
+  try{
+    var _annPlugin=(typeof window!=="undefined")&&(window["chartjs-plugin-annotation"]||window.ChartAnnotation||window.chartjsPluginAnnotation);
+    if(_annPlugin&&typeof Chart!=="undefined"&&Chart.register){Chart.register(_annPlugin);}
+  }catch(e){}
   tempChart=new Chart(document.getElementById("temp-chart"),{
     type:"line",
     data:{datasets:tempDatasets.concat([
@@ -3386,7 +3415,7 @@ function renderLogTable(sorted,pile){
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.8rem">'+(en.core2!=null?dispStr(en.core2):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.8rem">'+(en.core3!=null?dispStr(en.core3):"-")+'</td>'+
       '<td style="padding:0.3rem 0.4rem">'+moistCell+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:'+(en.turned?"#f97316":"#1a1a1a")+';font-size:0.8rem">'+(en.turned?"YES":"-")+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:'+(en.turned?"#f97316":"#1a1a1a")+';font-size:0.8rem">'+(en.turned?((sorted.length&&en.id===sorted[0].id)?"BUILT":"YES"):"-")+'</td>'+
       '<td style="padding:0.3rem 0.3rem"><button onclick="openEdit(\''+en.id+'\')" class="btn-sm" style="padding:0.2rem 0.4rem;font-size:0.66rem">EDIT</button></td>'+
     '</tr>';
   }).join("")+'</tbody>';
@@ -3975,7 +4004,7 @@ function exportPDF(){
       doc.setTextColor(bc[0],bc[1],bc[2]);doc.text(basisVal!=null?String(Math.round(disp(basisVal))):"-",colX(basisLabel),yLocal);
       doc.setTextColor(55,55,55);
       doc.text(e.moisture!=null?e.moisture+"%":"-",colX("Moist"),yLocal);
-      if(e.turned){var tc=colColor("#f97316");doc.setTextColor(tc[0],tc[1],tc[2]);doc.text("YES",colX("Turn"),yLocal);doc.setTextColor(55,55,55);}
+      if(e.turned){var tc=colColor("#f97316");doc.setTextColor(tc[0],tc[1],tc[2]);doc.text((sortedEntries.length&&e.id===sortedEntries[0].id)?"BUILT":"YES",colX("Turn"),yLocal);doc.setTextColor(55,55,55);}
       yLocal+=rowH;
       if(hasNote){
         doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(110,110,110);
@@ -4073,8 +4102,13 @@ function exportPDF(){
             r175:{type:"line",yMin:crPDF(175),yMax:crPDF(175),borderColor:"#ff0000",borderWidth:1,borderDash:[3,3],yScaleID:"y"}
           },(function(){
             var ta={};
+            var pdfFirstId=sortedEntries.length?sortedEntries[0].id:null;
             sortedEntries.forEach(function(e,i){
-              if(e.turned){ta["turn"+i]={type:"line",xMin:i,xMax:i,borderColor:"#f97316",borderWidth:1.5,label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#c2410c",font:{size:7},padding:1,rotation:90}};}
+              if(e.id===pdfFirstId){
+                ta["built"]={type:"line",xMin:i,xMax:i,borderColor:"#16a34a",borderWidth:1.5,borderDash:[4,3],label:{display:true,content:"BUILT",position:"end",backgroundColor:"rgba(22,163,74,0.15)",color:"#16a34a",font:{size:7},padding:1,rotation:90}};
+              } else if(e.turned){
+                ta["turn"+i]={type:"line",xMin:i,xMax:i,borderColor:"#f97316",borderWidth:1.5,label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#c2410c",font:{size:7},padding:1,rotation:90}};
+              }
             });
             return ta;
           })())}},

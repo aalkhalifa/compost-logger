@@ -201,6 +201,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
           <div class="export-item" onclick="exportCSV()">CSV - SPREADSHEET</div>
           <div class="export-item" onclick="exportPDF()">PDF - FULL REPORT</div>
           <div class="export-item" onclick="exportGraphImage()">GRAPH - IMAGE (PNG)</div>
+          <div class="export-item backfill-btn" onclick="backfillHistoricalAmbient()" style="border-top:1px solid #1a1a1a;color:#fbbf24">☁ BACKFILL AMBIENT</div>
         </div>
       </div>
       <button id="unit-toggle" onclick="toggleUnit()" class="btn-sm" style="font-size:0.65rem;padding:0.25rem 0.5rem">&deg;F/&deg;C</button>
@@ -703,7 +704,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.77j";
+var BUILD_VER="v3.77l";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -1978,40 +1979,29 @@ function renderPileCard(p){
     var sinceHtml=sinceMs!==null
       ?'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.2rem">LAST TURN: '+fmtHours(sinceMs)+' AGO &middot; TURNS: '+turnCount+'</div>'
       :'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.2rem">NO TURN RECORDED</div>';
-    // Stage progress bars — active stages, full bar style
+    // Active-cycle bar(s) — reuse the dashboard status-card renderer so the home card
+    // shows the IDENTICAL segmented bar. Grey out if data is stale (no reading in 24h);
+    // green when ready/matured.
     var stageBadges='';
-    if(!isCompleted&&sorted.length){
+    var FRESH_MS=24*3600000;
+    var lastTs=lat?new Date(lat.ts).getTime():0;
+    var isStale=lat?(Date.now()-lastTs>FRESH_MS):true;
+    if(isCompleted){
+      stageBadges='<div style="margin-top:0.6rem"><div style="height:10px;background:#16351f;border-radius:3px;overflow:hidden"><div style="height:100%;width:100%;background:#4ade80;border-radius:3px"></div></div>'+
+        '<div class="mono" style="font-size:0.6rem;color:#4ade80;margin-top:0.2rem">MATURED</div></div>';
+    } else if(sorted.length){
       var cyclesPC=buildCycles(sorted);
       if(cyclesPC&&cyclesPC.length){
         var curCyc=cyclesPC[cyclesPC.length-1];
-        var indep=computeIndependentStages(curCyc.entries);
-        var sOrder=["Stage 1","Stage 2","Stage 3","Stage 4"];
-        var sColors={"Stage 1":"#f59e0b","Stage 2":"#f97316","Stage 3":"#ef4444","Stage 4":"#dc2626"};
-        var sHours={"Stage 1":72,"Stage 2":48,"Stage 3":24,"Stage 4":12};
-        var bars=[];
-        sOrder.forEach(function(sn){
-          var si=indep[sn];
-          if(si&&si.active){
-            var reqH=sHours[sn];
-            var elapsedH=reqH-si.remaining;
-            var pct=Math.min(100,Math.max(0,(elapsedH/reqH)*100));
-            var leftStr=si.remaining>0?fmtDuration(si.remaining*3600000)+" LEFT":"COMPLETE";
-            var col=sColors[sn];
-            bars.push(
-              '<div style="margin-top:0.6rem">'+
-                '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem">'+
-                  '<span class="mono" style="font-size:0.72rem;color:'+col+'">'+sn+' · '+reqH+'H</span>'+
-                  '<span class="mono" style="font-size:0.68rem;color:#888">'+leftStr+'</span>'+
-                '</div>'+
-                '<div style="height:7px;background:#1a1a1a;border-radius:3px;overflow:hidden">'+
-                  '<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:3px"></div>'+
-                '</div>'+
-                '<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.2rem">'+fmtDuration(elapsedH*3600000)+' / '+reqH+'H</div>'+
-              '</div>'
-            );
-          }
-        });
-        if(bars.length)stageBadges='<div style="margin-top:0.3rem">'+bars.join("")+'</div>';
+        var displayIdx=cyclesPC.length;
+        var barHTML=renderActiveCycleBar(curCyc,displayIdx,p,sorted,lat);
+        // If stale, desaturate by wrapping in a grey-tint overlay.
+        if(isStale){
+          stageBadges='<div style="margin-top:0.3rem;position:relative;opacity:0.45;filter:grayscale(0.85)">'+barHTML+'</div>'+
+            '<div class="mono" style="font-size:0.58rem;color:#777;margin-top:0.1rem">\u26A0 STALE \u00B7 last reading '+fmtHours(Date.now()-lastTs)+' ago</div>';
+        } else {
+          stageBadges='<div style="margin-top:0.3rem">'+barHTML+'</div>';
+        }
       }
     }
     var statusPill=isCompleted
@@ -2454,6 +2444,54 @@ function validatePileSetup(){
 // Free, no API key, CORS-enabled. Offline / no-site / error → leaves field blank and
 // tells the user; never throws into the entry flow. Always requests Fahrenheit and
 // converts to the app's display unit (internal storage stays °F).
+// Bulk historical ambient backfill for the active pile. Uses Open-Meteo's Historical
+// Forecast API (covers recent years INCLUDING the last few days, closing the ~5-day
+// gap the archive endpoint has). One call spanning the pile's date range, then matches
+// each entry to the nearest hour. Overwrites every entry's ambientApi (fixes bad data).
+function backfillHistoricalAmbient(){
+  var pile=getActivePile();
+  var site=pile&&pile.siteId?getSite(pile.siteId):null;
+  if(!site||site.lat==null||site.lon==null){
+    alert("Assign this pile to a site with coordinates first (\uD83D\uDCCD SITES), then backfill.");
+    return;
+  }
+  if(!navigator.onLine){alert("You're offline. Historical backfill needs internet.");return;}
+  if(!pile.entries||!pile.entries.length){alert("No entries to backfill.");return;}
+  var sorted=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  var startD=new Date(sorted[0].ts), endD=new Date(sorted[sorted.length-1].ts);
+  function ymd(d){return d.getUTCFullYear()+"-"+("0"+(d.getUTCMonth()+1)).slice(-2)+"-"+("0"+d.getUTCDate()).slice(-2);}
+  var url="https://historical-forecast-api.open-meteo.com/v1/forecast?latitude="+encodeURIComponent(site.lat)+
+    "&longitude="+encodeURIComponent(site.lon)+
+    "&start_date="+ymd(startD)+"&end_date="+ymd(endD)+
+    "&hourly=temperature_2m&temperature_unit=fahrenheit&timezone=UTC";
+  if(!confirm("Backfill API ambient for all "+sorted.length+" entries from the weather archive? This overwrites existing API ambient values."))return;
+  var btns=document.querySelectorAll(".backfill-btn");
+  btns.forEach(function(b){b.disabled=true;b.textContent="...";});
+  fetch(url).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(d){
+    if(!d||!d.hourly||!d.hourly.time||!d.hourly.temperature_2m)throw new Error("no hourly data");
+    var times=d.hourly.time.map(function(s){return new Date(s+"Z").getTime();});
+    var temps=d.hourly.temperature_2m;
+    var filled=0;
+    sorted.forEach(function(e){
+      var et=new Date(e.ts).getTime();
+      // nearest hour index (binary-ish linear search is fine for these sizes)
+      var bestI=-1,bestDiff=Infinity;
+      for(var i=0;i<times.length;i++){var diff=Math.abs(times[i]-et);if(diff<bestDiff){bestDiff=diff;bestI=i;}}
+      if(bestI>=0&&temps[bestI]!=null&&!isNaN(temps[bestI])){
+        var tF=temps[bestI];
+        e.ambientApi=(tempUnit==="C")?Math.round(toC(tF)*10)/10:Math.round(tF*10)/10;
+        filled++;
+      }
+    });
+    save();
+    alert("Backfilled "+filled+" of "+sorted.length+" entries with historical weather.");
+    if(typeof renderDashboard==="function")renderDashboard();
+  }).catch(function(e){
+    alert("Backfill failed ("+(e&&e.message?e.message:"error")+"). The weather archive may not cover this location/date range.");
+  }).then(function(){
+    btns.forEach(function(b){b.disabled=false;b.textContent="\u2601 BACKFILL AMBIENT";});
+  });
+}
 function fetchApiAmbient(targetInputId){
   var pile=getActivePile();
   var site=pile&&pile.siteId?getSite(pile.siteId):null;

@@ -357,6 +357,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <button id="card-btn-logtable" onclick="toggleCard('logtable')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
   </div>
   <div id="card-body-logtable">
+    <div id="log-thermo" class="mono" style="font-size:0.6rem;color:#666;letter-spacing:0.05em;margin-bottom:0.6rem"></div>
     <div style="overflow:auto;max-height:230px"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
   </div>
 </div>
@@ -702,7 +703,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.77f";
+var BUILD_VER="v3.77h";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -1916,11 +1917,10 @@ function renderHome(){
     var sid=g.site?g.site.id:"__unassigned";
     var collapsed=homeCollapsedSites[sid];
     var title=g.site?escapeHtml(g.site.name):"Unassigned";
-    var coords=g.site&&g.site.lat!=null&&g.site.lon!=null?'<span class="mono" style="font-size:0.55rem;color:#2a6;margin-left:0.5rem">\uD83D\uDCCD '+(Math.round(g.site.lat*1e4)/1e4)+", "+(Math.round(g.site.lon*1e4)/1e4)+'</span>':"";
     var header='<div onclick="toggleSiteGroup(\''+sid+'\')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0.6rem 0.2rem;border-bottom:1px solid #1a1a1a;margin-bottom:0.6rem">'+
       '<div style="min-width:0">'+
         '<span class="hd" style="font-size:1rem;color:'+(g.site?"#2a6":"#777")+'">'+(collapsed?"\u25B8":"\u25BE")+' '+title+'</span>'+
-        '<span class="mono" style="font-size:0.6rem;color:#555;margin-left:0.5rem">'+g.piles.length+'</span>'+coords+
+        '<span class="mono" style="font-size:0.6rem;color:#555;margin-left:0.5rem">'+g.piles.length+'</span>'+
       '</div>'+
     '</div>';
     var body=collapsed?"":g.piles.map(renderPileCard).join("");
@@ -2878,22 +2878,7 @@ function renderTimer(pile){
     '<div style="margin-bottom:1rem;display:flex;align-items:baseline;gap:0.7rem">'+
       '<span class="hd" style="color:#fff;font-size:1rem">TURN CYCLES</span>'+
       '<span class="mono" style="color:#ccc;font-size:0.85rem;font-weight:600">'+displayCycles.length+' '+(displayCycles.length===1?"CYCLE":"CYCLES")+'</span>'+
-    '</div>'+cyclesWrap+
-    (function(){
-      // Thermophilic-started line: shows which reading the current cycle's 72h streak
-      // counts from, so the start point is always transparent. Says "not yet
-      // thermophilic" before the pile crosses 131F (on the display basis).
-      var ts=t&&t.thermophilicStart?t.thermophilicStart:null;
-      var txt;
-      if(ts){
-        var dd=new Date(ts);
-        var dstr=(dd.getMonth()+1)+"/"+dd.getDate()+" "+("0"+dd.getHours()).slice(-2)+":"+("0"+dd.getMinutes()).slice(-2);
-        txt="THERMOPHILIC STARTED: "+dstr;
-      } else {
-        txt="NOT YET THERMOPHILIC";
-      }
-      return '<div class="mono" style="margin-top:0.7rem;font-size:0.6rem;color:#666;letter-spacing:0.05em">'+txt+'</div>';
-    })();
+    '</div>'+cyclesWrap;
   var isDone=t&&(t.complete||t.stageDone);
   if(isDone&&"Notification"in window&&Notification.permission==="granted")
     new Notification("Compost Logger",{body:pile.name+" is ready to turn!"});
@@ -3395,8 +3380,30 @@ function renderLogTable(sorted,pile){
     hdrEl.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><span>ALL ENTRIES ('+sorted.length+')</span><button onclick="toggleEntriesSort()" class="btn-sm" style="font-size:0.55rem">'+sortLabel+'</button></div>';
   }
   var table=document.getElementById("log-table");
+  // Thermophilic-started info (moved here from the timer card): which reading the
+  // current cycle's 72h streak counts from.
+  var thermoEl=document.getElementById("log-thermo");
+  if(thermoEl){
+    var tt=calcSmartTimer(pile.entries);
+    var ts=tt&&tt.thermophilicStart?tt.thermophilicStart:null;
+    if(ts){
+      var dd=new Date(ts);
+      var dstr=(dd.getMonth()+1)+"/"+dd.getDate()+" "+("0"+dd.getHours()).slice(-2)+":"+("0"+dd.getMinutes()).slice(-2);
+      thermoEl.textContent="THERMOPHILIC STARTED: "+dstr;
+      thermoEl.style.display="block";
+    } else {
+      thermoEl.textContent="NOT YET THERMOPHILIC";
+      thermoEl.style.display="block";
+    }
+  }
   if(!sorted.length){table.innerHTML="";return;}
-  var headers=["DAY","DATE","TIME","AMB","C1","C2","C3","MOIST","TURN",""];
+  var showApi=sorted.some(function(e){return e.ambientApi!=null;});
+  var showC4=sorted.some(function(e){return e.core4!=null;});
+  var headers=["DAY","DATE","TIME","AMB"];
+  if(showApi)headers.push("AMB API");
+  headers.push("C1","C2","C3");
+  if(showC4)headers.push("C4");
+  headers.push("MOIST","TURN","");
   var thead='<thead><tr>'+headers.map(function(h){return '<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#555;font-size:0.7rem;letter-spacing:0.05em">'+h+'</th>';}).join("")+'</tr></thead>';
   var sortedDisplay=entriesSortMode==="oldest"?sorted.slice():sorted.slice().reverse();
   var tbody='<tbody>'+sortedDisplay.map(function(en,i){
@@ -3406,14 +3413,18 @@ function renderLogTable(sorted,pile){
     var entryDate=new Date(en.ts);
     var entryDayOnly=new Date(entryDate.getFullYear(),entryDate.getMonth(),entryDate.getDate());
     var dayNum=Math.floor((entryDayOnly-earliestDay)/86400000)+1;
+    var apiCell=showApi?'<td class="mono" style="padding:0.3rem 0.4rem;color:#fbbf24;font-size:0.8rem">'+(en.ambientApi!=null?dispStr(en.ambientApi):"-")+'</td>':"";
+    var c4Cell=showC4?'<td class="mono" style="padding:0.3rem 0.4rem;color:#22d3ee;font-size:0.8rem">'+(en.core4!=null?dispStr(en.core4):"-")+'</td>':"";
     return '<tr style="border-bottom:1px solid #080808">'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+dayNum+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+en.date+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+(en.time||"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#f59e0b;font-size:0.8rem">'+(en.ambient!=null?dispStr(en.ambient):"-")+'</td>'+
+      apiCell+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.8rem">'+(en.core1!=null?dispStr(en.core1):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.8rem">'+(en.core2!=null?dispStr(en.core2):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.8rem">'+(en.core3!=null?dispStr(en.core3):"-")+'</td>'+
+      c4Cell+
       '<td style="padding:0.3rem 0.4rem">'+moistCell+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:'+(en.turned?"#f97316":"#1a1a1a")+';font-size:0.8rem">'+(en.turned?((sorted.length&&en.id===sorted[0].id)?"BUILT":"YES"):"-")+'</td>'+
       '<td style="padding:0.3rem 0.3rem"><button onclick="openEdit(\''+en.id+'\')" class="btn-sm" style="padding:0.2rem 0.4rem;font-size:0.66rem">EDIT</button></td>'+
@@ -3657,11 +3668,38 @@ function exportGraphImage(){
   var srcCanvas=document.getElementById("temp-chart");
   if(!srcCanvas){alert("Chart not ready yet.");return;}
   try{
+    var legendPad=34; // space at top for the legend strip
     var out=document.createElement("canvas");
-    out.width=srcCanvas.width;out.height=srcCanvas.height;
+    out.width=srcCanvas.width;out.height=srcCanvas.height+legendPad;
     var ctx=out.getContext("2d");
     ctx.fillStyle="#000";ctx.fillRect(0,0,out.width,out.height);
-    ctx.drawImage(srcCanvas,0,0);
+    // Build legend items from the live chart's visible temp datasets.
+    var items=[];
+    try{
+      if(tempChart&&tempChart.data&&tempChart.data.datasets){
+        tempChart.data.datasets.forEach(function(ds){
+          if(!ds.label)return;
+          if(/Probe (min|max|average)|helper|band/i.test(ds.label))return;
+          var col=(typeof ds.borderColor==="string"&&ds.borderColor!=="transparent")?ds.borderColor:null;
+          if(!col)return;
+          items.push({label:ds.label,color:col});
+        });
+      }
+    }catch(e){}
+    // De-dupe by label
+    var seen={};items=items.filter(function(it){if(seen[it.label])return false;seen[it.label]=1;return true;});
+    // Draw legend strip
+    ctx.font="12px Arial";ctx.textBaseline="middle";
+    var lx=12,ly=legendPad/2;
+    items.forEach(function(it){
+      var w=ctx.measureText(it.label).width;
+      if(lx+22+w>out.width-10){return;} // skip overflow
+      ctx.fillStyle=it.color;ctx.fillRect(lx,ly-4,14,8);
+      ctx.fillStyle="#ddd";ctx.fillText(it.label,lx+18,ly);
+      lx+=18+w+18;
+    });
+    // Draw the chart below the legend
+    ctx.drawImage(srcCanvas,0,legendPad);
     var url=out.toDataURL("image/png");
     var a=document.createElement("a");
     a.href=url;a.download=pile.name.replace(/\s+/g,"-")+"-graph.png";
@@ -3897,7 +3935,7 @@ function exportPDF(){
           // Background for unfilled portion
           doc.setFillColor(230,230,230);
           doc.rect(xOff,y,barW-(xOff-barX),barH,"F");
-          y+=4.5;
+          y+=6.5;
           // Stage-duration breakdown under the bar (matches the dashboard).
           var pdfMs={MESO:0,THERMO:0,READY:0};
           cr2.segments.forEach(function(seg){
@@ -3913,7 +3951,7 @@ function exportPDF(){
           if(dparts.length){
             doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(130,130,130);
             doc.text(dparts.join("  \u00B7  "),M,y);
-            y+=4.5;
+            y+=5.5;
           }
         }
       }

@@ -219,7 +219,8 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
         <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
         <button id="btn-toggle-shade" class="btn-sm" onclick="toggleShade()" style="font-size:0.65rem;color:#555">SHADE OFF</button>
         <button id="btn-toggle-rate" class="btn-sm" onclick="toggleRate()" style="font-size:0.65rem;color:#555">RATE OFF</button>
-        <button id="btn-toggle-ambient" class="btn-sm" onclick="toggleAmbient()" style="font-size:0.65rem;color:#555">AMBIENT OFF</button>
+        <button id="btn-toggle-ambient" class="btn-sm" onclick="toggleAmbient()" style="font-size:0.65rem;color:#555">AMB OFF</button>
+        <button id="btn-toggle-ambient-api" class="btn-sm" onclick="toggleAmbientApi()" style="font-size:0.65rem;color:#555">AMB API OFF</button>
         <button id="btn-toggle-delta" class="btn-sm" onclick="toggleDelta()" style="font-size:0.65rem;color:#555">DELTA OFF</button>
       </div>
     </div>
@@ -236,6 +237,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">MOISTURE</span></div>
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">TURN</span></div>
       <div id="legend-ambient" style="display:flex;align-items:center;gap:0.4rem;display:none"><div style="width:16px;height:3px;background:#f59e0b;border-radius:1px;border-top:1px dashed #f59e0b"></div><span class="mono" style="font-size:0.65rem;color:#f59e0b">AMBIENT</span></div>
+      <div id="legend-ambient-api" style="display:flex;align-items:center;gap:0.4rem;display:none"><div style="width:16px;height:3px;background:#fbbf24;border-radius:1px;border-top:1px dotted #fbbf24"></div><span class="mono" style="font-size:0.65rem;color:#fbbf24">AMBIENT API</span></div>
       <div id="legend-delta" style="display:none;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#06b6d4;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#06b6d4">DELTA</span></div>
       <div id="legend-rate" style="display:none;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#22d3ee;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#22d3ee">RATE</span></div>
     </div>
@@ -704,7 +706,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.77l";
+var BUILD_VER="v3.77m";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -769,6 +771,8 @@ var newMaterials={},editMaterials={};
 var editingEntryId=null;
 var expandedCats=new Set();
 var showAmbient=false;
+var showAmbientApi=false;
+var analyticsOpen=false;
 var showDelta=false;
 var collapsedCards={};  // session only, resets on reload
 var deletedPileIds=[];  // tombstone list for sync
@@ -2806,9 +2810,15 @@ function renderStatusCard(pile,sorted,lat,band){
   }
   detailEl.innerHTML=
     '<div class="status-detail"><span class="status-key" style="color:#f97316">NEXT TURN DUE</span><span class="status-val" style="color:'+nextDueColor+';font-weight:600">'+nextDue+'</span></div>'+
-    '<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>'+
+    '<div class="status-detail" style="border-bottom:none"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>'+
+    '<div style="margin-top:0.5rem;border-top:1px solid #111;padding-top:0.4rem">'+
+      '<div onclick="toggleAnalytics()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:0.2rem 0">'+
+        '<span class="mono" style="font-size:0.62rem;color:#666;letter-spacing:0.05em">'+(analyticsOpen?"\u25BE":"\u25B8")+' ANALYTICS</span>'+
+        '<span class="mono" style="font-size:0.55rem;color:#444">'+(analyticsOpen?"hide":"show")+'</span>'+
+      '</div>'+
+      '<div id="analytics-body" style="display:'+(analyticsOpen?"block":"none")+'">'+
     '<div class="status-detail"><span class="status-key">SINCE THERMOPHILIC START</span><span class="status-val" style="color:'+thermoSinceColor+'">'+thermoSinceStr+'</span></div>'+
-    '<div class="status-detail" style="border-bottom:none"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>'+
+    '<div class="status-detail"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>'+
     (function(){
       if(!sorted||sorted.length<2)return'';
       var firstEntry=sorted[0];
@@ -2858,7 +2868,8 @@ function renderStatusCard(pile,sorted,lat,band){
           '<div style="font-size:0.58rem;color:#555;margin-top:0.2rem;font-family:Inter,sans-serif">'+v.sub+'. Not a certified pathogen test.</div>'+
         '</div>';
       })();
-    })();
+    })()+
+    '</div></div>';  // close analytics-body + analytics wrapper
   var canSchedule=t&&t.deadline&&!isDone;
   var calBtnHTML;
   if(canSchedule){
@@ -3021,18 +3032,16 @@ function renderChart(sorted){
     var e=sorted[idx];
     var tx=xVal(e);
     if(e.id===firstId){
-      // First entry = the initial BUILD, not a turn: distinct green dashed line + label.
-      turnAnnotations["built"]={type:"line",xMin:tx,xMax:tx,borderColor:"#4ade80",borderWidth:2,borderDash:[4,3],
-        label:{display:true,content:"BUILT",position:"end",backgroundColor:"rgba(74,222,128,0.15)",color:"#4ade80",font:{size:8},padding:2}};
+      // First entry = the initial BUILD: distinct green dashed line, NO text label.
+      turnAnnotations["built"]={type:"line",xMin:tx,xMax:tx,borderColor:"#4ade80",borderWidth:2,borderDash:[4,3]};
     } else {
       turnAnnotations["turn"+i]={type:"line",xMin:tx,xMax:tx,borderColor:"#f97316",borderWidth:2.5,
         label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#f97316",font:{size:8},padding:2}};
     }
   });
-  // If the first entry was NOT marked turned, still mark the build origin with a line.
+  // If the first entry was NOT marked turned, still mark the build origin with a line (no label).
   if(sorted.length&&!sorted[0].turned){
-    turnAnnotations["built"]={type:"line",xMin:xVal(sorted[0]),xMax:xVal(sorted[0]),borderColor:"#4ade80",borderWidth:2,borderDash:[4,3],
-      label:{display:true,content:"BUILT",position:"end",backgroundColor:"rgba(74,222,128,0.15)",color:"#4ade80",font:{size:8},padding:2}};
+    turnAnnotations["built"]={type:"line",xMin:xVal(sorted[0]),xMax:xVal(sorted[0]),borderColor:"#4ade80",borderWidth:2,borderDash:[4,3]};
   }
   var dayAnnotations={};
   var seenDay={};
@@ -3111,7 +3120,7 @@ function renderChart(sorted){
         borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,
         pointRadius:3,pointBackgroundColor:"#f59e0b",spanGaps:true,yAxisID:"y",order:4,borderDash:[4,3]}
     ]:[])
-    .concat(showAmbient&&sorted.some(function(e){return e.ambientApi!=null;})?[
+    .concat(showAmbientApi&&sorted.some(function(e){return e.ambientApi!=null;})?[
       {label:"Ambient API",data:sorted.filter(function(e){return e.ambientApi!=null;}).map(function(e){return {x:xVal(e),y:disp(e.ambientApi)};}),
         borderColor:"#fbbf24",backgroundColor:"transparent",tension:0.3,
         pointRadius:3,pointBackgroundColor:"#fbbf24",spanGaps:true,yAxisID:"y",order:4,borderDash:[2,2]}
@@ -3287,11 +3296,24 @@ function toggleDelta(){
   var pile=getActivePile();if(!pile)return;
   renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
 }
+function toggleAnalytics(){
+  analyticsOpen=!analyticsOpen;
+  var pile=getActivePile();if(!pile)return;
+  renderDashboard();
+}
 function toggleAmbient(){
   showAmbient=!showAmbient;
   var btn=document.getElementById("btn-toggle-ambient");
-  if(btn){btn.textContent=showAmbient?"AMBIENT ON":"AMBIENT OFF";btn.style.color=showAmbient?"#f59e0b":"#555";}
+  if(btn){btn.textContent=showAmbient?"AMB ON":"AMB OFF";btn.style.color=showAmbient?"#f59e0b":"#555";}
   var legAmb=document.getElementById("legend-ambient");if(legAmb)legAmb.style.display=showAmbient?"flex":"none";
+  var pile=getActivePile();if(!pile)return;
+  renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+}
+function toggleAmbientApi(){
+  showAmbientApi=!showAmbientApi;
+  var btn=document.getElementById("btn-toggle-ambient-api");
+  if(btn){btn.textContent=showAmbientApi?"AMB API ON":"AMB API OFF";btn.style.color=showAmbientApi?"#fbbf24":"#555";}
+  var leg=document.getElementById("legend-ambient-api");if(leg)leg.style.display=showAmbientApi?"flex":"none";
   var pile=getActivePile();if(!pile)return;
   renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
 }
@@ -3732,11 +3754,13 @@ function exportGraphImage(){
   var srcCanvas=document.getElementById("temp-chart");
   if(!srcCanvas){alert("Chart not ready yet.");return;}
   try{
-    var legendPad=34; // space at top for the legend strip
+    var legendPad=46; // larger strip at the BOTTOM for a readable legend
     var out=document.createElement("canvas");
     out.width=srcCanvas.width;out.height=srcCanvas.height+legendPad;
     var ctx=out.getContext("2d");
     ctx.fillStyle="#000";ctx.fillRect(0,0,out.width,out.height);
+    // Draw the chart at the top
+    ctx.drawImage(srcCanvas,0,0);
     // Build legend items from the live chart's visible temp datasets.
     var items=[];
     try{
@@ -3750,20 +3774,18 @@ function exportGraphImage(){
         });
       }
     }catch(e){}
-    // De-dupe by label
     var seen={};items=items.filter(function(it){if(seen[it.label])return false;seen[it.label]=1;return true;});
-    // Draw legend strip
-    ctx.font="12px Arial";ctx.textBaseline="middle";
-    var lx=12,ly=legendPad/2;
+    // Draw legend strip at the BOTTOM, larger font
+    ctx.font="16px Arial";ctx.textBaseline="middle";
+    var ly=srcCanvas.height+legendPad/2;
+    var lx=14;
     items.forEach(function(it){
       var w=ctx.measureText(it.label).width;
-      if(lx+22+w>out.width-10){return;} // skip overflow
-      ctx.fillStyle=it.color;ctx.fillRect(lx,ly-4,14,8);
-      ctx.fillStyle="#ddd";ctx.fillText(it.label,lx+18,ly);
-      lx+=18+w+18;
+      if(lx+26+w>out.width-12){return;}
+      ctx.fillStyle=it.color;ctx.fillRect(lx,ly-6,18,12);
+      ctx.fillStyle="#eee";ctx.fillText(it.label,lx+24,ly);
+      lx+=24+w+24;
     });
-    // Draw the chart below the legend
-    ctx.drawImage(srcCanvas,0,legendPad);
     var url=out.toDataURL("image/png");
     var a=document.createElement("a");
     a.href=url;a.download=pile.name.replace(/\s+/g,"-")+"-graph.png";
@@ -4185,7 +4207,7 @@ function exportPDF(){
           .concat(showAmbient&&sortedEntries.some(function(e){return e.ambient!=null;})?[
             {label:"Ambient",data:sortedEntries.map(function(e){return e.ambient!=null?crPDF(e.ambient):null;}),borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[4,3]}
           ]:[])
-          .concat(showAmbient&&sortedEntries.some(function(e){return e.ambientApi!=null;})?[
+          .concat(showAmbientApi&&sortedEntries.some(function(e){return e.ambientApi!=null;})?[
             {label:"Ambient API",data:sortedEntries.map(function(e){return e.ambientApi!=null?crPDF(e.ambientApi):null;}),borderColor:"#d97706",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[2,2]}
           ]:[])
           .concat(showDelta&&sortedEntries.some(function(e){return e.ambient!=null&&avgCore(e)!=null;})?[
@@ -4210,7 +4232,7 @@ function exportPDF(){
             var pdfFirstId=sortedEntries.length?sortedEntries[0].id:null;
             sortedEntries.forEach(function(e,i){
               if(e.id===pdfFirstId){
-                ta["built"]={type:"line",xMin:i,xMax:i,borderColor:"#16a34a",borderWidth:1.5,borderDash:[4,3],label:{display:true,content:"BUILT",position:"end",backgroundColor:"rgba(22,163,74,0.15)",color:"#16a34a",font:{size:7},padding:1,rotation:90}};
+                ta["built"]={type:"line",xMin:i,xMax:i,borderColor:"#16a34a",borderWidth:1.5,borderDash:[4,3]};
               } else if(e.turned){
                 ta["turn"+i]={type:"line",xMin:i,xMax:i,borderColor:"#f97316",borderWidth:1.5,label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#c2410c",font:{size:7},padding:1,rotation:90}};
               }

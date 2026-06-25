@@ -133,6 +133,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
             <button id="import-menu-btn" onclick="toggleImportMenu(event)" class="btn-sm" style="font-size:0.7rem;padding:0.45rem 0.6rem">IMPORT / TEMPLATE &#9662;</button>
           </div>
           <button onclick="showOpSummary()" class="btn-sm" style="font-size:0.7rem;padding:0.45rem 0.6rem;flex-shrink:0">OPERATION SUMMARY</button>
+          <button onclick="openSitesManager()" class="btn-sm" style="font-size:0.7rem;padding:0.45rem 0.6rem;flex-shrink:0">📍 SITES</button>
         </div>
         <button onclick="showView('setup')" class="btn" style="width:auto;padding:0.45rem 0.9rem;flex-shrink:0;white-space:nowrap">+ NEW PILE</button>
       </div>
@@ -156,7 +157,12 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div class="wrap">
     <div class="card">
       <label class="lbl">PILE NAME</label>
-      <input id="new-pile-name" placeholder="e.g. Pile A - Spring 2025" style="margin-bottom:1.5rem"/>
+      <input id="new-pile-name" placeholder="e.g. Pile A - Spring 2025" style="margin-bottom:1rem"/>
+      <label class="lbl">SITE / LOCATION <span style="color:#555;font-size:0.55rem">OPTIONAL</span></label>
+      <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem">
+        <select id="new-pile-site-select" class="temp-input" style="flex:1;font-size:0.9rem"></select>
+        <button type="button" onclick="openSitesManager()" class="btn-sm" style="font-size:0.62rem;white-space:nowrap">MANAGE</button>
+      </div>
       <div class="hd" style="font-size:1.1rem;color:#fff;margin-bottom:1rem">MATERIAL RECIPE</div>
       <div id="cat-editors"></div>
       <div id="setup-error" class="error-msg hidden"></div>
@@ -184,6 +190,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <button onclick="showView('home')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.3rem">&larr;</button>
       <div>
         <div id="dash-name" class="hd" style="font-size:1.1rem;color:#fff;line-height:1"></div>
+        <div id="dash-site" class="mono" style="font-size:0.6rem;color:#2a6;margin-top:0.25rem;display:none"></div>
         <div id="dash-sub" class="mono" style="font-size:0.58rem;color:#555"></div>
       </div>
     </div>
@@ -274,10 +281,18 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   </div>
   <div id="entry-error" class="error-msg hidden"></div>
   <div style="margin-bottom:0.6rem">
-    <label class="lbl" style="color:#f59e0b">AMBIENT TEMP <span id="unit-lbl-amb"></span></label>
-    <input type="number" class="temp-input" id="f-ambient" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem"/>
+  <div style="margin-bottom:0.75rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+    <div>
+      <label class="lbl" style="color:#f59e0b">AMB MANUAL <span id="unit-lbl-amb"></span> <span style="color:#555;font-size:0.5rem">OPT</span></label>
+      <input type="number" class="temp-input" id="f-ambient" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem"/>
+    </div>
+    <div>
+      <label class="lbl" style="color:#fbbf24">AMB API <span style="color:#555;font-size:0.5rem">OPT</span></label>
+      <input type="number" class="temp-input" id="f-ambient-api" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem"/>
+    </div>
   </div>
-  <div style="margin-bottom:0.75rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
+  </div>
+  <div style="margin-bottom:0.75rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
     <div>
       <label class="lbl" style="color:#ff4444">CORE 1 <span id="unit-lbl-core"></span></label>
       <input type="number" class="temp-input" id="f-core" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" />
@@ -289,6 +304,10 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div>
       <label class="lbl" style="color:#a855f7">CORE 3 <span id="unit-lbl-bot"></span></label>
       <input type="number" class="temp-input" id="f-bottom" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" />
+    </div>
+    <div>
+      <label class="lbl" style="color:#22d3ee">CORE 4 <span style="color:#555;font-size:0.55rem">OPTIONAL</span></label>
+      <input type="number" class="temp-input" id="f-core4" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" />
     </div>
   </div>
   <div style="margin-bottom:0.75rem">
@@ -388,6 +407,58 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div class="wrap"><div id="opsummary-body"></div></div>
 </div>
 
+<div id="sites-overlay" class="overlay hidden">
+  <div style="max-width:700px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <span class="hd" style="font-size:1.3rem;color:#fff">📍 SITES</span>
+      <button onclick="closeSitesManager()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
+    </div>
+    <div id="sites-list" style="margin-bottom:1rem"></div>
+    <button onclick="openSiteEdit(null)" class="btn" style="width:100%">+ ADD SITE</button>
+  </div>
+</div>
+
+<div id="site-edit-overlay" class="overlay hidden">
+  <div style="max-width:600px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <span id="site-edit-title" class="hd" style="font-size:1.2rem;color:#fff">ADD SITE</span>
+      <button onclick="closeSiteEdit()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
+    </div>
+    <div class="card">
+      <label class="lbl">SITE NAME</label>
+      <input id="site-name" placeholder="e.g. Bahrain 4000m\u00B2" style="margin-bottom:0.75rem"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0.5rem;margin-bottom:0.75rem;align-items:end">
+        <div><label class="lbl" style="font-size:0.55rem">LATITUDE</label><input id="site-lat" type="number" inputmode="decimal" placeholder="-" class="temp-input" style="font-size:0.9rem"/></div>
+        <div><label class="lbl" style="font-size:0.55rem">LONGITUDE</label><input id="site-lon" type="number" inputmode="decimal" placeholder="-" class="temp-input" style="font-size:0.9rem"/></div>
+        <button type="button" onclick="fillCurrentLocation('site')" style="padding:0.55rem 0.6rem;background:none;border:1px solid #2a6;color:#2a6;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.62rem;white-space:nowrap">📍 GPS</button>
+      </div>
+      <label class="lbl">SITE MANAGER NAME <span style="color:#555;font-size:0.55rem">OPTIONAL</span></label>
+      <input id="site-manager-name" placeholder="e.g. Abdulla" style="margin-bottom:0.75rem"/>
+      <label class="lbl">MANAGER CONTACT <span style="color:#555;font-size:0.55rem">OPTIONAL</span></label>
+      <input id="site-manager-contact" placeholder="phone or email" style="margin-bottom:1rem"/>
+      <div id="site-edit-error" class="error-msg hidden"></div>
+      <button onclick="saveSite()" class="btn" style="width:100%;margin-bottom:0.5rem">SAVE SITE</button>
+      <button onclick="closeSiteEdit()" style="width:100%;padding:0.6rem;background:none;border:1px solid #222;color:#555;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.85rem">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<div id="assign-site-overlay" class="overlay hidden">
+  <div style="max-width:500px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <span class="hd" style="font-size:1.2rem;color:#fff">ASSIGN TO SITE</span>
+      <button onclick="closeAssignSite()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
+    </div>
+    <div class="card">
+      <label class="lbl">SITE</label>
+      <select id="assign-site-select" class="temp-input" style="width:100%;font-size:0.95rem;margin-bottom:1rem"></select>
+      <button onclick="saveAssignSite()" class="btn" style="width:100%;margin-bottom:0.5rem">SAVE</button>
+      <button onclick="openSitesManager()" class="btn-sm" style="width:100%;margin-bottom:0.5rem">+ MANAGE SITES</button>
+      <button onclick="closeAssignSite()" style="width:100%;padding:0.6rem;background:none;border:1px solid #222;color:#555;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.85rem">CANCEL</button>
+    </div>
+  </div>
+</div>
+
 <div id="edit-overlay" class="overlay hidden">
   <div style="max-width:700px;margin:0 auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #111">
@@ -400,10 +471,14 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
         <div><label class="lbl">TIME</label><input type="time" class="temp-input" id="e-time" style="font-size:1rem"/></div>
       </div>
       <div id="edit-error" class="error-msg hidden"></div>
-      <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#f59e0b">AMBIENT <span id="e-unit-amb"></span></label><input type="number" class="temp-input" id="e-ambient" placeholder="-" inputmode="decimal"/></div>
+      <div style="margin-bottom:0.6rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+        <div><label class="lbl" style="color:#f59e0b">AMB MANUAL <span id="e-unit-amb"></span></label><input type="number" class="temp-input" id="e-ambient" placeholder="-" inputmode="decimal"/></div>
+        <div><label class="lbl" style="color:#fbbf24">AMB API</label><input type="number" class="temp-input" id="e-ambient-api" placeholder="-" inputmode="decimal"/></div>
+      </div>
       <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#ff4444">CORE 1 <span id="e-unit-core"></span></label><input type="number" class="temp-input" id="e-core" placeholder="-" inputmode="decimal"/></div>
       <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#4ade80">CORE 2 <span id="e-unit-top"></span></label><input type="number" class="temp-input" id="e-top" placeholder="-" inputmode="decimal"/></div>
       <div style="margin-bottom:0.75rem"><label class="lbl" style="color:#a855f7">CORE 3 <span id="e-unit-bot"></span></label><input type="number" class="temp-input" id="e-bottom" placeholder="-" inputmode="decimal"/></div>
+      <div style="margin-bottom:0.75rem"><label class="lbl" style="color:#22d3ee">CORE 4 <span style="color:#555;font-size:0.55rem">OPTIONAL</span></label><input type="number" class="temp-input" id="e-core4" placeholder="-" inputmode="decimal"/></div>
       <div style="margin-bottom:0.75rem">
         <label class="lbl" style="display:flex;justify-content:space-between;align-items:center"><span>MOISTURE %</span>
           <span style="display:flex;align-items:center;gap:0.5rem">
@@ -624,7 +699,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.76t";
+var BUILD_VER="v3.77a";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -660,7 +735,8 @@ var N_PRESETS={
 
 var pilesSortMode=localStorage.getItem("ca_pilesSort")||"recent";
 var entriesSortMode=localStorage.getItem("ca_entriesSort")||"newest";
-var piles=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
+var piles=[],sites=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
+var homeCollapsedSites={};
 var activeId=null,tempMode="three",tempUnit="F",shadeProbes=false,showRate=false,__chartEntries=[];
 var volumeUnit="gal";
 // DISPLAY BASIS governs the numbers shown across the app (headline temp, stage bars,
@@ -1545,7 +1621,7 @@ function getContainerPresets(vu){
 function save(){
   // Stamp lastModified on any pile that just changed
   if(activeId){var ap=piles.find(function(p){return p.id===activeId;});if(ap)ap.lastModified=Date.now();}
-  localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
+  localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
   if(driveToken&&driveFileId)driveSaveNow();
 }
 
@@ -1572,7 +1648,7 @@ function loadSamplePileIfFirstRun(){
 
 function load(){
   var s=localStorage.getItem("ca_v5")||localStorage.getItem("ca_v4");
-  if(s){try{var d=JSON.parse(s);piles=d.piles||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;if(d.tempUnit)tempUnit=d.tempUnit;if(d.volumeUnit)volumeUnit=d.volumeUnit;if(d.containerUnit)containerUnit=d.containerUnit;if(d.deletedPileIds)deletedPileIds=d.deletedPileIds;}catch(e){}}
+  if(s){try{var d=JSON.parse(s);piles=d.piles||[];sites=d.sites||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;if(d.tempUnit)tempUnit=d.tempUnit;if(d.volumeUnit)volumeUnit=d.volumeUnit;if(d.containerUnit)containerUnit=d.containerUnit;if(d.deletedPileIds)deletedPileIds=d.deletedPileIds;}catch(e){}}
   else{loadSamplePileIfFirstRun();}
   // Migrate existing entries from old field names (core/top/bottom → core1/core2/core3)
   piles.forEach(function(pile){
@@ -1582,6 +1658,116 @@ function load(){
       if(e.bottom!==undefined&&e.core3===undefined){e.core3=e.bottom;delete e.bottom;}
     });
   });
+  migrateSites();
+}
+// One-time, idempotent migration: any pile that has an inline site (from v3.76v) but
+// no siteId gets a real site record created/linked. Inline fields are left as a
+// harmless fallback. Runs safely even when there are no inline-site piles.
+function migrateSites(){
+  if(!Array.isArray(sites))sites=[];
+  piles.forEach(function(pile){
+    if(pile.siteId)return;                 // already linked
+    if(!pile.site)return;                  // no inline site to convert
+    var nameKey=String(pile.site).trim().toLowerCase();
+    if(!nameKey)return;
+    var existing=sites.find(function(st){return st.name.trim().toLowerCase()===nameKey;});
+    if(!existing){
+      existing={id:uid(),name:String(pile.site).trim(),
+        lat:(pile.lat!=null?pile.lat:null),lon:(pile.lon!=null?pile.lon:null),
+        managerName:"",managerContact:"",created:new Date().toISOString()};
+      sites.push(existing);
+    } else {
+      // fill coords if the site lacks them but the pile has them
+      if(existing.lat==null&&pile.lat!=null)existing.lat=pile.lat;
+      if(existing.lon==null&&pile.lon!=null)existing.lon=pile.lon;
+    }
+    pile.siteId=existing.id;
+  });
+}
+// Site helpers
+function getSite(id){return sites.find(function(s){return s.id===id;})||null;}
+function siteName(id){var s=getSite(id);return s?s.name:null;}
+function addSite(obj){var s=Object.assign({id:uid(),name:"",lat:null,lon:null,managerName:"",managerContact:"",created:new Date().toISOString()},obj||{});sites.push(s);return s;}
+function updateSite(id,obj){var s=getSite(id);if(s)Object.assign(s,obj);return s;}
+function deleteSite(id){
+  // Unlink piles from this site (they become unassigned), then remove the site.
+  piles.forEach(function(p){if(p.siteId===id){p.siteId=null;}});
+  sites=sites.filter(function(s){return s.id!==id;});
+}
+// ---- Sites manager UI ----
+var editingSiteId=null;
+function openSitesManager(){document.getElementById("sites-overlay").classList.remove("hidden");renderSitesList();}
+function closeSitesManager(){document.getElementById("sites-overlay").classList.add("hidden");}
+function renderSitesList(){
+  var el=document.getElementById("sites-list");if(!el)return;
+  if(!sites.length){el.innerHTML='<div class="mono" style="font-size:0.75rem;color:#555;text-align:center;padding:1.5rem 0">No sites yet. Add one below.</div>';return;}
+  el.innerHTML=sites.map(function(s){
+    var pileCount=piles.filter(function(p){return p.siteId===s.id;}).length;
+    var coords=(s.lat!=null&&s.lon!=null)?(Math.round(s.lat*1e4)/1e4)+", "+(Math.round(s.lon*1e4)/1e4):"no coordinates";
+    var mgr=s.managerName?(" \u00B7 "+s.managerName):"";
+    return '<div class="card" style="margin-bottom:0.6rem;padding:0.85rem">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">'+
+        '<div style="min-width:0">'+
+          '<div class="hd" style="font-size:0.95rem;color:#fff">'+escapeHtml(s.name)+'</div>'+
+          '<div class="mono" style="font-size:0.6rem;color:#2a6;margin-top:0.2rem">📍 '+coords+mgr+'</div>'+
+          '<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.15rem">'+pileCount+' pile'+(pileCount===1?"":"s")+'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:0.35rem;flex-shrink:0">'+
+          '<button onclick="openSiteEdit(\''+s.id+'\')" class="btn-sm" style="font-size:0.62rem">EDIT</button>'+
+          '<button onclick="confirmDeleteSite(\''+s.id+'\')" class="btn-sm" style="font-size:0.62rem;color:#ef4444">DEL</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join("");
+}
+function openSiteEdit(id){
+  editingSiteId=id;
+  var t=document.getElementById("site-edit-title");
+  var s=id?getSite(id):null;
+  if(t)t.textContent=s?"EDIT SITE":"ADD SITE";
+  document.getElementById("site-name").value=s?s.name:"";
+  document.getElementById("site-lat").value=(s&&s.lat!=null)?s.lat:"";
+  document.getElementById("site-lon").value=(s&&s.lon!=null)?s.lon:"";
+  document.getElementById("site-manager-name").value=s?(s.managerName||""):"";
+  document.getElementById("site-manager-contact").value=s?(s.managerContact||""):"";
+  document.getElementById("site-edit-error").classList.add("hidden");
+  document.getElementById("site-edit-overlay").classList.remove("hidden");
+}
+function closeSiteEdit(){document.getElementById("site-edit-overlay").classList.add("hidden");editingSiteId=null;}
+function saveSite(){
+  var name=document.getElementById("site-name").value.trim();
+  var errEl=document.getElementById("site-edit-error");
+  if(!name){errEl.textContent="Site name is required.";errEl.classList.remove("hidden");return;}
+  var latV=document.getElementById("site-lat").value;
+  var lonV=document.getElementById("site-lon").value;
+  var obj={name:name,
+    lat:latV!==""?parseFloat(latV):null,
+    lon:lonV!==""?parseFloat(lonV):null,
+    managerName:document.getElementById("site-manager-name").value.trim(),
+    managerContact:document.getElementById("site-manager-contact").value.trim()};
+  if(editingSiteId){updateSite(editingSiteId,obj);}else{addSite(obj);}
+  save();closeSiteEdit();renderSitesList();
+}
+function confirmDeleteSite(id){
+  var s=getSite(id);if(!s)return;
+  var n=piles.filter(function(p){return p.siteId===id;}).length;
+  var msg="Delete site \""+s.name+"\"?"+(n>0?" "+n+" pile"+(n===1?"":"s")+" will become unassigned.":"");
+  if(confirm(msg)){deleteSite(id);save();renderSitesList();}
+}
+function escapeHtml(str){return String(str==null?"":str).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+// Assign an existing pile to a site
+var assigningPileId=null;
+function openAssignSite(pileId){
+  assigningPileId=pileId;
+  var p=piles.find(function(x){return x.id===pileId;});
+  populateSiteSelect("assign-site-select",p?p.siteId:null);
+  document.getElementById("assign-site-overlay").classList.remove("hidden");
+}
+function closeAssignSite(){document.getElementById("assign-site-overlay").classList.add("hidden");assigningPileId=null;}
+function saveAssignSite(){
+  var p=piles.find(function(x){return x.id===assigningPileId;});
+  if(p){var sel=document.getElementById("assign-site-select");p.siteId=sel&&sel.value?sel.value:null;p.lastModified=Date.now();save();}
+  closeAssignSite();renderDashboard();
 }
 
 function showView(v){
@@ -1701,7 +1887,37 @@ function renderHome(){
     el.innerHTML='<div style="text-align:center;padding:3rem 1rem;border:1px dashed #1a1a1a;border-radius:4px"><div style="font-size:2rem;margin-bottom:0.5rem">&#127793;</div><div class="hd" style="font-size:1.2rem;color:#555">NO PILES YET</div></div>';
     return;
   }
-  el.innerHTML=sortPilesByMode(piles).map(function(p){
+  // Group piles by site (collapsible). Sites in their stored order, then "Unassigned".
+  var sorted=sortPilesByMode(piles);
+  var groups=[];
+  sites.forEach(function(s){
+    var members=sorted.filter(function(p){return p.siteId===s.id;});
+    if(members.length)groups.push({site:s,piles:members});
+  });
+  var unassigned=sorted.filter(function(p){return !p.siteId||!getSite(p.siteId);});
+  if(unassigned.length)groups.push({site:null,piles:unassigned});
+  // If there are no sites at all, render a flat list (no group headers) for simplicity.
+  if(!sites.length){
+    el.innerHTML=sorted.map(renderPileCard).join("");
+    return;
+  }
+  el.innerHTML=groups.map(function(g){
+    var sid=g.site?g.site.id:"__unassigned";
+    var collapsed=homeCollapsedSites[sid];
+    var title=g.site?escapeHtml(g.site.name):"Unassigned";
+    var coords=g.site&&g.site.lat!=null&&g.site.lon!=null?'<span class="mono" style="font-size:0.55rem;color:#2a6;margin-left:0.5rem">\uD83D\uDCCD '+(Math.round(g.site.lat*1e4)/1e4)+", "+(Math.round(g.site.lon*1e4)/1e4)+'</span>':"";
+    var header='<div onclick="toggleSiteGroup(\''+sid+'\')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0.6rem 0.2rem;border-bottom:1px solid #1a1a1a;margin-bottom:0.6rem">'+
+      '<div style="min-width:0">'+
+        '<span class="hd" style="font-size:1rem;color:'+(g.site?"#2a6":"#777")+'">'+(collapsed?"\u25B8":"\u25BE")+' '+title+'</span>'+
+        '<span class="mono" style="font-size:0.6rem;color:#555;margin-left:0.5rem">'+g.piles.length+'</span>'+coords+
+      '</div>'+
+    '</div>';
+    var body=collapsed?"":g.piles.map(renderPileCard).join("");
+    return '<div style="margin-bottom:1rem">'+header+body+'</div>';
+  }).join("");
+}
+function toggleSiteGroup(sid){homeCollapsedSites[sid]=!homeCollapsedSites[sid];renderHome();}
+function renderPileCard(p){
     var sorted=p.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
     var lat=sorted[sorted.length-1];
     var t=calcSmartTimer(p.entries);
@@ -1790,7 +2006,6 @@ function renderHome(){
         '<button onclick="event.stopPropagation();deletePile(\''+p.id+'\')" class="btn-sm" style="font-size:0.62rem;color:#9a4a4a;border-color:#3a1a1a">DELETE</button>'+
       '</div>'+
     '</div>';
-  }).join("");
 }
 function openPile(id){activeId=id;showView("dashboard");}
 var _maturityPileId=null;
@@ -1915,7 +2130,7 @@ function deletePile(id){
   },30000);  // 30 seconds for pile deletion
 }
 
-function renderSetup(){newMaterials=newMats();document.getElementById("new-pile-name").value="";document.getElementById("new-pile-name").classList.remove("error");document.getElementById("setup-error").classList.add("hidden");updateTotalVol();renderCatEditors("new");renderRecipesPanel();}
+function renderSetup(){newMaterials=newMats();document.getElementById("new-pile-name").value="";document.getElementById("new-pile-name").classList.remove("error");populateSiteSelect("new-pile-site-select",null);document.getElementById("setup-error").classList.add("hidden");updateTotalVol();renderCatEditors("new");renderRecipesPanel();}
 
 function renderCatEditors(mode){
   var prefix=mode==="edit"?"re":"cat";
@@ -2203,15 +2418,48 @@ function validatePileSetup(){
   return true;
 }
 
+function fillCurrentLocation(which){
+  var latId=which==="new"?"new-pile-lat":"site-lat";
+  var lonId=which==="new"?"new-pile-lon":"site-lon";
+  if(!navigator.geolocation){alert("Location is not available on this device. Please enter coordinates manually.");return;}
+  function apply(pos){
+    var la=document.getElementById(latId),lo=document.getElementById(lonId);
+    if(la)la.value=Math.round(pos.coords.latitude*1e6)/1e6;
+    if(lo)lo.value=Math.round(pos.coords.longitude*1e6)/1e6;
+  }
+  function fail(err){
+    var msg="Could not get location. ";
+    if(err&&err.code===1)msg+="Permission was denied — enable Location for your browser in device Settings (e.g. iOS: Settings > Privacy & Security > Location Services > Safari/your browser), then try again.";
+    else if(err&&err.code===2)msg+="Position unavailable right now.";
+    else if(err&&err.code===3)msg+="It timed out.";
+    msg+=" You can also type the coordinates manually.";
+    alert(msg);
+  }
+  // Try high accuracy first; if that errors, retry with low accuracy and a longer timeout.
+  navigator.geolocation.getCurrentPosition(apply,function(){
+    navigator.geolocation.getCurrentPosition(apply,fail,{enableHighAccuracy:false,timeout:20000,maximumAge:60000});
+  },{enableHighAccuracy:true,timeout:12000,maximumAge:0});
+}
+// Populate a <select> with site options (plus "No site"). selectedId pre-selects.
+function populateSiteSelect(selectId,selectedId){
+  var sel=document.getElementById(selectId);if(!sel)return;
+  var opts='<option value="">\u2014 No site \u2014</option>';
+  sites.forEach(function(s){
+    opts+='<option value="'+s.id+'"'+(s.id===selectedId?" selected":"")+'>'+escapeHtml(s.name)+'</option>';
+  });
+  sel.innerHTML=opts;
+}
 function createPile(){
   if(!validatePileSetup())return;
   var name=document.getElementById("new-pile-name").value.trim();
+  var selEl=document.getElementById("new-pile-site-select");
+  var siteId=selEl&&selEl.value?selEl.value:null;
   CATS.forEach(function(cat){
     newMaterials[cat.key].forEach(function(i){if(i.name)addToHist(cat.key,i.name);});
   });
-  var pile={id:uid(),name:name,created:new Date().toISOString(),status:"active",
+  var pile={id:uid(),name:name,siteId:siteId,created:new Date().toISOString(),status:"active",
     volumeUnit:volumeUnit,containerUnit:JSON.parse(JSON.stringify(containerUnit)),
-    lastModified:Date.now(),
+    lastModified:Date.now(),dataSource:"manual",
     materials:JSON.parse(JSON.stringify(newMaterials)),entries:[]};
   piles.push(pile);activeId=pile.id;save();showView("dashboard");
 }
@@ -2248,6 +2496,14 @@ function renderDashboard(){
   var lat=sorted[sorted.length-1];var band=lat?getBand(avgCore(lat)):null;
 
   document.getElementById("dash-name").textContent=pile.name;
+  var siteEl=document.getElementById("dash-site");
+  if(siteEl){
+    var sName=pile.siteId?siteName(pile.siteId):null;
+    siteEl.innerHTML=sName?("📍 "+escapeHtml(sName)+' <span style="color:#555;text-decoration:underline">change</span>'):'<span style="color:#555;text-decoration:underline">📍 assign to site</span>';
+    siteEl.style.display="block";
+    siteEl.style.cursor="pointer";
+    siteEl.onclick=function(){openAssignSite(pile.id);};
+  }
   var pileStartDate=getPileStartDate(pile);
   var daysSinceStart=sorted.length?Math.floor((Date.now()-pileStartDate.getTime())/86400000)+1:0;
   document.getElementById("dash-sub").textContent="DAY "+daysSinceStart+" \u00B7 "+driveLabelShort();
@@ -2714,7 +2970,9 @@ function renderChart(sorted){
     {label:"Core 1",data:sorted.filter(function(e){return e.core1!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core1)};}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
     {label:"Core 2",data:sorted.filter(function(e){return e.core2!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core2)};}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#4ade80",spanGaps:true,yAxisID:"y",order:2},
     {label:"Core 3",data:sorted.filter(function(e){return e.core3!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core3)};}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#a855f7",spanGaps:true,yAxisID:"y",order:3}
-  ]:[
+  ].concat(sorted.some(function(e){return e.core4!=null;})?[
+    {label:"Core 4",data:sorted.filter(function(e){return e.core4!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core4)};}),borderColor:"#22d3ee",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#22d3ee",spanGaps:true,yAxisID:"y",order:3}
+  ]:[]):[
     {label:"Average",data:sorted.filter(function(e){return avgCore(e)!=null;}).map(function(e){return {x:xVal(e),y:disp(avgCore(e))};}),
       borderColor:"#fff",backgroundColor:"#ffffff08",tension:0.3,pointRadius:4,pointBackgroundColor:"#fff",spanGaps:true,yAxisID:"y",order:1}
   ];
@@ -3120,13 +3378,16 @@ function validateEntry(){
   var coreEl=document.getElementById("f-core");
   var topEl=document.getElementById("f-top");
   var botEl=document.getElementById("f-bottom");
+  var c4El=document.getElementById("f-core4");
   coreEl.classList.remove("error");
   topEl.classList.remove("error");
   botEl.classList.remove("error");
+  if(c4El)c4El.classList.remove("error");
   var core=fromInput(coreEl.value);
   var top=fromInput(topEl.value);
   var bottom=fromInput(botEl.value);
-  if(core==null&&top==null&&bottom==null){
+  var core4=c4El?fromInput(c4El.value):null;
+  if(core==null&&top==null&&bottom==null&&core4==null){
     coreEl.classList.add("error");
     errors.push("Enter at least one temperature");
   } else {
@@ -3143,6 +3404,10 @@ function validateEntry(){
       botEl.classList.add("error");
       errors.push("Bottom temperature out of range (0-250"+unitLbl()+")");
     }
+    if(core4!=null&&(core4<minF||core4>maxF)){
+      if(c4El)c4El.classList.add("error");
+      errors.push("Core 4 temperature out of range (0-250"+unitLbl()+")");
+    }
   }
   var errEl=document.getElementById("entry-error");
   if(errors.length){
@@ -3152,19 +3417,21 @@ function validateEntry(){
   }
   errEl.classList.add("hidden");
   var ambient=fromInput(document.getElementById("f-ambient").value);
-  return{core1:core,core2:top,core3:bottom,ambient:ambient,date:date,time:time,ts:entryTs};
+  var apiEl=document.getElementById("f-ambient-api");
+  var ambientApi=apiEl?fromInput(apiEl.value):null;
+  return{core1:core,core2:top,core3:bottom,core4:core4,ambient:ambient,ambientApi:ambientApi,date:date,time:time,ts:entryTs};
 }
 
 function addEntry(){
   var pile=getActivePile();if(!pile)return;
   var v=validateEntry();if(!v)return;
-  pile.entries.push({id:uid(),ts:v.ts.toISOString(),date:v.date,time:v.time,core1:v.core1,core2:v.core2,core3:v.core3,ambient:v.ambient,
+  pile.entries.push({id:uid(),ts:v.ts.toISOString(),date:v.date,time:v.time,core1:v.core1,core2:v.core2,core3:v.core3,core4:v.core4,ambient:v.ambient,ambientApi:v.ambientApi,
     moisture:document.getElementById("f-moisture-skip").checked?null:parseInt(document.getElementById("f-moisture-slider").value),
     turned:document.getElementById("f-turned").checked,
     notes:document.getElementById("f-notes").value});
   save();
   var skipEl=document.getElementById("f-moisture-skip");if(skipEl){skipEl.checked=false;toggleMoistureSkip();}
-  ["f-core","f-top","f-bottom","f-ambient","f-notes"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
+  ["f-core","f-top","f-bottom","f-core4","f-ambient","f-ambient-api","f-notes"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
   var sl=document.getElementById("f-moisture-slider");sl.value=50;updateSlider(sl);
   document.getElementById("f-turned").checked=false;
   renderDashboard();
@@ -3214,9 +3481,11 @@ function openEdit(entryId){
   dateEl.setAttribute("max",todayStr);
   document.getElementById("e-time").value=entry.time;
   document.getElementById("e-ambient").value=entry.ambient!=null?disp(entry.ambient):"";
+  var eApi=document.getElementById("e-ambient-api");if(eApi)eApi.value=entry.ambientApi!=null?disp(entry.ambientApi):"";
   document.getElementById("e-core").value=entry.core1!=null?disp(entry.core1):"";
   document.getElementById("e-top").value=entry.core2!=null?disp(entry.core2):"";
   document.getElementById("e-bottom").value=entry.core3!=null?disp(entry.core3):"";
+  var ec4=document.getElementById("e-core4");if(ec4)ec4.value=entry.core4!=null?disp(entry.core4):"";
   var sl=document.getElementById("e-moisture");sl.value=entry.moisture!=null?entry.moisture:50;updateEditSlider(sl);
   var eskip=document.getElementById("e-moisture-skip");if(eskip){eskip.checked=(entry.moisture==null);toggleEditMoistureSkip();}
   document.getElementById("e-turned").checked=entry.turned;
@@ -3250,16 +3519,20 @@ function saveEdit(){
   var eCore=fromInput(document.getElementById("e-core").value);
   var eTop=fromInput(document.getElementById("e-top").value);
   var eBot=fromInput(document.getElementById("e-bottom").value);
+  var ec4El=document.getElementById("e-core4");
+  var eC4=ec4El?fromInput(ec4El.value):null;
   var coreElE=document.getElementById("e-core");
   var topElE=document.getElementById("e-top");
   var botElE=document.getElementById("e-bottom");
   coreElE.classList.remove("error");
   topElE.classList.remove("error");
   botElE.classList.remove("error");
+  if(ec4El)ec4El.classList.remove("error");
   var rangeErrors=[];
   if(eCore!=null&&(eCore<0||eCore>250)){coreElE.classList.add("error");rangeErrors.push("Core out of range");}
   if(eTop!=null&&(eTop<0||eTop>250)){topElE.classList.add("error");rangeErrors.push("Top out of range");}
   if(eBot!=null&&(eBot<0||eBot>250)){botElE.classList.add("error");rangeErrors.push("Bottom out of range");}
+  if(eC4!=null&&(eC4<0||eC4>250)){if(ec4El)ec4El.classList.add("error");rangeErrors.push("Core 4 out of range");}
   if(rangeErrors.length){
     errEl.innerHTML=rangeErrors.join("<br>")+" (0-250"+unitLbl()+")";
     errEl.classList.remove("hidden");
@@ -3267,9 +3540,12 @@ function saveEdit(){
   }
   entry.date=newDate;entry.time=newTime;entry.ts=newTs.toISOString();
   entry.ambient=fromInput(document.getElementById("e-ambient").value);
+  var eApiEl=document.getElementById("e-ambient-api");
+  entry.ambientApi=eApiEl?fromInput(eApiEl.value):null;
   entry.core1=eCore;
   entry.core2=eTop;
   entry.core3=eBot;
+  entry.core4=eC4;
   entry.moisture=document.getElementById("e-moisture-skip")&&document.getElementById("e-moisture-skip").checked?null:parseInt(document.getElementById("e-moisture").value);
   entry.turned=document.getElementById("e-turned").checked;
   entry.notes=document.getElementById("e-notes").value;
@@ -3623,12 +3899,24 @@ function exportPDF(){
     // Full-width single-column log so every reading shows ambient + all three probes
     // plus the basis figure (Avg or Min per the display-basis setting).
     var basisLabel=(typeof displayBasis!=="undefined"&&displayBasis==="min")?"Min":"Avg";
-    // Column layout (x-offsets from left margin), tuned to fit CW (~180mm).
-    var cols=[["#",0,8],["Date",8,30],["Time",38,20],["Amb",58,16],
-              ["C1",74,16],["C2",90,16],["C3",106,16],[basisLabel,122,18],
-              ["Moist",140,18],["Turn",158,0]];
+    var hasCore4=sortedEntries.some(function(e){return e.core4!=null;});
+    var hasAmbM=sortedEntries.some(function(e){return e.ambient!=null;});
+    var hasAmbApi=sortedEntries.some(function(e){return e.ambientApi!=null;});
+    // Build columns dynamically so optional ones (ambient manual/API, C4) only appear
+    // when there's data. Widths are weights; x-offsets computed to fit CW.
+    var colDefs=[["#",0.7],["Date",2.6],["Time",1.7]];
+    if(hasAmbM)colDefs.push(["AmbM",1.4]);
+    if(hasAmbApi)colDefs.push(["AmbA",1.4]);
+    colDefs.push(["C1",1.3]);colDefs.push(["C2",1.3]);colDefs.push(["C3",1.3]);
+    if(hasCore4)colDefs.push(["C4",1.3]);
+    colDefs.push([basisLabel,1.6]);colDefs.push(["Moist",1.6]);colDefs.push(["Turn",1.3]);
+    var totalWeight=colDefs.reduce(function(s,c){return s+c[1];},0);
+    var cols=[];var xAcc=0;
+    colDefs.forEach(function(c){cols.push([c[0],Math.round(xAcc*100)/100]);xAcc+=(c[1]/totalWeight)*CW;});
+    var manyColsFsz=(cols.length>9)?7:8;
+    function colX(label){for(var i=0;i<cols.length;i++)if(cols[i][0]===label)return M+cols[i][1];return M;}
     function drawFullHeader(yy){
-      doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(80,80,80);
+      doc.setFont("helvetica","bold");doc.setFontSize(manyColsFsz);doc.setTextColor(80,80,80);
       cols.forEach(function(c){doc.text(c[0],M+c[1],yy);});
       doc.setDrawColor(180,180,180);doc.line(M,yy+1.4,W-M,yy+1.4);
       return yy+5.5;
@@ -3636,24 +3924,25 @@ function exportPDF(){
     function colColor(hex){var h=/^#[0-9a-fA-F]{6}$/.test(hex)?hex:"#3c3c3c";return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
     function drawFullEntry(e,idx,yLocal,zebra){
       var rowH=5;
+      var fsz=manyColsFsz;
       var hasNote=e.notes&&e.notes.trim();
       if(zebra%2===1){doc.setFillColor(247,247,247);doc.rect(M,yLocal-3.2,CW,5,"F");}
-      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(55,55,55);
-      doc.text(String(idx+1),M+cols[0][1],yLocal);
-      doc.text(e.date||"",M+cols[1][1],yLocal);
-      doc.text(e.time||"-",M+cols[2][1],yLocal);
-      doc.text(e.ambient!=null?String(Math.round(e.ambient)):"-",M+cols[3][1],yLocal);
-      // probes, each in its color
-      var p1=colColor("#ff4444");doc.setTextColor(p1[0],p1[1],p1[2]);doc.text(e.core1!=null?String(Math.round(disp(e.core1))):"-",M+cols[4][1],yLocal);
-      var p2=colColor("#16a34a");doc.setTextColor(p2[0],p2[1],p2[2]);doc.text(e.core2!=null?String(Math.round(disp(e.core2))):"-",M+cols[5][1],yLocal);
-      var p3=colColor("#9333ea");doc.setTextColor(p3[0],p3[1],p3[2]);doc.text(e.core3!=null?String(Math.round(disp(e.core3))):"-",M+cols[6][1],yLocal);
-      // basis figure (avg or min)
+      doc.setFont("helvetica","normal");doc.setFontSize(fsz);doc.setTextColor(55,55,55);
+      doc.text(String(idx+1),colX("#"),yLocal);
+      doc.text(e.date||"",colX("Date"),yLocal);
+      doc.text(e.time||"-",colX("Time"),yLocal);
+      if(hasAmbM){doc.setTextColor(245,158,11);doc.text(e.ambient!=null?String(Math.round(disp(e.ambient))):"-",colX("AmbM"),yLocal);doc.setTextColor(55,55,55);}
+      if(hasAmbApi){doc.setTextColor(251,191,36);doc.text(e.ambientApi!=null?String(Math.round(disp(e.ambientApi))):"-",colX("AmbA"),yLocal);doc.setTextColor(55,55,55);}
+      var p1=colColor("#ff4444");doc.setTextColor(p1[0],p1[1],p1[2]);doc.text(e.core1!=null?String(Math.round(disp(e.core1))):"-",colX("C1"),yLocal);
+      var p2=colColor("#16a34a");doc.setTextColor(p2[0],p2[1],p2[2]);doc.text(e.core2!=null?String(Math.round(disp(e.core2))):"-",colX("C2"),yLocal);
+      var p3=colColor("#9333ea");doc.setTextColor(p3[0],p3[1],p3[2]);doc.text(e.core3!=null?String(Math.round(disp(e.core3))):"-",colX("C3"),yLocal);
+      if(hasCore4){var p4=colColor("#0891b2");doc.setTextColor(p4[0],p4[1],p4[2]);doc.text(e.core4!=null?String(Math.round(disp(e.core4))):"-",colX("C4"),yLocal);}
       var basisVal=(basisLabel==="Min")?strictMinTemp(e):avgCore(e);
       var band2=getBand(basisVal);var bc=colColor(band2?band2.color:"#3c3c3c");
-      doc.setTextColor(bc[0],bc[1],bc[2]);doc.text(basisVal!=null?String(Math.round(disp(basisVal))):"-",M+cols[7][1],yLocal);
+      doc.setTextColor(bc[0],bc[1],bc[2]);doc.text(basisVal!=null?String(Math.round(disp(basisVal))):"-",colX(basisLabel),yLocal);
       doc.setTextColor(55,55,55);
-      doc.text(e.moisture!=null?e.moisture+"%":"-",M+cols[8][1],yLocal);
-      if(e.turned){var tc=colColor("#f97316");doc.setTextColor(tc[0],tc[1],tc[2]);doc.text("YES",M+cols[9][1],yLocal);doc.setTextColor(55,55,55);}
+      doc.text(e.moisture!=null?e.moisture+"%":"-",colX("Moist"),yLocal);
+      if(e.turned){var tc=colColor("#f97316");doc.setTextColor(tc[0],tc[1],tc[2]);doc.text("YES",colX("Turn"),yLocal);doc.setTextColor(55,55,55);}
       yLocal+=rowH;
       if(hasNote){
         doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(110,110,110);
@@ -3723,9 +4012,10 @@ function exportPDF(){
           ]:[
             {label:"Core 1",data:sortedEntries.map(function(e){return e.core1!=null?crPDF(e.core1):null;}),borderColor:"#ff4444",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
             {label:"Core 2",data:sortedEntries.map(function(e){return e.core2!=null?crPDF(e.core2):null;}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
-            {label:"Core 3",data:sortedEntries.map(function(e){return e.core3!=null?crPDF(e.core3):null;}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
+            {label:"Core 3",data:sortedEntries.map(function(e){return e.core3!=null?crPDF(e.core3):null;}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"}
+          ].concat(sortedEntries.some(function(e){return e.core4!=null;})?[{label:"Core 4",data:sortedEntries.map(function(e){return e.core4!=null?crPDF(e.core4):null;}),borderColor:"#22d3ee",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"}]:[]).concat([
             {label:"Moisture",data:sortedEntries.map(function(e){return e.moisture;}),borderColor:"#1e88e5",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y2"}
-          ]).concat(tempMode==="average"?[
+          ])).concat(tempMode==="average"?[
             {label:"Average",data:sortedEntries.map(function(e){var a=avgCore(e);return a!=null?crPDF(a):null;}),borderColor:"#ffffff",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[6,3]}
           ]:[])
           .concat(showAmbient&&sortedEntries.some(function(e){return e.ambient!=null;})?[
@@ -3944,12 +4234,12 @@ async function initDriveStorage(){
         });
         piles=mergedPiles;recipes=mergedRecipes;ingHist=driveIngHist;tempUnit=driveUnit;
         deletedPileIds=allDeletedIds;
-        localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
-        await driveUpload(driveFileId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
+        localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
+        await driveUpload(driveFileId,{piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
       }
     }
   } else {
-    var f=await driveCreateFile("compost_data.json",folderId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit});
+    var f=await driveCreateFile("compost_data.json",folderId,{piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit});
     driveFileId=f.id;
   }
 }
@@ -4009,12 +4299,20 @@ async function driveSaveNow(){
         });
         piles=merged2;
         deletedPileIds=allDeleted2;
-        localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
+        // Merge sites (union by id; Drive copy wins on conflict). Then re-run the
+        // inline-site migration so any newly-merged piles get linked.
+        var driveSites2=d.sites||[];
+        var siteMap2={};
+        sites.forEach(function(st){siteMap2[st.id]=st;});
+        driveSites2.forEach(function(st){siteMap2[st.id]=st;});
+        sites=Object.values(siteMap2);
+        migrateSites();
+        localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
         renderHome();
       }
     }
     // PUSH merged result to Drive
-    await driveUpload(driveFileId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
+    await driveUpload(driveFileId,{piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
     pendingSave=false;
     syncInProgress=false;
     setStatus("saved");
@@ -4812,7 +5110,7 @@ function setShowPFRP(on){
   if(dash&&!dash.classList.contains("hidden"))renderDashboard();
 }
 function exportAllJSON(){
-  var data={piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,exportedAt:new Date().toISOString()};
+  var data={piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,exportedAt:new Date().toISOString()};
   var a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
   a.download="compost-logger-backup-"+localDateStr(new Date())+".json";

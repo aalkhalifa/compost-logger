@@ -288,7 +288,10 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     </div>
     <div>
       <label class="lbl" style="color:#fbbf24">AMB API <span style="color:#555;font-size:0.5rem">OPT</span></label>
-      <input type="number" class="temp-input" id="f-ambient-api" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem"/>
+      <div style="display:flex;gap:0.3rem;align-items:stretch">
+        <input type="number" class="temp-input" id="f-ambient-api" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem;flex:1;min-width:0"/>
+        <button type="button" id="f-ambient-api-btn" onclick="fetchApiAmbient('f-ambient-api')" style="padding:0 0.5rem;background:none;border:1px solid #fbbf24;color:#fbbf24;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.6rem;white-space:nowrap">☁ API</button>
+      </div>
     </div>
   </div>
   </div>
@@ -473,7 +476,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div id="edit-error" class="error-msg hidden"></div>
       <div style="margin-bottom:0.6rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
         <div><label class="lbl" style="color:#f59e0b">AMB MANUAL <span id="e-unit-amb"></span></label><input type="number" class="temp-input" id="e-ambient" placeholder="-" inputmode="decimal"/></div>
-        <div><label class="lbl" style="color:#fbbf24">AMB API</label><input type="number" class="temp-input" id="e-ambient-api" placeholder="-" inputmode="decimal"/></div>
+        <div><label class="lbl" style="color:#fbbf24">AMB API</label><div style="display:flex;gap:0.3rem;align-items:stretch"><input type="number" class="temp-input" id="e-ambient-api" placeholder="-" inputmode="decimal" style="flex:1;min-width:0"/><button type="button" id="e-ambient-api-btn" onclick="fetchApiAmbient('e-ambient-api')" style="padding:0 0.5rem;background:none;border:1px solid #fbbf24;color:#fbbf24;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.6rem;white-space:nowrap">☁ API</button></div></div>
       </div>
       <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#ff4444">CORE 1 <span id="e-unit-core"></span></label><input type="number" class="temp-input" id="e-core" placeholder="-" inputmode="decimal"/></div>
       <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#4ade80">CORE 2 <span id="e-unit-top"></span></label><input type="number" class="temp-input" id="e-top" placeholder="-" inputmode="decimal"/></div>
@@ -699,7 +702,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.77a";
+var BUILD_VER="v3.77c";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -2418,6 +2421,36 @@ function validatePileSetup(){
   return true;
 }
 
+// Fetch current ambient temperature from Open-Meteo for the active pile's site.
+// Free, no API key, CORS-enabled. Offline / no-site / error → leaves field blank and
+// tells the user; never throws into the entry flow. Always requests Fahrenheit and
+// converts to the app's display unit (internal storage stays °F).
+function fetchApiAmbient(targetInputId){
+  var pile=getActivePile();
+  var site=pile&&pile.siteId?getSite(pile.siteId):null;
+  if(!site||site.lat==null||site.lon==null){
+    alert("This pile has no site with coordinates. Assign it to a site that has latitude/longitude (\uD83D\uDCCD SITES), then try again. You can still enter ambient manually.");
+    return;
+  }
+  if(!navigator.onLine){
+    alert("You appear to be offline. The weather value needs internet \u2014 enter ambient manually for now.");
+    return;
+  }
+  var btn=document.getElementById(targetInputId+"-btn");
+  if(btn){btn.disabled=true;btn.textContent="...";}
+  var url="https://api.open-meteo.com/v1/forecast?latitude="+encodeURIComponent(site.lat)+"&longitude="+encodeURIComponent(site.lon)+"&current=temperature_2m&temperature_unit=fahrenheit";
+  fetch(url).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(d){
+    var tF=d&&d.current&&d.current.temperature_2m;
+    if(tF==null||isNaN(tF))throw new Error("no temperature in response");
+    var shown=(tempUnit==="C")?toC(tF):tF;       // input shows display unit
+    var inp=document.getElementById(targetInputId);
+    if(inp)inp.value=Math.round(shown*10)/10;
+  }).catch(function(e){
+    alert("Couldn't get the weather temperature ("+(e&&e.message?e.message:"error")+"). You can enter ambient manually.");
+  }).then(function(){
+    if(btn){btn.disabled=false;btn.textContent="☁ API";}
+  });
+}
 function fillCurrentLocation(which){
   var latId=which==="new"?"new-pile-lat":"site-lat";
   var lonId=which==="new"?"new-pile-lon":"site-lon";

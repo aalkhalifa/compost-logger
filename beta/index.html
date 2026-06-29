@@ -616,8 +616,8 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
           <button id="s-pfrp-off" onclick="setShowPFRP(false)" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">OFF</button>
         </div>
       </div>
-      <!-- Anthropic API key (for photo scan) -->
-      <div style="padding:0.6rem 0;border-bottom:1px solid #111">
+      <!-- Anthropic API key (for photo scan) — feature cancelled, hidden -->
+      <div style="display:none">
         <div class="mono" style="font-size:0.85rem;color:#ccc;margin-bottom:0.15rem">PHOTO SCAN API KEY</div>
         <div style="font-size:0.65rem;color:#555;margin-bottom:0.5rem;line-height:1.4">Optional. Enables reading thermometers from photos. Get a key at <span style="color:#60a5fa">console.anthropic.com</span> &rarr; API Keys. Stored only on this device; the SCAN button appears once a key is saved.</div>
         <div style="display:flex;gap:0.4rem;align-items:center">
@@ -706,7 +706,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.77m";
+var BUILD_VER="v3.77o";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -2986,7 +2986,7 @@ function renderChart(sorted){
     if(daySpan>7){
       // Fit a target number of days to the visible width: 12 in landscape, 6 in portrait
       // (built around the 3-day stage rhythm). Each day's pixel width = chart area / target.
-      var targetDays=isLandscapeW?12:6;
+      var targetDays=isLandscapeW?24:12;
       var chartArea=Math.max(320,(window.innerWidth||700)-80);
       var pxPerDay=Math.max(50,Math.floor(chartArea/targetDays));
       var totalW=Math.max(500,daySpan*pxPerDay);
@@ -3169,7 +3169,7 @@ function renderChart(sorted){
           }
         },
         annotation:{annotations:Object.assign({
-          r131:{type:"line",yMin:cr(131),yMax:cr(131),borderColor:"#f59e0b77",borderWidth:1,borderDash:[5,4],yScaleID:"y",label:{display:true,content:"PFRP 131\u00B0",position:"start",backgroundColor:"rgba(245,158,11,0.15)",color:"#f59e0b",font:{size:9},padding:2}},
+          r131:{type:"line",yMin:cr(131),yMax:cr(131),borderColor:"#f59e0b77",borderWidth:1,borderDash:[5,4],yScaleID:"y",label:{display:true,content:"THERMO 131\u00B0F",position:"start",backgroundColor:"rgba(245,158,11,0.15)",color:"#f59e0b",font:{size:9},padding:2}},
           r175:{type:"line",yMin:cr(175),yMax:cr(175),borderColor:"#ff000055",borderWidth:1,borderDash:[3,3],yScaleID:"y",label:{display:true,content:"TURN 175\u00B0",position:"start",backgroundColor:"rgba(255,0,0,0.12)",color:"#ff6666",font:{size:9},padding:2}},
           danger:{type:"box",yMin:cr(175),yMax:cMax+5,backgroundColor:"rgba(255,0,0,0.04)",borderColor:"rgba(255,0,0,0.15)",borderWidth:1,yScaleID:"y"}
         },dayAnnotations,turnAnnotations,showRate?{rateZero:{type:"line",yMin:0,yMax:0,yScaleID:"yRate",borderColor:"rgba(34,211,238,0.35)",borderWidth:1,borderDash:[4,3],label:{display:true,content:"0\u00B0/h",position:"end",backgroundColor:"rgba(34,211,238,0.12)",color:"#22d3ee",font:{size:8},padding:1}}}:{})}
@@ -3478,8 +3478,8 @@ function renderLogTable(sorted,pile){
       thermoEl.textContent="THERMOPHILIC STARTED: "+dstr;
       thermoEl.style.display="block";
     } else {
-      thermoEl.textContent="NOT YET THERMOPHILIC";
-      thermoEl.style.display="block";
+      thermoEl.textContent="";
+      thermoEl.style.display="none";
     }
   }
   if(!sorted.length){table.innerHTML="";return;}
@@ -5486,10 +5486,9 @@ document.getElementById("logo-img").src=BANNER_B64;
   updateScanButtonVisibility();
 })();
 function updateScanButtonVisibility(){
+  // Photo-scan feature cancelled — keep the button permanently hidden.
   var btn=document.getElementById("scan-photos-btn");
-  if(!btn)return;
-  var hasKey=!!(localStorage.getItem("ca_anthropicKey")||"").trim();
-  btn.style.display=hasKey?"flex":"none";
+  if(btn)btn.style.display="none";
 }
 load();
 renderHome();

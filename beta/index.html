@@ -346,6 +346,23 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       </div>
     </label>
   </div>
+  <div style="margin-bottom:0.75rem;padding:0.75rem;background:#050505;border:1px solid #1a1a1a;border-radius:3px">
+    <label style="display:flex;align-items:center;gap:0.75rem;cursor:pointer">
+      <input type="checkbox" id="f-watered" onchange="toggleWaterFields('f')" style="width:22px;height:22px"/>
+      <div>
+        <div class="mono" style="font-size:0.9rem;color:#3b82f6">WATERED</div>
+        <div style="font-size:0.7rem;color:#555;margin-top:0.1rem">Check if you watered the pile (optional)</div>
+      </div>
+    </label>
+    <div id="f-water-fields" style="display:none;margin-top:0.6rem">
+      <div style="display:flex;gap:0.4rem;margin-bottom:0.5rem">
+        <button type="button" id="f-water-light" onclick="setWaterAmount('f','light')" class="btn-sm water-amt" style="flex:1;font-size:0.7rem">LIGHT</button>
+        <button type="button" id="f-water-medium" onclick="setWaterAmount('f','medium')" class="btn-sm water-amt" style="flex:1;font-size:0.7rem">MEDIUM</button>
+        <button type="button" id="f-water-heavy" onclick="setWaterAmount('f','heavy')" class="btn-sm water-amt" style="flex:1;font-size:0.7rem">HEAVY</button>
+      </div>
+      <input type="number" id="f-water-qty" placeholder="Quantity (optional, e.g. liters)" inputmode="decimal" class="temp-input" style="font-size:0.85rem;width:100%"/>
+    </div>
+  </div>
   <div style="margin-bottom:0.75rem">
     <label class="lbl">NOTES</label>
     <textarea id="f-notes" placeholder="Observations, smell, texture..." style="height:52px;resize:none"></textarea>
@@ -503,6 +520,20 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
           <input type="checkbox" id="e-turned" style="width:22px;height:22px"/>
           <span class="mono" style="font-size:0.9rem;color:#f97316">PILE TURNED</span>
         </label>
+      </div>
+      <div style="margin-bottom:0.75rem;padding:0.75rem;background:#050505;border:1px solid #1a1a1a;border-radius:3px">
+        <label style="display:flex;align-items:center;gap:0.75rem;cursor:pointer">
+          <input type="checkbox" id="e-watered" onchange="toggleWaterFields('e')" style="width:22px;height:22px"/>
+          <span class="mono" style="font-size:0.9rem;color:#3b82f6">WATERED</span>
+        </label>
+        <div id="e-water-fields" style="display:none;margin-top:0.6rem">
+          <div style="display:flex;gap:0.4rem;margin-bottom:0.5rem">
+            <button type="button" id="e-water-light" onclick="setWaterAmount('e','light')" class="btn-sm" style="flex:1;font-size:0.7rem">LIGHT</button>
+            <button type="button" id="e-water-medium" onclick="setWaterAmount('e','medium')" class="btn-sm" style="flex:1;font-size:0.7rem">MEDIUM</button>
+            <button type="button" id="e-water-heavy" onclick="setWaterAmount('e','heavy')" class="btn-sm" style="flex:1;font-size:0.7rem">HEAVY</button>
+          </div>
+          <input type="number" id="e-water-qty" placeholder="Quantity (optional)" inputmode="decimal" class="temp-input" style="font-size:0.85rem;width:100%"/>
+        </div>
       </div>
       <div><label class="lbl">NOTES</label><textarea id="e-notes" style="height:52px;resize:none"></textarea></div>
     </div>
@@ -706,7 +737,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.77o";
+var BUILD_VER="v3.77p";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -3043,6 +3074,17 @@ function renderChart(sorted){
   if(sorted.length&&!sorted[0].turned){
     turnAnnotations["built"]={type:"line",xMin:xVal(sorted[0]),xMax:xVal(sorted[0]),borderColor:"#4ade80",borderWidth:2,borderDash:[4,3]};
   }
+  // Blue "watered" lines (distinct from orange turn lines), labeled with amount/qty.
+  sorted.forEach(function(e,i){
+    if(e.watered){
+      var wx=xVal(e);
+      var amt=e.waterAmount?e.waterAmount.charAt(0).toUpperCase()+e.waterAmount.slice(1):"";
+      var qty=(e.waterQty!=null)?(amt?" "+e.waterQty:e.waterQty):"";
+      var lbl="WATER"+(amt||qty?": "+amt+qty:"");
+      turnAnnotations["water"+i]={type:"line",xMin:wx,xMax:wx,borderColor:"#3b82f6",borderWidth:2,borderDash:[2,2],
+        label:{display:true,content:lbl,position:"start",backgroundColor:"rgba(59,130,246,0.15)",color:"#3b82f6",font:{size:8},padding:2}};
+    }
+  });
   var dayAnnotations={};
   var seenDay={};
   sorted.forEach(function(e,i){
@@ -3301,6 +3343,20 @@ function toggleAnalytics(){
   var pile=getActivePile();if(!pile)return;
   renderDashboard();
 }
+// Watering capture helpers. prefix is "f" (new entry) or "e" (edit).
+var _waterAmt={f:null,e:null};
+function toggleWaterFields(prefix){
+  var cb=document.getElementById(prefix+"-watered");
+  var box=document.getElementById(prefix+"-water-fields");
+  if(box)box.style.display=cb&&cb.checked?"block":"none";
+}
+function setWaterAmount(prefix,amt){
+  _waterAmt[prefix]=amt;
+  ["light","medium","heavy"].forEach(function(a){
+    var b=document.getElementById(prefix+"-water-"+a);
+    if(b){b.style.background=(a===amt)?"#3b82f6":"";b.style.color=(a===amt)?"#fff":"";b.style.borderColor=(a===amt)?"#3b82f6":"";}
+  });
+}
 function toggleAmbient(){
   showAmbient=!showAmbient;
   var btn=document.getElementById("btn-toggle-ambient");
@@ -3512,7 +3568,7 @@ function renderLogTable(sorted,pile){
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.8rem">'+(en.core3!=null?dispStr(en.core3):"-")+'</td>'+
       c4Cell+
       '<td style="padding:0.3rem 0.4rem">'+moistCell+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:'+(en.turned?"#f97316":"#1a1a1a")+';font-size:0.8rem">'+(en.turned?((sorted.length&&en.id===sorted[0].id)?"BUILT":"YES"):"-")+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:'+(en.turned?"#f97316":"#1a1a1a")+';font-size:0.8rem">'+(en.turned?((sorted.length&&en.id===sorted[0].id)?"BUILT":"YES"):"-")+(en.watered?' <span title="watered" style="color:#3b82f6">\uD83D\uDCA7</span>':"")+'</td>'+
       '<td style="padding:0.3rem 0.3rem"><button onclick="openEdit(\''+en.id+'\')" class="btn-sm" style="padding:0.2rem 0.4rem;font-size:0.66rem">EDIT</button></td>'+
     '</tr>';
   }).join("")+'</tbody>';
@@ -3584,15 +3640,24 @@ function validateEntry(){
 function addEntry(){
   var pile=getActivePile();if(!pile)return;
   var v=validateEntry();if(!v)return;
+  var wateredCb=document.getElementById("f-watered");
+  var isWatered=wateredCb&&wateredCb.checked;
+  var wQtyEl=document.getElementById("f-water-qty");
+  var wQty=(isWatered&&wQtyEl&&wQtyEl.value!=="")?parseFloat(wQtyEl.value):null;
   pile.entries.push({id:uid(),ts:v.ts.toISOString(),date:v.date,time:v.time,core1:v.core1,core2:v.core2,core3:v.core3,core4:v.core4,ambient:v.ambient,ambientApi:v.ambientApi,
     moisture:document.getElementById("f-moisture-skip").checked?null:parseInt(document.getElementById("f-moisture-slider").value),
     turned:document.getElementById("f-turned").checked,
+    watered:isWatered||false,
+    waterAmount:isWatered?_waterAmt.f:null,
+    waterQty:wQty,
     notes:document.getElementById("f-notes").value});
   save();
   var skipEl=document.getElementById("f-moisture-skip");if(skipEl){skipEl.checked=false;toggleMoistureSkip();}
-  ["f-core","f-top","f-bottom","f-core4","f-ambient","f-ambient-api","f-notes"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
+  ["f-core","f-top","f-bottom","f-core4","f-ambient","f-ambient-api","f-notes","f-water-qty"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
   var sl=document.getElementById("f-moisture-slider");sl.value=50;updateSlider(sl);
   document.getElementById("f-turned").checked=false;
+  var wc=document.getElementById("f-watered");if(wc)wc.checked=false;
+  _waterAmt.f=null;setWaterAmount("f",null);toggleWaterFields("f");
   renderDashboard();
 }
 
@@ -3648,6 +3713,14 @@ function openEdit(entryId){
   var sl=document.getElementById("e-moisture");sl.value=entry.moisture!=null?entry.moisture:50;updateEditSlider(sl);
   var eskip=document.getElementById("e-moisture-skip");if(eskip){eskip.checked=(entry.moisture==null);toggleEditMoistureSkip();}
   document.getElementById("e-turned").checked=entry.turned;
+  var ewc=document.getElementById("e-watered");
+  if(ewc){
+    ewc.checked=!!entry.watered;
+    _waterAmt.e=entry.waterAmount||null;
+    setWaterAmount("e",entry.waterAmount||null);
+    var ewq=document.getElementById("e-water-qty");if(ewq)ewq.value=(entry.waterQty!=null?entry.waterQty:"");
+    toggleWaterFields("e");
+  }
   document.getElementById("e-notes").value=entry.notes||"";
   var eAmbLbl=document.getElementById("e-unit-amb");if(eAmbLbl)eAmbLbl.textContent=unitLbl();
   ["core","top","bot"].forEach(function(k){var el=document.getElementById("e-unit-"+k);if(el)el.textContent=unitLbl();});
@@ -3707,6 +3780,12 @@ function saveEdit(){
   entry.core4=eC4;
   entry.moisture=document.getElementById("e-moisture-skip")&&document.getElementById("e-moisture-skip").checked?null:parseInt(document.getElementById("e-moisture").value);
   entry.turned=document.getElementById("e-turned").checked;
+  var ewCb=document.getElementById("e-watered");
+  var ewIs=ewCb&&ewCb.checked;
+  entry.watered=ewIs||false;
+  entry.waterAmount=ewIs?_waterAmt.e:null;
+  var ewqEl=document.getElementById("e-water-qty");
+  entry.waterQty=(ewIs&&ewqEl&&ewqEl.value!=="")?parseFloat(ewqEl.value):null;
   entry.notes=document.getElementById("e-notes").value;
   save();closeEdit();renderDashboard();
 }
@@ -4235,6 +4314,9 @@ function exportPDF(){
                 ta["built"]={type:"line",xMin:i,xMax:i,borderColor:"#16a34a",borderWidth:1.5,borderDash:[4,3]};
               } else if(e.turned){
                 ta["turn"+i]={type:"line",xMin:i,xMax:i,borderColor:"#f97316",borderWidth:1.5,label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#c2410c",font:{size:7},padding:1,rotation:90}};
+              }
+              if(e.watered){
+                ta["water"+i]={type:"line",xMin:i,xMax:i,borderColor:"#3b82f6",borderWidth:1.2,borderDash:[2,2],label:{display:true,content:"WATER",position:"start",backgroundColor:"rgba(59,130,246,0.15)",color:"#2563eb",font:{size:7},padding:1,rotation:90}};
               }
             });
             return ta;

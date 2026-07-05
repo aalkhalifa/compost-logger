@@ -1,0 +1,20 @@
+Hi Claude. I'm continuing development of Compost Logger.
+
+Please read PROJECT.md fully before responding to anything.
+
+Key facts:
+- Beta URL: https://aalkhalifa.github.io/compost-logger/beta/
+- Production URL: https://aalkhalifa.github.io/compost-logger/
+- Current version: v3.77p (beta)
+- Stack: single index.html, vanilla JS, Chart.js, jsPDF, SheetJS
+- Dark theme only, mobile-first, Safari/iOS compatible
+- Primary tool: Claude Code on desktop (reads repo directly)
+- Process rule: list ALL proposed changes before writing any code, wait for approval
+
+---
+
+[PASTE PROJECT.md CONTENTS HERE]
+
+---
+
+Session goal today: [DESCRIBE WHAT YOU WANT TO DO]

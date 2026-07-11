@@ -2,15 +2,14 @@
 
 > One source of truth for what's next.
 > Updated: July 11 2026
-> Current version: v3.77q (beta)
+> Current version: v3.78 (beta) / v3.77q (production)
 
 ---
 
-## 🔴 NOW — Fix these before promoting to production
+## 🔴 NOW — Active beta work (v3.78)
 
-- [ ] **Beta-test v3.77q, then promote to production**
-  - Verify the three fixes below on the live beta (see test plan), THEN copy beta → root
-  - [ ] Still TODO: rename "EXPORT ALL PILES" button to "Download My Data"
+- [ ] **Rename "EXPORT ALL PILES" button to "Download My Data"** (export now complete as of v3.77q)
+- [ ] **Fix beta service worker path** — `register("sw.js")` 404s on `/beta/`; use an absolute path so beta gets offline support too (prod is fine)
 
 ---
 
@@ -72,6 +71,8 @@
 
 ## ✅ DONE — Reference
 
+- **v3.77q promoted to production** (July 11 2026, tag v3.77q); v3.78 beta opened
+- **LICENSE added** — proprietary / all rights reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia
 - **v3.77q — siteId Drive sync fix:** Drive payload = full ca_v5 shape; connect + sync
   merge sites by id (local wins), preserve pile.siteId, no wipe when Drive lacks sites,
   migrateSites() after merge

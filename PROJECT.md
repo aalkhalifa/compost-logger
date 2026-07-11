@@ -16,23 +16,26 @@
 **Stack:** Single HTML file, vanilla JS, Chart.js, chartjs-plugin-annotation, jsPDF, SheetJS
 **Storage:** localStorage primary (`ca_v5` key), Google Drive as cloud backup (to be replaced with PocketBase)
 **Auth:** Google Identity Services OAuth (testing mode, max 100 users, 7-day token expiry)
-**Service worker:** sw.js — network-first, falls back to cache offline. Cache key = `compost-logger-v3.77q` (bump on every deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
+**License:** Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia. See LICENSE.
+**Service worker:** sw.js — network-first, falls back to cache offline. Cache key = `compost-logger-v3.78` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
+**Known SW quirk:** sw.js is registered with a relative path (`register("sw.js")`), so the SW registers correctly at the production root but 404s on `/beta/` (caught silently — beta runs without a SW). Fix later if beta needs offline support.
 
 ---
 
 ## Current Version
 
-**Live beta:** v3.77q (as of July 2026)
-**Production:** Behind beta — needs to be promoted (do NOT promote v3.77q until beta-tested)
+**Live beta:** v3.78 (as of July 11 2026) — fresh beta, no changes yet beyond version bump
+**Production:** v3.77q (promoted from beta on July 11 2026, tag v3.77q)
 
 ### Deployment structure
 ```
 compost-logger/
-├── index.html          ← production (stable, promote beta here when ready)
+├── index.html          ← production (v3.77q, stable)
 ├── beta/
-│   └── index.html      ← active development (v3.77q)
+│   └── index.html      ← active development (v3.78)
 ├── sw.js               ← service worker (shared)
 ├── manifest.json
+├── LICENSE             ← proprietary, all rights reserved
 ├── PROJECT.md          ← this file
 └── TODO.md
 ```

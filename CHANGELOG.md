@@ -71,3 +71,82 @@ PDF report, and a sample pile on first run.
 
 Known bugs present at this baseline (all fixed in 3.77q): siteId dropped on Drive
 sync, inflated active-cycle READY times, and an incomplete JSON export.
+
+## Earlier releases (v3.0 - v3.75) - reconstructed
+
+Production `index.html` shipped versions v3.0 through v3.75 before this changelog
+was started; v3.76 and v3.77p lived in the `beta/` file. These commits were all
+bare "Update index.html" / "Update sw.js" web edits with **empty commit messages**,
+so per-version change details are not recoverable from git history. The list below
+is a reconstructed **version -> first-appearance-date** ledger only (dates are when
+each version string first appears in a commit; some same-day versions may be listed
+by first-seen rather than strict release order). Newest first.
+
+- **v3.75** - 2026-06-17
+- **v3.73** - 2026-06-16
+- **v3.72** - 2026-06-16
+- **v3.70** - 2026-06-16
+- **v3.69** - 2026-06-16
+- **v3.68** - 2026-06-16
+- **v3.67** - 2026-06-14
+- **v3.66** - 2026-06-13
+- **v3.65** - 2026-06-13
+- **v3.64** - 2026-06-13
+- **v3.61** - 2026-06-13
+- **v3.60** - 2026-06-13
+- **v3.58** - 2026-06-13
+- **v3.57** - 2026-06-13
+- **v3.56** - 2026-06-12
+- **v3.55** - 2026-06-12
+- **v3.54** - 2026-06-12
+- **v3.53** - 2026-06-06
+- **v3.52** - 2026-06-06
+- **v3.51** - 2026-06-05
+- **v3.50** - 2026-06-05
+- **v3.49** - 2026-06-05
+- **v3.48** - 2026-06-05
+- **v3.47** - 2026-06-05
+- **v3.46** - 2026-05-31
+- **v3.45** - 2026-05-29
+- **v3.44** - 2026-05-29
+- **v3.43** - 2026-05-24
+- **v3.42** - 2026-05-24
+- **v3.41** - 2026-05-24
+- **v3.40** - 2026-05-24
+- **v3.39** - 2026-05-24
+- **v3.38** - 2026-05-24
+- **v3.37** - 2026-05-23
+- **v3.36** - 2026-05-22
+- **v3.35** - 2026-05-20
+- **v3.33** - 2026-05-19
+- **v3.32** - 2026-05-19
+- **v3.31** - 2026-05-18
+- **v3.30** - 2026-05-18
+- **v3.29** - 2026-05-18
+- **v3.28** - 2026-05-18
+- **v3.25** - 2026-05-18
+- **v3.24** - 2026-05-17
+- **v3.23** - 2026-05-17
+- **v3.22** - 2026-05-17
+- **v3.21** - 2026-05-17
+- **v3.20** - 2026-05-17
+- **v3.19** - 2026-05-17
+- **v3.18** - 2026-05-17
+- **v3.17** - 2026-05-17
+- **v3.16** - 2026-05-17
+- **v3.15** - 2026-05-17
+- **v3.14** - 2026-05-17
+- **v3.13** - 2026-05-17
+- **v3.12** - 2026-05-17
+- **v3.11** - 2026-05-17
+- **v3.10** - 2026-05-17
+- **v3.9** - 2026-05-17
+- **v3.8** - 2026-05-17
+- **v3.7** - 2026-05-17
+- **v3.6** - 2026-05-17
+- **v3.5** - 2026-05-16
+- **v3.4** - 2026-05-16
+- **v3.3** - 2026-05-15
+- **v3.2** - 2026-05-15
+- **v3.1** - 2026-05-15
+- **v3.0** - 2026-05-15 (earliest commit in repo)

@@ -24,6 +24,12 @@
     a TLS subdomain; `users` (built-in) + one `vaults` collection (`user` relation,
     `data` JSON = full ca_v5 shape, `updated` autodate, `analyticsOptIn` bool); CORS
     allows the GitHub Pages origin.
+    - **[deliverables DONE, July 11 2026]** Runbook + config authored in
+      `deploy/pocketbase/` (`README.md`, `vaults.collection.json`, `pocketbase.service`,
+      `Caddyfile`). **Server execution is on Abdulla** (I can't reach the DO box) — and
+      TLS/CORS-lockdown wait on the domain. Testing-before-domain path documented (local
+      `http://localhost` dev, or a temporary `nip.io`/Cloudflare-Tunnel HTTPS host).
+      Group B needs one value out of this: the reachable base URL -> `PB_BASE_URL`.
   - **B. Auth:** remove `gsi/client` script + `CLIENT_ID`; add a single configurable
     `PB_BASE_URL` constant (all PB calls read from it); add `pbLogin/pbSignup/
     pbLogout/pbRestoreAuth` via raw `fetch` (no PB JS SDK — respects single-file +

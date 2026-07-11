@@ -1,0 +1,44 @@
+[
+  {
+    "name": "vaults",
+    "type": "base",
+    "schema": [
+      {
+        "name": "user",
+        "type": "relation",
+        "required": true,
+        "unique": false,
+        "options": {
+          "collectionId": "_pb_users_auth_",
+          "cascadeDelete": true,
+          "minSelect": null,
+          "maxSelect": 1,
+          "displayFields": null
+        }
+      },
+      {
+        "name": "data",
+        "type": "json",
+        "required": false,
+        "unique": false,
+        "options": { "maxSize": 5242880 }
+      },
+      {
+        "name": "analyticsOptIn",
+        "type": "bool",
+        "required": false,
+        "unique": false,
+        "options": {}
+      }
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX `idx_vaults_user` ON `vaults` (`user`)"
+    ],
+    "listRule": "@request.auth.id != \"\" && user = @request.auth.id",
+    "viewRule": "@request.auth.id != \"\" && user = @request.auth.id",
+    "createRule": "@request.auth.id != \"\" && @request.data.user = @request.auth.id",
+    "updateRule": "@request.auth.id != \"\" && user = @request.auth.id",
+    "deleteRule": "@request.auth.id != \"\" && user = @request.auth.id",
+    "options": {}
+  }
+]

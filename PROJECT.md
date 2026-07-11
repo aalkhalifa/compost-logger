@@ -38,7 +38,9 @@ compost-logger/
 ├── LICENSE             ← proprietary, all rights reserved
 ├── CHANGELOG.md        ← Keep a Changelog format, grouped by version
 ├── PROJECT.md          ← this file
-└── TODO.md
+├── TODO.md
+└── deploy/
+    └── pocketbase/     ← backend infra (Group A): runbook, collection schema, systemd, Caddy
 ```
 
 ### Promotion process

@@ -1,0 +1,23 @@
+[Unit]
+Description=PocketBase (Compost Logger backend)
+After=network.target
+
+[Service]
+Type=simple
+User=pocketbase
+Group=pocketbase
+# Bind to localhost only; Caddy terminates TLS and proxies to this.
+ExecStart=/opt/pocketbase/pocketbase serve --http=127.0.0.1:8090
+WorkingDirectory=/opt/pocketbase
+Restart=always
+RestartSec=5
+LimitNOFILE=4096
+
+# Basic hardening
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/pocketbase/pb_data
+
+[Install]
+WantedBy=multi-user.target

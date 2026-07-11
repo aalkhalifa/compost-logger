@@ -22,7 +22,7 @@ html,body{background:#000;color:#fff;font-family:Inter,sans-serif;min-height:100
 .hd{font-family:"Bebas Neue",cursive;letter-spacing:0.08em}
 .mono{font-family:"Share Tech Mono",monospace}
 .card{background:#0a0a0a;border:1px solid #1e1e1e;border-radius:4px;padding:1rem;margin-bottom:1rem}
-.lbl{display:block;font-size:0.65rem;letter-spacing:0.1em;color:#555;font-weight:600;margin-bottom:0.3rem}
+.lbl{display:block;font-size:0.72rem;letter-spacing:0.1em;color:#666;font-weight:600;margin-bottom:0.3rem}
 input[type=text],input[type=number],input[type=date],input[type=time],textarea{
   background:#050505;border:1px solid #222;border-radius:3px;color:#fff;
   padding:0.6rem 0.75rem;font-size:0.9rem;font-family:Inter,sans-serif;width:100%;box-sizing:border-box}
@@ -43,6 +43,10 @@ input[type=range]:disabled{opacity:0.3}
   cursor:pointer;font-family:Inter,sans-serif;text-align:center}
 .btn-sm{background:#0a0a0a;border:1px solid #222;color:#999;border-radius:3px;
   padding:0.35rem 0.75rem;cursor:pointer;font-size:0.72rem;font-family:Inter,sans-serif;white-space:nowrap}
+.import-menu-item{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid #161616;
+  color:#bbb;padding:0.65rem 0.85rem;cursor:pointer;font-size:0.7rem;font-family:Inter,sans-serif;white-space:nowrap}
+.import-menu-item:last-child{border-bottom:none}
+.import-menu-item:hover{background:#141414;color:#fff}
 .btn-now{background:#1a1a1a;border:1px solid #555;color:#ccc;border-radius:3px;
   padding:0 0.9rem;cursor:pointer;font-size:0.7rem;font-family:"Share Tech Mono",monospace;
   letter-spacing:0.08em;white-space:nowrap;height:38px;display:flex;align-items:center;justify-content:center;font-weight:600}
@@ -62,7 +66,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 .dropdown-list.open{display:block}
 .dropdown-item{padding:0.5rem 0.75rem;cursor:pointer;border-bottom:1px solid #111;color:#bbb;font-size:0.85rem}
 .dropdown-item:hover{background:#111}
-.wrap{padding:1rem;max-width:700px;margin:0 auto}
+.wrap{padding:1rem;max-width:1000px;margin:0 auto}
 .hidden{display:none}
 .warn-banner{background:#ff0000;color:#fff;padding:1rem;text-align:center;
   font-weight:bold;font-size:1rem;letter-spacing:0.05em;margin-bottom:1rem;
@@ -82,8 +86,8 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   display:flex;justify-content:space-between;align-items:center}
 .status-temp{font-family:"Share Tech Mono",monospace;font-size:3rem;font-weight:bold;line-height:1}
 .status-time{font-family:"Share Tech Mono",monospace;font-size:2rem;font-weight:bold;line-height:1;text-align:right}
-.status-detail{display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid #0f0f0f;font-size:0.78rem}
-.status-key{color:#555;font-size:0.65rem;letter-spacing:0.08em;font-weight:600;font-family:Inter,sans-serif}
+.status-detail{display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid #0f0f0f;font-size:0.82rem}
+.status-key{color:#666;font-size:0.72rem;letter-spacing:0.08em;font-weight:600;font-family:Inter,sans-serif}
 .status-val{font-family:"Share Tech Mono",monospace;color:#ccc;text-align:right}
 .turn-icon{width:44px;height:44px;border-radius:50%;border:2px solid #ccc;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
@@ -107,7 +111,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <div id="view-home">
   <div style="border-bottom:1px solid #111">
     <img id="logo-img" src="" style="display:block;width:100%;max-height:120px;object-fit:contain;background:#000"/>
-    <div class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.75</div>
+    <div id="app-version-home" class="mono" style="font-size:0.58rem;color:#555;letter-spacing:0.2em;padding:0.35rem 0;text-align:center">FIELD LOGGER v3.76</div>
     <div class="drive-bar">
       <div style="display:flex;align-items:center;gap:0.5rem">
         <div id="home-drive-dot" style="width:8px;height:8px;border-radius:50%;background:#333;flex-shrink:0"></div>
@@ -123,11 +127,15 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div class="wrap">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;flex-wrap:wrap;gap:0.5rem">
       <span class="hd" style="font-size:1.5rem;color:#fff">YOUR PILES</span>
-      <div style="display:flex;gap:0.4rem;flex-wrap:nowrap;overflow-x:auto">
-        <button onclick="downloadCSVTemplate()" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem;flex-shrink:0">CSV TEMPLATE</button>
-        <button onclick="document.getElementById('csv-import-input').click()" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem;flex-shrink:0">IMPORT CSV</button>
-        <button onclick="document.getElementById('xlsx-import-input').click()" class="btn-sm" style="font-size:0.65rem;padding:0.45rem 0.6rem;flex-shrink:0">IMPORT EXCEL</button>
-        <button onclick="showView('setup')" class="btn" style="width:auto;padding:0.45rem 0.9rem;flex-shrink:0">+ NEW PILE</button>
+      <div style="display:flex;gap:0.4rem;align-items:center;min-width:0">
+        <div style="display:flex;gap:0.4rem;flex-wrap:nowrap;overflow-x:auto;min-width:0;flex:1">
+          <div style="position:relative;flex-shrink:0" class="import-menu-wrap">
+            <button id="import-menu-btn" onclick="toggleImportMenu(event)" class="btn-sm" style="font-size:0.7rem;padding:0.45rem 0.6rem">IMPORT / TEMPLATE &#9662;</button>
+          </div>
+          <button onclick="showOpSummary()" class="btn-sm" style="font-size:0.7rem;padding:0.45rem 0.6rem;flex-shrink:0">OPERATION SUMMARY</button>
+          <button onclick="openSitesManager()" class="btn-sm" style="font-size:0.7rem;padding:0.45rem 0.6rem;flex-shrink:0">📍 SITES</button>
+        </div>
+        <button onclick="showView('setup')" class="btn" style="width:auto;padding:0.45rem 0.9rem;flex-shrink:0;white-space:nowrap">+ NEW PILE</button>
       </div>
     </div>
     <input type="file" id="scan-photos-input" accept="image/*" multiple style="display:none" onchange="handleScanPhotos(event)"/>
@@ -149,7 +157,12 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   <div class="wrap">
     <div class="card">
       <label class="lbl">PILE NAME</label>
-      <input id="new-pile-name" placeholder="e.g. Pile A - Spring 2025" style="margin-bottom:1.5rem"/>
+      <input id="new-pile-name" placeholder="e.g. Pile A - Spring 2025" style="margin-bottom:1rem"/>
+      <label class="lbl">SITE / LOCATION <span style="color:#555;font-size:0.55rem">OPTIONAL</span></label>
+      <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem">
+        <select id="new-pile-site-select" class="temp-input" style="flex:1;font-size:0.9rem"></select>
+        <button type="button" onclick="openSitesManager()" class="btn-sm" style="font-size:0.62rem;white-space:nowrap">MANAGE</button>
+      </div>
       <div class="hd" style="font-size:1.1rem;color:#fff;margin-bottom:1rem">MATERIAL RECIPE</div>
       <div id="cat-editors"></div>
       <div id="setup-error" class="error-msg hidden"></div>
@@ -177,6 +190,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <button onclick="showView('home')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.3rem">&larr;</button>
       <div>
         <div id="dash-name" class="hd" style="font-size:1.1rem;color:#fff;line-height:1"></div>
+        <div id="dash-site" class="mono" style="font-size:0.6rem;color:#2a6;margin-top:0.25rem;display:none"></div>
         <div id="dash-sub" class="mono" style="font-size:0.58rem;color:#555"></div>
       </div>
     </div>
@@ -186,6 +200,8 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
         <div id="export-menu" class="export-menu hidden">
           <div class="export-item" onclick="exportCSV()">CSV - SPREADSHEET</div>
           <div class="export-item" onclick="exportPDF()">PDF - FULL REPORT</div>
+          <div class="export-item" onclick="exportGraphImage()">GRAPH - IMAGE (PNG)</div>
+          <div class="export-item backfill-btn" onclick="backfillHistoricalAmbient()" style="border-top:1px solid #1a1a1a;color:#fbbf24">☁ BACKFILL AMBIENT</div>
         </div>
       </div>
       <button id="unit-toggle" onclick="toggleUnit()" class="btn-sm" style="font-size:0.65rem;padding:0.25rem 0.5rem">&deg;F/&deg;C</button>
@@ -197,11 +213,16 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 
 <div id="chart-section" class="hidden">
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem;flex-wrap:wrap;gap:0.4rem">
       <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMP + MOISTURE</div>
-      <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
-      <button id="btn-toggle-ambient" class="btn-sm" onclick="toggleAmbient()" style="font-size:0.65rem;color:#555">AMBIENT OFF</button>
-      <button id="btn-toggle-delta" class="btn-sm" onclick="toggleDelta()" style="font-size:0.65rem;color:#555">DELTA OFF</button>
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+        <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
+        <button id="btn-toggle-shade" class="btn-sm" onclick="toggleShade()" style="font-size:0.65rem;color:#555">SHADE OFF</button>
+        <button id="btn-toggle-rate" class="btn-sm" onclick="toggleRate()" style="font-size:0.65rem;color:#555">RATE OFF</button>
+        <button id="btn-toggle-ambient" class="btn-sm" onclick="toggleAmbient()" style="font-size:0.65rem;color:#555">AMB OFF</button>
+        <button id="btn-toggle-ambient-api" class="btn-sm" onclick="toggleAmbientApi()" style="font-size:0.65rem;color:#555">AMB API OFF</button>
+        <button id="btn-toggle-delta" class="btn-sm" onclick="toggleDelta()" style="font-size:0.65rem;color:#555">DELTA OFF</button>
+      </div>
     </div>
     <div id="chart-scroll-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative">
       <div id="chart-inner" style="min-width:100%;position:relative">
@@ -216,6 +237,9 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#1e88e5;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">MOISTURE</span></div>
       <div style="display:flex;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#f97316;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#999">TURN</span></div>
       <div id="legend-ambient" style="display:flex;align-items:center;gap:0.4rem;display:none"><div style="width:16px;height:3px;background:#f59e0b;border-radius:1px;border-top:1px dashed #f59e0b"></div><span class="mono" style="font-size:0.65rem;color:#f59e0b">AMBIENT</span></div>
+      <div id="legend-ambient-api" style="display:flex;align-items:center;gap:0.4rem;display:none"><div style="width:16px;height:3px;background:#fbbf24;border-radius:1px;border-top:1px dotted #fbbf24"></div><span class="mono" style="font-size:0.65rem;color:#fbbf24">AMBIENT API</span></div>
+      <div id="legend-delta" style="display:none;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#06b6d4;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#06b6d4">DELTA</span></div>
+      <div id="legend-rate" style="display:none;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#22d3ee;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#22d3ee">RATE</span></div>
     </div>
 
 <div class="card" id="status-card" style="border-left:3px solid #222;padding:0">
@@ -242,7 +266,10 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <button id="card-btn-logentry" onclick="toggleCard('logentry')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
   </div>
   <div id="card-body-logentry">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:0.5rem;width:100%">
+  <div style="display:flex;justify-content:flex-end;gap:0.5rem;margin-bottom:0.5rem;width:100%;flex-wrap:wrap">
+    <button id="scan-photos-btn" onclick="document.getElementById('scan-photos-input').click()" style="background:none;border:1px solid #333;color:#888;border-radius:3px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;padding:0.4rem 0.75rem;display:none;align-items:center;gap:0.4rem">
+      <span style="font-size:0.85rem">&#128247;</span> SCAN PHOTOS
+    </button>
     <button onclick="quickLog()" style="background:none;border:1px solid #f97316;color:#f97316;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;padding:0.4rem 0.75rem;border-radius:3px;font-weight:600">USE CURRENT TIME</button>
   </div>
   <div style="margin-bottom:0.6rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
@@ -255,15 +282,23 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <input type="time" class="temp-input" id="f-time" style="font-size:1rem"/>
     </div>
   </div>
-  <button onclick="document.getElementById('scan-photos-input').click()" style="background:none;border:1px solid #333;color:#555;border-radius:3px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.08em;padding:0.35rem 0.75rem;margin-bottom:0.6rem;display:flex;align-items:center;gap:0.4rem">
-    <span style="font-size:0.8rem">&#128247;</span> SCAN THERMOMETER PHOTOS
-  </button>
   <div id="entry-error" class="error-msg hidden"></div>
   <div style="margin-bottom:0.6rem">
-    <label class="lbl" style="color:#f59e0b">AMBIENT TEMP <span id="unit-lbl-amb"></span></label>
-    <input type="number" class="temp-input" id="f-ambient" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem"/>
+  <div style="margin-bottom:0.75rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+    <div>
+      <label class="lbl" style="color:#f59e0b">AMB MANUAL <span id="unit-lbl-amb"></span> <span style="color:#555;font-size:0.5rem">OPT</span></label>
+      <input type="number" class="temp-input" id="f-ambient" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem"/>
+    </div>
+    <div>
+      <label class="lbl" style="color:#fbbf24">AMB API <span style="color:#555;font-size:0.5rem">OPT</span></label>
+      <div style="display:flex;gap:0.3rem;align-items:stretch">
+        <input type="number" class="temp-input" id="f-ambient-api" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem;flex:1;min-width:0"/>
+        <button type="button" id="f-ambient-api-btn" onclick="fetchApiAmbient('f-ambient-api')" style="padding:0 0.5rem;background:none;border:1px solid #fbbf24;color:#fbbf24;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.6rem;white-space:nowrap">☁ API</button>
+      </div>
+    </div>
   </div>
-  <div style="margin-bottom:0.75rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem">
+  </div>
+  <div style="margin-bottom:0.75rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
     <div>
       <label class="lbl" style="color:#ff4444">CORE 1 <span id="unit-lbl-core"></span></label>
       <input type="number" class="temp-input" id="f-core" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" />
@@ -275,6 +310,10 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div>
       <label class="lbl" style="color:#a855f7">CORE 3 <span id="unit-lbl-bot"></span></label>
       <input type="number" class="temp-input" id="f-bottom" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" />
+    </div>
+    <div>
+      <label class="lbl" style="color:#22d3ee">CORE 4 <span style="color:#555;font-size:0.55rem">OPTIONAL</span></label>
+      <input type="number" class="temp-input" id="f-core4" placeholder="-" inputmode="decimal" style="font-size:1.3rem;padding:0.7rem 0.4rem" />
     </div>
   </div>
   <div style="margin-bottom:0.75rem">
@@ -307,6 +346,23 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       </div>
     </label>
   </div>
+  <div style="margin-bottom:0.75rem;padding:0.75rem;background:#050505;border:1px solid #1a1a1a;border-radius:3px">
+    <label style="display:flex;align-items:center;gap:0.75rem;cursor:pointer">
+      <input type="checkbox" id="f-watered" onchange="toggleWaterFields('f')" style="width:22px;height:22px"/>
+      <div>
+        <div class="mono" style="font-size:0.9rem;color:#3b82f6">WATERED</div>
+        <div style="font-size:0.7rem;color:#555;margin-top:0.1rem">Check if you watered the pile (optional)</div>
+      </div>
+    </label>
+    <div id="f-water-fields" style="display:none;margin-top:0.6rem">
+      <div style="display:flex;gap:0.4rem;margin-bottom:0.5rem">
+        <button type="button" id="f-water-light" onclick="setWaterAmount('f','light')" class="btn-sm water-amt" style="flex:1;font-size:0.7rem">LIGHT</button>
+        <button type="button" id="f-water-medium" onclick="setWaterAmount('f','medium')" class="btn-sm water-amt" style="flex:1;font-size:0.7rem">MEDIUM</button>
+        <button type="button" id="f-water-heavy" onclick="setWaterAmount('f','heavy')" class="btn-sm water-amt" style="flex:1;font-size:0.7rem">HEAVY</button>
+      </div>
+      <input type="number" id="f-water-qty" placeholder="Quantity (optional, e.g. liters)" inputmode="decimal" class="temp-input" style="font-size:0.85rem;width:100%"/>
+    </div>
+  </div>
   <div style="margin-bottom:0.75rem">
     <label class="lbl">NOTES</label>
     <textarea id="f-notes" placeholder="Observations, smell, texture..." style="height:52px;resize:none"></textarea>
@@ -321,6 +377,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <button id="card-btn-logtable" onclick="toggleCard('logtable')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1rem;line-height:1;padding:0">&minus;</button>
   </div>
   <div id="card-body-logtable">
+    <div id="log-thermo" class="mono" style="font-size:0.6rem;color:#666;letter-spacing:0.05em;margin-bottom:0.6rem"></div>
     <div style="overflow:auto;max-height:230px"><table id="log-table" style="width:100%;border-collapse:collapse;font-size:0.7rem"></table></div>
   </div>
 </div>
@@ -364,6 +421,68 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
   </div>
 </div>
 
+<div id="view-opsummary" class="hidden">
+  <div class="sticky">
+    <div style="display:flex;align-items:center;gap:0.75rem">
+      <button onclick="showView('home')" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.3rem">&larr;</button>
+      <span class="hd" style="font-size:1.4rem;color:#fff">OPERATION SUMMARY</span>
+    </div>
+  </div>
+  <div class="wrap"><div id="opsummary-body"></div></div>
+</div>
+
+<div id="sites-overlay" class="overlay hidden">
+  <div style="max-width:700px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <span class="hd" style="font-size:1.3rem;color:#fff">📍 SITES</span>
+      <button onclick="closeSitesManager()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
+    </div>
+    <div id="sites-list" style="margin-bottom:1rem"></div>
+    <button onclick="openSiteEdit(null)" class="btn" style="width:100%">+ ADD SITE</button>
+  </div>
+</div>
+
+<div id="site-edit-overlay" class="overlay hidden">
+  <div style="max-width:600px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <span id="site-edit-title" class="hd" style="font-size:1.2rem;color:#fff">ADD SITE</span>
+      <button onclick="closeSiteEdit()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
+    </div>
+    <div class="card">
+      <label class="lbl">SITE NAME</label>
+      <input id="site-name" placeholder="e.g. Bahrain 4000m\u00B2" style="margin-bottom:0.75rem"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:0.5rem;margin-bottom:0.75rem;align-items:end">
+        <div><label class="lbl" style="font-size:0.55rem">LATITUDE</label><input id="site-lat" type="number" inputmode="decimal" placeholder="-" class="temp-input" style="font-size:0.9rem"/></div>
+        <div><label class="lbl" style="font-size:0.55rem">LONGITUDE</label><input id="site-lon" type="number" inputmode="decimal" placeholder="-" class="temp-input" style="font-size:0.9rem"/></div>
+        <button type="button" onclick="fillCurrentLocation('site')" style="padding:0.55rem 0.6rem;background:none;border:1px solid #2a6;color:#2a6;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.62rem;white-space:nowrap">📍 GPS</button>
+      </div>
+      <label class="lbl">SITE MANAGER NAME <span style="color:#555;font-size:0.55rem">OPTIONAL</span></label>
+      <input id="site-manager-name" placeholder="e.g. Abdulla" style="margin-bottom:0.75rem"/>
+      <label class="lbl">MANAGER CONTACT <span style="color:#555;font-size:0.55rem">OPTIONAL</span></label>
+      <input id="site-manager-contact" placeholder="phone or email" style="margin-bottom:1rem"/>
+      <div id="site-edit-error" class="error-msg hidden"></div>
+      <button onclick="saveSite()" class="btn" style="width:100%;margin-bottom:0.5rem">SAVE SITE</button>
+      <button onclick="closeSiteEdit()" style="width:100%;padding:0.6rem;background:none;border:1px solid #222;color:#555;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.85rem">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<div id="assign-site-overlay" class="overlay hidden">
+  <div style="max-width:500px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <span class="hd" style="font-size:1.2rem;color:#fff">ASSIGN TO SITE</span>
+      <button onclick="closeAssignSite()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
+    </div>
+    <div class="card">
+      <label class="lbl">SITE</label>
+      <select id="assign-site-select" class="temp-input" style="width:100%;font-size:0.95rem;margin-bottom:1rem"></select>
+      <button onclick="saveAssignSite()" class="btn" style="width:100%;margin-bottom:0.5rem">SAVE</button>
+      <button onclick="openSitesManager()" class="btn-sm" style="width:100%;margin-bottom:0.5rem">+ MANAGE SITES</button>
+      <button onclick="closeAssignSite()" style="width:100%;padding:0.6rem;background:none;border:1px solid #222;color:#555;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.85rem">CANCEL</button>
+    </div>
+  </div>
+</div>
+
 <div id="edit-overlay" class="overlay hidden">
   <div style="max-width:700px;margin:0 auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #111">
@@ -372,16 +491,28 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     </div>
     <div class="card">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.6rem">
-        <div><label class="lbl">DATE</label><input type="date" id="e-date"/></div>
-        <div><label class="lbl">TIME</label><input type="time" id="e-time"/></div>
+        <div><label class="lbl">DATE</label><input type="date" class="temp-input" id="e-date" style="font-size:1rem"/></div>
+        <div><label class="lbl">TIME</label><input type="time" class="temp-input" id="e-time" style="font-size:1rem"/></div>
       </div>
       <div id="edit-error" class="error-msg hidden"></div>
-      <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#f59e0b">AMBIENT <span id="e-unit-amb"></span></label><input type="number" class="temp-input" id="e-ambient" placeholder="-" inputmode="decimal"/></div>
+      <div style="margin-bottom:0.6rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+        <div><label class="lbl" style="color:#f59e0b">AMB MANUAL <span id="e-unit-amb"></span></label><input type="number" class="temp-input" id="e-ambient" placeholder="-" inputmode="decimal"/></div>
+        <div><label class="lbl" style="color:#fbbf24">AMB API</label><div style="display:flex;gap:0.3rem;align-items:stretch"><input type="number" class="temp-input" id="e-ambient-api" placeholder="-" inputmode="decimal" style="flex:1;min-width:0"/><button type="button" id="e-ambient-api-btn" onclick="fetchApiAmbient('e-ambient-api')" style="padding:0 0.5rem;background:none;border:1px solid #fbbf24;color:#fbbf24;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.6rem;white-space:nowrap">☁ API</button></div></div>
+      </div>
       <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#ff4444">CORE 1 <span id="e-unit-core"></span></label><input type="number" class="temp-input" id="e-core" placeholder="-" inputmode="decimal"/></div>
       <div style="margin-bottom:0.6rem"><label class="lbl" style="color:#4ade80">CORE 2 <span id="e-unit-top"></span></label><input type="number" class="temp-input" id="e-top" placeholder="-" inputmode="decimal"/></div>
       <div style="margin-bottom:0.75rem"><label class="lbl" style="color:#a855f7">CORE 3 <span id="e-unit-bot"></span></label><input type="number" class="temp-input" id="e-bottom" placeholder="-" inputmode="decimal"/></div>
+      <div style="margin-bottom:0.75rem"><label class="lbl" style="color:#22d3ee">CORE 4 <span style="color:#555;font-size:0.55rem">OPTIONAL</span></label><input type="number" class="temp-input" id="e-core4" placeholder="-" inputmode="decimal"/></div>
       <div style="margin-bottom:0.75rem">
-        <label class="lbl" style="display:flex;justify-content:space-between"><span>MOISTURE %</span><span id="e-moist-val" class="mono" style="color:#1e88e5">50%</span></label>
+        <label class="lbl" style="display:flex;justify-content:space-between;align-items:center"><span>MOISTURE %</span>
+          <span style="display:flex;align-items:center;gap:0.5rem">
+            <label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer">
+              <input type="checkbox" id="e-moisture-skip" onchange="toggleEditMoistureSkip()" style="width:14px;height:14px;accent-color:#555"/>
+              <span class="mono" style="font-size:0.58rem;color:#555">NOT MEASURED</span>
+            </label>
+            <span id="e-moist-val" class="mono" style="color:#1e88e5">50%</span>
+          </span>
+        </label>
         <input type="range" id="e-moisture" min="0" max="100" step="5" value="50" style="--rc:#1e88e5;--pct:50%" oninput="updateEditSlider(this)"/>
       </div>
       <div style="margin-bottom:0.75rem;padding:0.75rem;background:#050505;border:1px solid #1a1a1a;border-radius:3px">
@@ -389,6 +520,20 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
           <input type="checkbox" id="e-turned" style="width:22px;height:22px"/>
           <span class="mono" style="font-size:0.9rem;color:#f97316">PILE TURNED</span>
         </label>
+      </div>
+      <div style="margin-bottom:0.75rem;padding:0.75rem;background:#050505;border:1px solid #1a1a1a;border-radius:3px">
+        <label style="display:flex;align-items:center;gap:0.75rem;cursor:pointer">
+          <input type="checkbox" id="e-watered" onchange="toggleWaterFields('e')" style="width:22px;height:22px"/>
+          <span class="mono" style="font-size:0.9rem;color:#3b82f6">WATERED</span>
+        </label>
+        <div id="e-water-fields" style="display:none;margin-top:0.6rem">
+          <div style="display:flex;gap:0.4rem;margin-bottom:0.5rem">
+            <button type="button" id="e-water-light" onclick="setWaterAmount('e','light')" class="btn-sm" style="flex:1;font-size:0.7rem">LIGHT</button>
+            <button type="button" id="e-water-medium" onclick="setWaterAmount('e','medium')" class="btn-sm" style="flex:1;font-size:0.7rem">MEDIUM</button>
+            <button type="button" id="e-water-heavy" onclick="setWaterAmount('e','heavy')" class="btn-sm" style="flex:1;font-size:0.7rem">HEAVY</button>
+          </div>
+          <input type="number" id="e-water-qty" placeholder="Quantity (optional)" inputmode="decimal" class="temp-input" style="font-size:0.85rem;width:100%"/>
+        </div>
       </div>
       <div><label class="lbl">NOTES</label><textarea id="e-notes" style="height:52px;resize:none"></textarea></div>
     </div>
@@ -480,6 +625,39 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
           <button id="s-unit-c" onclick="setTempUnit('C')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.9rem">&deg;C</button>
         </div>
       </div>
+      <!-- Display basis -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid #111">
+        <div>
+          <div class="mono" style="font-size:0.85rem;color:#ccc">DISPLAY BASIS</div>
+          <div style="font-size:0.65rem;color:#555;margin-top:0.15rem">AVG = Compost Academy &middot; MIN = strict (coldest probe)</div>
+        </div>
+        <div style="display:flex;gap:0.4rem">
+          <button id="s-basis-avg" onclick="setDisplayBasis('avg')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">AVG</button>
+          <button id="s-basis-min" onclick="setDisplayBasis('min')" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">MIN</button>
+        </div>
+      </div>
+      <!-- Show PFRP -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-bottom:1px solid #111">
+        <div>
+          <div class="mono" style="font-size:0.85rem;color:#ccc">SHOW PFRP COMPLIANCE</div>
+          <div style="font-size:0.65rem;color:#555;margin-top:0.15rem">Regulatory pass/fail (always strict). Off = hide everywhere</div>
+        </div>
+        <div style="display:flex;gap:0.4rem">
+          <button id="s-pfrp-on" onclick="setShowPFRP(true)" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">ON</button>
+          <button id="s-pfrp-off" onclick="setShowPFRP(false)" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">OFF</button>
+        </div>
+      </div>
+      <!-- Anthropic API key (for photo scan) — feature cancelled, hidden -->
+      <div style="display:none">
+        <div class="mono" style="font-size:0.85rem;color:#ccc;margin-bottom:0.15rem">PHOTO SCAN API KEY</div>
+        <div style="font-size:0.65rem;color:#555;margin-bottom:0.5rem;line-height:1.4">Optional. Enables reading thermometers from photos. Get a key at <span style="color:#60a5fa">console.anthropic.com</span> &rarr; API Keys. Stored only on this device; the SCAN button appears once a key is saved.</div>
+        <div style="display:flex;gap:0.4rem;align-items:center">
+          <input type="password" id="s-anthropic-key" placeholder="sk-ant-..." class="temp-input" style="font-size:0.8rem;flex:1" oninput="onKeyFieldInput()"/>
+          <button onclick="saveAnthropicKey()" class="btn-sm" style="font-size:0.72rem;padding:0.45rem 0.8rem;flex-shrink:0">SAVE</button>
+          <button onclick="clearAnthropicKey()" class="btn-sm" style="font-size:0.72rem;padding:0.45rem 0.6rem;flex-shrink:0;color:#888">CLEAR</button>
+        </div>
+        <div id="s-key-status" style="font-size:0.62rem;color:#4ade80;margin-top:0.35rem;min-height:0.8rem"></div>
+      </div>
       <!-- Volume -->
       <div style="padding:0.5rem 0;border-bottom:1px solid #111">
         <div style="display:flex;justify-content:space-between;align-items:center">
@@ -545,7 +723,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">ABOUT</div>
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
-        <div>COMPOST LOGGER &middot; FIELD LOGGER v3.75</div>
+        <div id="app-version-settings">COMPOST LOGGER &middot; FIELD LOGGER v3.76</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
       </div>
@@ -556,6 +734,11 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 
 <script>
 var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercontent.com";
+// Single source of truth for the build version. Bump BUILD_VER on every change;
+// it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
+// is added automatically when the app is served from a /beta/ path.
+var BUILD_VER="v3.77q";
+var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
   {min:150,max:155,hours:48,label:"Stage 2",color:"#f97316"},
@@ -590,9 +773,27 @@ var N_PRESETS={
 
 var pilesSortMode=localStorage.getItem("ca_pilesSort")||"recent";
 var entriesSortMode=localStorage.getItem("ca_entriesSort")||"newest";
-var piles=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
-var activeId=null,tempMode="three",tempUnit="F";
+var piles=[],sites=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
+var homeCollapsedSites={};
+var activeId=null,tempMode="three",tempUnit="F",shadeProbes=false,showRate=false,__chartEntries=[];
 var volumeUnit="gal";
+// DISPLAY BASIS governs the numbers shown across the app (headline temp, stage bars,
+// cycle detection, maturity): "avg" = Compost Academy style (average of probes),
+// "min" = strict (coldest probe governs). Default AVG.
+var displayBasis=localStorage.getItem("ca_displayBasis")||"avg"; // "avg" or "min"
+// Back-compat: an older build stored "ca_complianceBasis". If present and the new key
+// isn't, adopt it once so existing users keep their choice.
+(function(){
+  if(!localStorage.getItem("ca_displayBasis")){
+    var old=localStorage.getItem("ca_complianceBasis");
+    if(old==="min"||old==="avg"){displayBasis=old;localStorage.setItem("ca_displayBasis",old);}
+  }
+})();
+// PFRP is regulatory: it ALWAYS computes on the coldest probe (min), regardless of
+// displayBasis, so the compliance verdict never bends to a display preference.
+// showPFRP only controls whether the PFRP box/section is visible anywhere.
+var showPFRP=(localStorage.getItem("ca_showPFRP")!=="off"); // default ON
+var complianceBasis=displayBasis; // legacy alias kept for any remaining references
 var containerUnit={name:"5 gal",size:5};
 var tempChart=null;
 var driveToken=null,driveFileId=null,driveStatus="disconnected";
@@ -601,6 +802,8 @@ var newMaterials={},editMaterials={};
 var editingEntryId=null;
 var expandedCats=new Set();
 var showAmbient=false;
+var showAmbientApi=false;
+var analyticsOpen=false;
 var showDelta=false;
 var collapsedCards={};  // session only, resets on reload
 var deletedPileIds=[];  // tombstone list for sync
@@ -623,11 +826,142 @@ function getBand(f){if(!f||f<131)return null;return BANDS.find(function(b){retur
 function mColor(p){if(!p)return"#222";if(p>=60)return"#1565c0";if(p>=50)return"#1e88e5";if(p>=40)return"#4a90d9";return"#7ab3e0";}
 function fmtHours(ms){if(ms<0)return"0h 0m";var h=Math.floor(ms/3600000);var m=Math.round((ms%3600000)/60000);return h+"h "+m+"m";}
 function localDateStr(d){var y=d.getFullYear();var m=d.getMonth()+1;var dd=d.getDate();return y+"-"+(m<10?"0":"")+m+"-"+(dd<10?"0":"")+dd;}
+// Collect all present probe readings for an entry. Supports an OPTIONAL 4th probe
+// (core4); when core4 is absent (all existing data), this returns exactly the same
+// 3 values as before, so 3-core math is unchanged.
+function coreVals(e){
+  if(!e)return [];
+  return [e.core1,e.core2,e.core3,e.core4].filter(function(v){return v!=null&&v>0;});
+}
 function avgCore(e){
   if(!e)return null;
-  var vals=[e.core1,e.core2,e.core3].filter(function(v){return v!=null&&v>0;});
+  var vals=coreVals(e);
   if(!vals.length)return null;
   return Math.round((vals.reduce(function(a,b){return a+b;},0)/vals.length)*10)/10;
+}
+// DISPLAY temperature for one entry, per the displayBasis toggle.
+// "avg" = mean of probes (Compost Academy); "min" = coldest probe (strict).
+// This drives the headline temp, stage bars, cycle detection, and maturity.
+function displayTemp(e){
+  if(!e)return null;
+  var vals=coreVals(e);
+  if(!vals.length)return null;
+  if(displayBasis==="min")return Math.min.apply(null,vals);
+  return Math.round((vals.reduce(function(a,b){return a+b;},0)/vals.length)*10)/10;
+}
+// STRICT minimum temperature (coldest probe). PFRP compliance ALWAYS uses this,
+// independent of displayBasis, because the regulatory definition is about the
+// coldest point in the mass reaching kill temperature.
+function strictMinTemp(e){
+  if(!e)return null;
+  var vals=coreVals(e);
+  if(!vals.length)return null;
+  return Math.min.apply(null,vals);
+}
+// Legacy name kept so existing call sites keep working — now follows displayBasis.
+function complianceTemp(e){return displayTemp(e);}
+// Spread between hottest and coldest probe for one entry. Null if <2 probes.
+function coreSpread(e){
+  if(!e)return null;
+  var vals=coreVals(e);
+  if(vals.length<2)return null;
+  return Math.round((Math.max.apply(null,vals)-Math.min.apply(null,vals))*10)/10;
+}
+// Degree-hours above a threshold (default 131F), trapezoidal between entries,
+// using complianceTemp(). Only area ABOVE threshold counts.
+function degreeHoursAbove(sorted,threshold){
+  threshold=(threshold==null)?131:threshold;
+  var dh=0;
+  for(var i=1;i<sorted.length;i++){
+    var a=complianceTemp(sorted[i-1]),b=complianceTemp(sorted[i]);
+    if(a==null||b==null)continue;
+    var hrs=(new Date(sorted[i].ts)-new Date(sorted[i-1].ts))/3600000;
+    if(hrs<=0)continue;
+    var ea=a-threshold, eb=b-threshold;
+    if(ea>=0&&eb>=0){
+      dh+=0.5*(ea+eb)*hrs;
+    } else if(ea<0&&eb<0){
+      // wholly below; nothing
+    } else {
+      var frac=Math.abs(ea)/(Math.abs(ea)+Math.abs(eb));
+      if(ea<0){ dh+=0.5*eb*(hrs*(1-frac)); }
+      else { dh+=0.5*ea*(hrs*frac); }
+    }
+  }
+  return Math.round(dh);
+}
+// PFRP-style status: longest continuous run >=131F (by complianceTemp), turns in
+// that run, and pass flags. On-pile temperature record, NOT a certified test.
+function pfrpStatus(sorted){
+  // Cumulative days >=131F (strict min governs PFRP) summed across ALL hot intervals,
+  // and total qualifying turns during the thermophilic period (excluding the very
+  // first/"BUILT" entry). Turns naturally cause brief temperature dips, so counting
+  // only a single unbroken run undercounts them; the standard counts turns across the
+  // high-temperature period.
+  var firstId=sorted.length?sorted[0].id:null;
+  var cumulativeMs=0;
+  var longestMs=0,runStart=null;
+  var hotTurns=0;
+  var everHot=false;
+  for(var i=0;i<sorted.length;i++){
+    var t=strictMinTemp(sorted[i]); // PFRP is always strict: coldest probe governs
+    var hot=(t!=null&&t>=131);
+    if(hot){
+      everHot=true;
+      if(runStart===null)runStart=new Date(sorted[i].ts);
+      // accumulate time from this entry to the next (or itself if last)
+      var end=i<sorted.length-1?new Date(sorted[i+1].ts):new Date(sorted[i].ts);
+      var seg=end-new Date(sorted[i].ts);
+      if(seg>0)cumulativeMs+=seg;
+      var runMs=end-runStart;
+      if(runMs>longestMs)longestMs=runMs;
+    } else {
+      runStart=null;
+    }
+    // Count a turn during the thermophilic period: pile is hot now OR was hot at the
+    // immediately preceding reading (captures a turn that caused the dip). Exclude the
+    // build entry.
+    if(sorted[i].turned && sorted[i].id!==firstId){
+      var prevHot=(i>0)&&(function(){var pt=strictMinTemp(sorted[i-1]);return pt!=null&&pt>=131;})();
+      if(hot||prevHot)hotTurns++;
+    }
+  }
+  var days=cumulativeMs/86400000;
+  var longestDays=longestMs/86400000;
+  return {days:Math.round(days*100)/100,longestDays:Math.round(longestDays*100)/100,
+    turns:hotTurns,longestRunMs:longestMs,cumulativeMs:cumulativeMs,
+    windrowMet:(days>=3&&hotTurns>=5),staticMet:(days>=3)};
+}
+// Human-readable PFRP verdict for display. Framed for a HAND-TURNED thermophilic
+// (windrow-style) pile as the primary method, with the static pathway also shown.
+function pfrpVerdict(sorted){
+  var p=pfrpStatus(sorted);
+  var detail=p.days+" cumulative day"+(p.days===1?"":"s")+" \u2265131\u00B0F \u00B7 "+p.turns+" turn"+(p.turns===1?"":"s")+" during hot phase";
+  if(p.windrowMet){
+    return {verdict:"PASS \u2014 TURNED (WINDROW-STYLE)",color:"#4ade80",detail:detail,
+      sub:"Meets turned pathway: \u22653 days \u2265131\u00B0F with \u22655 turns",p:p};
+  } else if(p.staticMet){
+    // Hot long enough, but not yet 5 turns during the hot phase. For a hand-turned
+    // thermophilic pile this is "on track" — the static threshold is already cleared.
+    return {verdict:"PASS \u2014 THERMOPHILIC (3+ DAYS)",color:"#f59e0b",detail:detail,
+      sub:"Cleared \u22653 days \u2265131\u00B0F. For full turned-pathway credit: \u22655 turns during the hot phase ("+p.turns+" so far)",p:p};
+  }
+  return {verdict:"NOT MET",color:"#ef4444",detail:detail,
+    sub:"Needs \u22653 continuous days \u2265131\u00B0F",p:p};
+}
+// Fastest sustained heating rate (F/hr) during initial climb to 131F.
+function peakHeatingRate(sorted){
+  var best=null;
+  for(var i=1;i<sorted.length;i++){
+    var a=complianceTemp(sorted[i-1]),b=complianceTemp(sorted[i]);
+    if(a==null||b==null)continue;
+    var hrs=(new Date(sorted[i].ts)-new Date(sorted[i-1].ts))/3600000;
+    if(hrs<=0)continue;
+    var rate=(b-a)/hrs;
+    if(rate>0&&(best==null||rate>best))best=rate;
+    if(b>=131)break;
+  }
+  return best==null?null:Math.round(best*10)/10;
 }
 function fmtDuration(ms){
   if(!ms||ms<0)ms=0;
@@ -638,55 +972,6 @@ function fmtDuration(ms){
   if(h<1)return m+'m';
   if(d===0)return h+'h '+m+'m';
   return d+'d'+(remH>0?' '+remH+'h':'');
-}
-function getPileAssessment(pile,sorted){
-  if(!sorted||sorted.length<2)return null;
-  var cycles=buildCycles(sorted);
-  var numCycles=cycles?cycles.length:0;
-  var peakTemp=0;
-  var stageHighCount=0; // readings in Stage 3+ (156°F+)
-  var lastN=Math.min(3,sorted.length);
-  var recentAvgs=sorted.slice(-lastN).map(function(e){return avgCore(e)||0;});
-  var latestAvg=recentAvgs[recentAvgs.length-1]||0;
-  var ambientApprox=sorted.filter(function(e){return e.ambient!=null;}).slice(-3).reduce(function(s,e){return s+e.ambient;},0)/
-    (sorted.filter(function(e){return e.ambient!=null;}).slice(-3).length||1);
-  var stabilized=latestAvg>0&&latestAvg<110&&(ambientApprox?latestAvg<ambientApprox+20:latestAvg<110);
-  sorted.forEach(function(e){
-    var a=avgCore(e)||0;
-    if(a>peakTemp)peakTemp=a;
-    if(a>=156)stageHighCount++;
-  });
-  var label,color,icon,desc,rec;
-  if(numCycles===0){
-    label="NO CYCLES YET";color="#555";icon="○";
-    desc="No thermophilic cycles detected yet.";
-    rec="Ensure adequate moisture and nitrogen. Check C:N ratio.";
-  } else if(numCycles>=1&&numCycles<=2&&stabilized){
-    label="EARLY STABILIZATION";color="#f59e0b";icon="△";
-    desc="Temperature stabilized after "+numCycles+" cycle"+(numCycles>1?"s":"")+". Fewer cycles may mean incomplete pathogen reduction.";
-    rec="Recommend pathogen and germination testing before field application.";
-  } else if(numCycles>=3&&numCycles<=5&&stabilized){
-    label="OPTIMAL MATURITY";color="#4ade80";icon="✓";
-    desc="Pile completed "+numCycles+" cycles and temperature has stabilized — consistent with biological maturity.";
-    rec="Ready for final testing. Germination test recommended before use.";
-  } else if(numCycles>=3&&numCycles<=5&&!stabilized){
-    label="APPROACHING MATURITY";color="#60a5fa";icon="→";
-    desc=numCycles+" cycles completed. Still maintaining heat — allow to stabilize below 110°F.";
-    rec="Monitor temperature. Turn if still above 131°F.";
-  } else if(numCycles>5&&stageHighCount>sorted.length*0.3){
-    label="EXTENDED HIGH HEAT";color="#ef4444";icon="⚠";
-    desc=numCycles+" cycles with prolonged Stage 3+ temperatures. Extended high heat may stress beneficial fungal populations.";
-    rec="Reduce high-nitrogen inputs in future batches. Consider adding more browns next time.";
-  } else if(numCycles>5){
-    label="EXTENDED ACTIVITY";color="#f97316";icon="!";
-    desc=numCycles+" cycles detected — above the optimal 3-5 range. May indicate excess nitrogen or other imbalances.";
-    rec="Review recipe C:N ratio. Consider reducing fast-N inputs in next batch.";
-  } else {
-    label="ACTIVE";color="#60a5fa";icon="→";
-    desc=numCycles+" cycle"+(numCycles>1?"s":"")+". Pile is thermophilically active.";
-    rec="Continue monitoring. Turn when stage timer completes.";
-  }
-  return{label:label,color:color,icon:icon,desc:desc,rec:rec,numCycles:numCycles,peakTemp:peakTemp,stabilized:stabilized};
 }
 function timeAgo(date){
   var ms=Date.now()-new Date(date).getTime();
@@ -721,6 +1006,25 @@ function disp(f){if(f==null)return null;return tempUnit==="C"?toC(f):f;}
 function dispStr(f){var v=disp(f);if(v==null)return"-";var rounded=Math.round(v);return rounded+"\u00B0"+tempUnit;}
 function fromInput(v){if(v==null||v==="")return null;var n=parseFloat(v);if(isNaN(n))return null;return tempUnit==="C"?toF(n):n;}
 function unitLbl(){return"\u00B0"+tempUnit;}
+// Heating-rate series: change in average core temp per hour between consecutive
+// readings, in the active display unit (F/h or C/h). The rate for the first reading
+// is null (no prior point). A tiny time gap is clamped to 0.25h so two near-identical
+// timestamps don't produce a divide-by-near-zero spike.
+function heatingRateSeries(sorted){
+  var out=[];
+  for(var i=0;i<sorted.length;i++){
+    if(i===0){out.push(null);continue;}
+    var a=avgCore(sorted[i-1]),b=avgCore(sorted[i]);
+    if(a==null||b==null){out.push(null);continue;}
+    var hrs=(new Date(sorted[i].ts)-new Date(sorted[i-1].ts))/3600000;
+    if(hrs<0.25)hrs=0.25;
+    var dF=b-a; // raw Fahrenheit delta
+    var rate=dF/hrs;
+    if(tempUnit==="C")rate=rate*5/9; // convert the per-hour delta to C
+    out.push(Math.round(rate*100)/100);
+  }
+  return out;
+}
 function bandRange(b){
   if(tempUnit==="F")return b.min+"-"+(b.max===Infinity?"175+":b.max)+"\u00B0F";
   return Math.round(toC(b.min))+"-"+(b.max===Infinity?"80+":Math.round(toC(b.max)))+"\u00B0C";
@@ -746,11 +1050,37 @@ function toggleExportMenu(){
 function buildCycles(entries){
   if(!entries.length)return[];
   var sorted=entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  // A turn ENDS a cycle if, before it, the pile satisfied ANY stage's required hold
+  // (>=131F for 72h, OR >=150F for 48h, OR >=156F for 24h, OR >=165F for 12h),
+  // measured by complianceTemp (the governing probe) as the longest continuous streak
+  // at-or-above each band's floor. Higher temps clear the bar faster, so any one of
+  // these completing means the cycle did its pathogen-reduction work.
+  // A turn before any stage is satisfied stays part of the same cycle (e.g. a mixing turn).
+  function anyStageSatisfied(cycleEntries){
+    var rel=cycleEntries.filter(function(e){return complianceTemp(e)!=null;});
+    var stageBands=BANDS.filter(function(b){return b.hours>0;});
+    for(var bi=0;bi<stageBands.length;bi++){
+      var band=stageBands[bi];
+      var streakStart=null;
+      for(var i=0;i<rel.length;i++){
+        // "at or above this band's floor" — being hotter still counts toward the floor
+        var atFloor=complianceTemp(rel[i])>=band.min;
+        if(atFloor){
+          if(streakStart===null)streakStart=new Date(rel[i].ts);
+          var end=i<rel.length-1?new Date(rel[i+1].ts):new Date(rel[i].ts);
+          if((end-streakStart)/3600000>=band.hours)return true;
+        } else { streakStart=null; }
+      }
+    }
+    return false;
+  }
   var cycles=[];var current=[];
   for(var i=0;i<sorted.length;i++){
     var e=sorted[i];
     current.push(e);
-    if(e.turned){cycles.push({entries:current.slice(),turnEntry:e});current=[];}
+    if(e.turned&&anyStageSatisfied(current)){
+      cycles.push({entries:current.slice(),turnEntry:e});current=[];
+    }
   }
   if(current.length)cycles.push({entries:current,turnEntry:null});
   return cycles;
@@ -762,12 +1092,12 @@ function computeSatisfiedStages(cycleEntries){
     var band=BANDS[bi];
     if(band.hours===0)continue;
     var maxStreak=0;var streakStart=null;
-    var rel=cycleEntries.filter(function(e){return e.core1!=null;});
+    var rel=cycleEntries.filter(function(e){return displayTemp(e)!=null;});
     for(var i=0;i<rel.length;i++){
-      var inBand=getBand(rel[i].core1)&&getBand(rel[i].core1).label===band.label;
+      var inBand=getBand(displayTemp(rel[i]))&&getBand(displayTemp(rel[i])).label===band.label;
       if(inBand){
         if(streakStart===null)streakStart=new Date(rel[i].ts);
-        var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):new Date();
+        var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):cappedNow(rel[i].ts);
         var len=(streakEnd-streakStart)/3600000;
         if(len>maxStreak)maxStreak=len;
       } else {streakStart=null;}
@@ -777,13 +1107,19 @@ function computeSatisfiedStages(cycleEntries){
   return satisfied;
 }
 
+// Shared cap for active-cycle extrapolation. The last entry's interval extends to
+// now so times accumulate in real time, but only up to 8h past that entry. If the
+// last reading is older than 8h, the bar freezes at lastEntry + 8h instead of
+// running away to hundreds of hours when logging is overdue.
+function cappedNow(lastTs){var cap=new Date(new Date(lastTs).getTime()+8*3600000);var now=new Date();return now<cap?now:cap;}
+
 // INDEPENDENT STAGES: tracks each stage's streak based on its own min temp floor.
-// Option B: for the active cycle's last entry, the interval does NOT extend to now.
-// This prevents wildly inflated MESO/THERMO/READY times when no entries are logged
-// for days or weeks. A stale-data badge is shown separately instead.
+// Active cycle: the last entry extrapolates to now, capped at 8h past that entry
+// (see cappedNow). Completed cycles stop at their turn entry. The cap prevents
+// wildly inflated MESO/THERMO/READY times when no entries are logged for days.
 function computeIndependentStages(cycleEntries){
   var result={};
-  var rel=cycleEntries.filter(function(e){return e.core1!=null;});
+  var rel=cycleEntries.filter(function(e){return complianceTemp(e)!=null;});
   // Detect completed cycle (last entry is a turn)
   var lastEntry=rel[rel.length-1];
   var isCompletedCycle=lastEntry&&lastEntry.turned;
@@ -792,18 +1128,20 @@ function computeIndependentStages(cycleEntries){
     if(band.hours===0)continue;
     var streakStart=null;
     var streakElapsed=0;
+    var maxStreak=0;
     var satisfied=false;
     var everReached=false;
     for(var i=0;i<rel.length;i++){
-      var temp=rel[i].core1;
+      var temp=complianceTemp(rel[i]);
       var aboveFloor=temp>=band.min;
       if(aboveFloor){
         everReached=true;
         if(streakStart===null)streakStart=new Date(rel[i].ts);
-        // Active cycle: extrapolate last entry to now so time accumulates in real time.
+        // Active cycle: extrapolate last entry to now, capped at 8h past that entry.
         // Completed cycles stop at their last entry (the turn).
-        var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?new Date(rel[i].ts):new Date());
+        var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?new Date(rel[i].ts):cappedNow(rel[i].ts));
         streakElapsed=(streakEnd-streakStart)/3600000;
+        if(streakElapsed>maxStreak)maxStreak=streakElapsed;
         if(streakElapsed>=band.hours)satisfied=true;
       } else {
         streakStart=null;
@@ -813,6 +1151,7 @@ function computeIndependentStages(cycleEntries){
     result[band.label]={
       streakStart:streakStart,
       elapsed:streakElapsed,
+      maxStreak:maxStreak,
       satisfied:satisfied,
       everReached:everReached,
       active:streakStart!==null,
@@ -832,12 +1171,12 @@ function computeIndependentStages(cycleEntries){
 //     "Stage 2": {...}
 //   }
 // }
-// Option B: active cycle last entry does NOT extend to now.
-// This means MESO/THERMO/READY times reflect only what has been measured.
-// A separate stale-data badge tells the user when logging is overdue.
+// Active cycle: the last entry extrapolates to now, capped at 8h past that entry
+// (see cappedNow), so MESO/THERMO/READY times keep advancing without running away
+// when logging is overdue. Completed cycles stop at the turn entry.
 
 function classifyCycleTime(cycleEntries){
-  var rel=cycleEntries.filter(function(e){return e.core1!=null;});
+  var rel=cycleEntries.filter(function(e){return displayTemp(e)!=null;});
   if(!rel.length)return {stages:{}};
   var sorted=rel.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var now=new Date();
@@ -861,13 +1200,13 @@ function classifyCycleTime(cycleEntries){
         // Completed cycle: stop at the turn entry — frozen with actual data
         endTs=startTs;
       } else {
-        // Active cycle: extrapolate to now so bars and countdown reflect real time
-        endTs=now;
+        // Active cycle: extrapolate to now, capped at 8h past the last entry
+        endTs=cappedNow(sorted[i].ts);
       }
       var intervalMs=endTs-startTs;
       if(intervalMs<=0)continue;
-      var temp=sorted[i].core1;
-      var aboveFloor=temp>=band.min;
+      var temp=displayTemp(sorted[i]);
+      var aboveFloor=temp!=null&&temp>=band.min;
       if(aboveFloor){
         everReached=true;
         if(streakStart===null)streakStart=startTs;
@@ -935,7 +1274,7 @@ function buildChronologicalSegments(cycleEntries,isCompleted){
   var segments=[];
   for(var i=0;i<rel.length;i++){
     var startTs=new Date(rel[i].ts);
-    var endTs=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?startTs:now);
+    var endTs=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?startTs:cappedNow(rel[i].ts));
     var intervalMs=endTs-startTs;
     if(intervalMs<=0)continue;
     var temp=rel[i].core1;
@@ -967,6 +1306,34 @@ function buildChronologicalSegments(cycleEntries,isCompleted){
   return{segments:segments,totalMs:totalMs,refMs:refMs,satisfied:satisfied};
 }
 
+function renderActiveCycleBar(cycle,displayIdx,pile,sorted,lat){
+  // Shared renderer so the Temperature Status card and the Turn Timer card show
+  // the IDENTICAL current-cycle bar.
+  var classified=classifyCycleTime(cycle.entries);
+  var reachedStages=BANDS.filter(function(b){return b.hours>0&&classified.stages[b.label]&&classified.stages[b.label].everReached;});
+  if(reachedStages.length===0){
+    var heatLabel2=getHeatStateLabel(pile,sorted);
+    var heatColor2=heatLabel2==="NOT HEATING - CHECK PILE"?"#ef4444":heatLabel2==="STABLE / MATURING"?"#999":"#60a5fa";
+    return '<div style="margin-bottom:0.7rem">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
+        '<span class="mono" style="font-size:0.7rem;color:'+heatColor2+'">CYCLE '+displayIdx+' \u00B7 '+heatLabel2+'</span>'+
+        '<span class="mono" style="font-size:0.65rem;color:'+heatColor2+'">UNDER 131\u00B0F</span>'+
+      '</div>'+
+      '<div class="pbar-wrap" style="height:12px"><div class="pbar" style="width:5%;background:'+heatColor2+';height:12px"></div></div>'+
+    '</div>';
+  }
+  var bestBand=null;var bestPct=-1;var bestTimes=null;
+  reachedStages.forEach(function(b){
+    var t=classified.stages[b.label];
+    var refMs=b.hours*3600000;
+    var totalMs=t.mesoMs+t.thermoMs+t.readyMs;
+    var pct=t.satisfied?100:Math.min(100,(totalMs/refMs)*100);
+    if(pct>bestPct){bestPct=pct;bestBand=b;bestTimes=t;}
+  });
+  var stageBarHTML=renderStageBarActive(bestBand,bestTimes,lat?lat.core1:null,cycle.entries);
+  stageBarHTML=stageBarHTML.replace(bestBand.label+' \u00B7 '+bestBand.hours+'H','CYCLE '+displayIdx+' \u00B7 '+bestBand.label+' \u00B7 '+bestBand.hours+'H');
+  return stageBarHTML;
+}
 function renderStageBarActive(stage,times,showCore,cycleEntries){
   var refMs=stage.hours*3600000;
   var msToH=function(ms){return ms/3600000;};
@@ -1216,31 +1583,51 @@ function hoursSinceLastTurn(entries){
   if(!t.length)return null;
   return Date.now()-new Date(t[0].ts);
 }
+// Count real turns, EXCLUDING the first chronological entry (the initial pile build,
+// which is often marked "turned" at creation but isn't an actual turn).
+function countTurns(entries){
+  if(!entries||!entries.length)return 0;
+  var sorted=entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  var firstId=sorted[0].id;
+  return sorted.filter(function(e){return e.turned&&e.id!==firstId;}).length;
+}
 
 function buildTurnHistory(entries){
   if(!entries.length)return[];
   var sorted=entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
-  var turns=sorted.filter(function(e){return e.turned;});
+  // Exclude the initial pile build: a "turned" flag on the very first entry is the
+  // build event, not a real turn of an established pile.
+  var buildTs=sorted.length?new Date(sorted[0].ts).getTime():0;
+  var turns=sorted.filter(function(e,idx){
+    if(!e.turned)return false;
+    if(idx===0)return false;                       // first entry = build, not a turn
+    if(new Date(e.ts).getTime()===buildTs)return false;
+    return true;
+  });
   if(!turns.length)return[];
   var cycles=buildCycles(sorted);
+  // Only cycles that were actually CLOSED by a turn (have a turnEntry) correspond to
+  // a real turn in the history. Pair each turn with its closing cycle by matching ts.
   var result=[];
   for(var i=0;i<turns.length;i++){
     var turn=turns[i];
-    var cycle=cycles[i];if(!cycle)continue;
-    var prevTurnTime=i>0?new Date(turns[i-1].ts):null;
-    var sinceMs=prevTurnTime?new Date(turn.ts)-prevTurnTime:null;
+    // find the cycle whose turnEntry is this turn
+    var cycle=null;
+    for(var ci=0;ci<cycles.length;ci++){
+      if(cycles[ci].turnEntry&&new Date(cycles[ci].turnEntry.ts).getTime()===new Date(turn.ts).getTime()){cycle=cycles[ci];break;}
+    }
+    if(!cycle)cycle={entries:[]};
+    var prevTurnTime=i>0?new Date(turns[i-1].ts):new Date(sorted[0].ts);
+    var sinceMs=new Date(turn.ts)-prevTurnTime;
     var satisfiedStages=computeSatisfiedStages(cycle.entries);
     var highestSatisfied=getHighestSatisfied(satisfiedStages);
-    var cycleStartTime=prevTurnTime||new Date(sorted[0].ts);
-    var cycleElapsedMs=new Date(turn.ts)-cycleStartTime;
-    var activeBandAtTurn=getBand(avgCore(turn));
-    var isWarning=false;
-    if(!highestSatisfied&&activeBandAtTurn){
-      isWarning=cycleElapsedMs>activeBandAtTurn.hours*3600000;
-    }
+    var activeBandAtTurn=getBand(displayTemp(turn));
+    // A turn is "good" if the pile was thermophilic when turned OR a stage was satisfied.
+    // (Turning a hot pile to homogenize is correct practice, not a warning.)
+    var turnedHot=(displayTemp(turn)!=null&&displayTemp(turn)>=131);
     result.push({num:i+1,date:turn.date,time:turn.time,ts:turn.ts,sinceMs:sinceMs,
-      satisfiedStages:satisfiedStages,highestSatisfied:highestSatisfied,core1:turn.core1,avgTemp:avgCore(turn),
-      isWarning:isWarning,activeBand:activeBandAtTurn});
+      satisfiedStages:satisfiedStages,highestSatisfied:highestSatisfied,core1:turn.core1,avgTemp:displayTemp(turn),
+      turnedHot:turnedHot,isWarning:false,activeBand:activeBandAtTurn});
   }
   return result;
 }
@@ -1260,6 +1647,20 @@ function applyRatioChange(item,changedKey,newVal){
   else if(freeOthers.length>1){var half=Math.round(toFill/2/5)*5;result[freeOthers[0]]=half;result[freeOthers[1]]=Math.max(0,toFill-half);}
   keys.forEach(function(k){if(result[k]<0)result[k]=0;});
   return result;
+}
+
+// "BY CATEGORY" ratio: rough planning view that maps each category wholesale to a
+// nutrient class (High-N -> fast, Greens -> slow, Browns -> brown), by volume.
+// Contrast with calcPileRatio() which is the ACTUAL volume-weighted blend from each
+// ingredient's real fast/slow/brown breakdown.
+function calcCategoryRatio(materials){
+  var catVolSum=function(arr){return (arr||[]).reduce(function(s,i){return s+(parseFloat(i.volume)||0);},0);};
+  var hn=catVolSum(materials.highN||materials.high_nitrogen||materials.highNitrogen);
+  var gr=catVolSum(materials.greens);
+  var br=catVolSum(materials.browns);
+  var tot=hn+gr+br;
+  if(!tot)return{fastN:0,slowN:0,brown:0};
+  return{fastN:Math.round(hn/tot*100),slowN:Math.round(gr/tot*100),brown:Math.round(br/tot*100)};
 }
 
 function calcPileRatio(materials){
@@ -1295,7 +1696,7 @@ function getContainerPresets(vu){
 function save(){
   // Stamp lastModified on any pile that just changed
   if(activeId){var ap=piles.find(function(p){return p.id===activeId;});if(ap)ap.lastModified=Date.now();}
-  localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
+  localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
   if(driveToken&&driveFileId)driveSaveNow();
 }
 
@@ -1322,7 +1723,7 @@ function loadSamplePileIfFirstRun(){
 
 function load(){
   var s=localStorage.getItem("ca_v5")||localStorage.getItem("ca_v4");
-  if(s){try{var d=JSON.parse(s);piles=d.piles||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;if(d.tempUnit)tempUnit=d.tempUnit;if(d.volumeUnit)volumeUnit=d.volumeUnit;if(d.containerUnit)containerUnit=d.containerUnit;if(d.deletedPileIds)deletedPileIds=d.deletedPileIds;}catch(e){}}
+  if(s){try{var d=JSON.parse(s);piles=d.piles||[];sites=d.sites||[];recipes=d.recipes||[];ingHist=d.ingHist||DEF_HIST;if(d.tempUnit)tempUnit=d.tempUnit;if(d.volumeUnit)volumeUnit=d.volumeUnit;if(d.containerUnit)containerUnit=d.containerUnit;if(d.deletedPileIds)deletedPileIds=d.deletedPileIds;}catch(e){}}
   else{loadSamplePileIfFirstRun();}
   // Migrate existing entries from old field names (core/top/bottom → core1/core2/core3)
   piles.forEach(function(pile){
@@ -1332,10 +1733,120 @@ function load(){
       if(e.bottom!==undefined&&e.core3===undefined){e.core3=e.bottom;delete e.bottom;}
     });
   });
+  migrateSites();
+}
+// One-time, idempotent migration: any pile that has an inline site (from v3.76v) but
+// no siteId gets a real site record created/linked. Inline fields are left as a
+// harmless fallback. Runs safely even when there are no inline-site piles.
+function migrateSites(){
+  if(!Array.isArray(sites))sites=[];
+  piles.forEach(function(pile){
+    if(pile.siteId)return;                 // already linked
+    if(!pile.site)return;                  // no inline site to convert
+    var nameKey=String(pile.site).trim().toLowerCase();
+    if(!nameKey)return;
+    var existing=sites.find(function(st){return st.name.trim().toLowerCase()===nameKey;});
+    if(!existing){
+      existing={id:uid(),name:String(pile.site).trim(),
+        lat:(pile.lat!=null?pile.lat:null),lon:(pile.lon!=null?pile.lon:null),
+        managerName:"",managerContact:"",created:new Date().toISOString()};
+      sites.push(existing);
+    } else {
+      // fill coords if the site lacks them but the pile has them
+      if(existing.lat==null&&pile.lat!=null)existing.lat=pile.lat;
+      if(existing.lon==null&&pile.lon!=null)existing.lon=pile.lon;
+    }
+    pile.siteId=existing.id;
+  });
+}
+// Site helpers
+function getSite(id){return sites.find(function(s){return s.id===id;})||null;}
+function siteName(id){var s=getSite(id);return s?s.name:null;}
+function addSite(obj){var s=Object.assign({id:uid(),name:"",lat:null,lon:null,managerName:"",managerContact:"",created:new Date().toISOString()},obj||{});sites.push(s);return s;}
+function updateSite(id,obj){var s=getSite(id);if(s)Object.assign(s,obj);return s;}
+function deleteSite(id){
+  // Unlink piles from this site (they become unassigned), then remove the site.
+  piles.forEach(function(p){if(p.siteId===id){p.siteId=null;}});
+  sites=sites.filter(function(s){return s.id!==id;});
+}
+// ---- Sites manager UI ----
+var editingSiteId=null;
+function openSitesManager(){document.getElementById("sites-overlay").classList.remove("hidden");renderSitesList();}
+function closeSitesManager(){document.getElementById("sites-overlay").classList.add("hidden");}
+function renderSitesList(){
+  var el=document.getElementById("sites-list");if(!el)return;
+  if(!sites.length){el.innerHTML='<div class="mono" style="font-size:0.75rem;color:#555;text-align:center;padding:1.5rem 0">No sites yet. Add one below.</div>';return;}
+  el.innerHTML=sites.map(function(s){
+    var pileCount=piles.filter(function(p){return p.siteId===s.id;}).length;
+    var coords=(s.lat!=null&&s.lon!=null)?(Math.round(s.lat*1e4)/1e4)+", "+(Math.round(s.lon*1e4)/1e4):"no coordinates";
+    var mgr=s.managerName?(" \u00B7 "+s.managerName):"";
+    return '<div class="card" style="margin-bottom:0.6rem;padding:0.85rem">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem">'+
+        '<div style="min-width:0">'+
+          '<div class="hd" style="font-size:0.95rem;color:#fff">'+escapeHtml(s.name)+'</div>'+
+          '<div class="mono" style="font-size:0.6rem;color:#2a6;margin-top:0.2rem">📍 '+coords+mgr+'</div>'+
+          '<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.15rem">'+pileCount+' pile'+(pileCount===1?"":"s")+'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:0.35rem;flex-shrink:0">'+
+          '<button onclick="openSiteEdit(\''+s.id+'\')" class="btn-sm" style="font-size:0.62rem">EDIT</button>'+
+          '<button onclick="confirmDeleteSite(\''+s.id+'\')" class="btn-sm" style="font-size:0.62rem;color:#ef4444">DEL</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join("");
+}
+function openSiteEdit(id){
+  editingSiteId=id;
+  var t=document.getElementById("site-edit-title");
+  var s=id?getSite(id):null;
+  if(t)t.textContent=s?"EDIT SITE":"ADD SITE";
+  document.getElementById("site-name").value=s?s.name:"";
+  document.getElementById("site-lat").value=(s&&s.lat!=null)?s.lat:"";
+  document.getElementById("site-lon").value=(s&&s.lon!=null)?s.lon:"";
+  document.getElementById("site-manager-name").value=s?(s.managerName||""):"";
+  document.getElementById("site-manager-contact").value=s?(s.managerContact||""):"";
+  document.getElementById("site-edit-error").classList.add("hidden");
+  document.getElementById("site-edit-overlay").classList.remove("hidden");
+}
+function closeSiteEdit(){document.getElementById("site-edit-overlay").classList.add("hidden");editingSiteId=null;}
+function saveSite(){
+  var name=document.getElementById("site-name").value.trim();
+  var errEl=document.getElementById("site-edit-error");
+  if(!name){errEl.textContent="Site name is required.";errEl.classList.remove("hidden");return;}
+  var latV=document.getElementById("site-lat").value;
+  var lonV=document.getElementById("site-lon").value;
+  var obj={name:name,
+    lat:latV!==""?parseFloat(latV):null,
+    lon:lonV!==""?parseFloat(lonV):null,
+    managerName:document.getElementById("site-manager-name").value.trim(),
+    managerContact:document.getElementById("site-manager-contact").value.trim()};
+  if(editingSiteId){updateSite(editingSiteId,obj);}else{addSite(obj);}
+  save();closeSiteEdit();renderSitesList();
+}
+function confirmDeleteSite(id){
+  var s=getSite(id);if(!s)return;
+  var n=piles.filter(function(p){return p.siteId===id;}).length;
+  var msg="Delete site \""+s.name+"\"?"+(n>0?" "+n+" pile"+(n===1?"":"s")+" will become unassigned.":"");
+  if(confirm(msg)){deleteSite(id);save();renderSitesList();}
+}
+function escapeHtml(str){return String(str==null?"":str).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+// Assign an existing pile to a site
+var assigningPileId=null;
+function openAssignSite(pileId){
+  assigningPileId=pileId;
+  var p=piles.find(function(x){return x.id===pileId;});
+  populateSiteSelect("assign-site-select",p?p.siteId:null);
+  document.getElementById("assign-site-overlay").classList.remove("hidden");
+}
+function closeAssignSite(){document.getElementById("assign-site-overlay").classList.add("hidden");assigningPileId=null;}
+function saveAssignSite(){
+  var p=piles.find(function(x){return x.id===assigningPileId;});
+  if(p){var sel=document.getElementById("assign-site-select");p.siteId=sel&&sel.value?sel.value:null;p.lastModified=Date.now();save();}
+  closeAssignSite();renderDashboard();
 }
 
 function showView(v){
-  ["home","setup","dashboard"].forEach(function(x){document.getElementById("view-"+x).classList.add("hidden");});
+  ["home","setup","dashboard","opsummary"].forEach(function(x){document.getElementById("view-"+x).classList.add("hidden");});
   document.getElementById("view-"+v).classList.remove("hidden");
   if(v==="home"){clearInterval(timerInterval);renderHome();}
   if(v==="setup"){clearInterval(timerInterval);renderSetup();}
@@ -1378,6 +1889,71 @@ function renderSortDropdown(){
   sortEl.innerHTML='<label class="mono" style="font-size:0.6rem;color:#555;margin-right:0.5rem">SORT:</label>'+
     '<select onchange="setPilesSort(this.value)" class="mono" style="background:#0a0a0a;color:#ccc;border:1px solid #222;padding:0.25rem 0.4rem;font-size:0.65rem;font-family:Share Tech Mono,monospace;border-radius:2px">'+sel+'</select>';
 }
+function showOpSummary(){clearInterval(timerInterval);showView("opsummary");renderOpSummary();}
+function renderOpSummary(){
+  var el=document.getElementById("opsummary-body");
+  var rows=piles.filter(function(p){return p.status==="completed";}).map(function(p){
+    var s=(p.entries||[]).slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+    var dh=degreeHoursAbove(s,131);
+    var peak=0;s.forEach(function(e){var mx=Math.max(e.core1||0,e.core2||0,e.core3||0);if(mx>peak)peak=mx;});
+    var firstThermo=null;for(var i=0;i<s.length;i++){if(complianceTemp(s[i])>=131){firstThermo=s[i];break;}}
+    var tTo131=firstThermo&&s.length?(new Date(firstThermo.ts)-new Date(s[0].ts))/3600000:null;
+    var pf=pfrpStatus(s);
+    var ratio=calcPileRatio(p.materials);
+    var cycles=buildCycles(s).length;
+    return {name:p.name,dh:dh,peak:Math.round(peak),tTo131:tTo131,pfrpDays:pf.days,
+      windrow:pf.windrowMet,fastN:ratio.fastN,brown:ratio.brown,cycles:cycles};
+  });
+  if(rows.length<1){
+    el.innerHTML='<div style="text-align:center;padding:3rem 1rem;border:1px dashed #1a1a1a;border-radius:4px">'+
+      '<div class="hd" style="font-size:1.1rem;color:#555">NO MATURED PILES YET</div>'+
+      '<div class="mono" style="font-size:0.7rem;color:#555;margin-top:0.5rem">Mark piles MATURED to build your baselines.</div></div>';
+    return;
+  }
+  function avg(key){var v=rows.map(function(r){return r[key];}).filter(function(x){return x!=null;});return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:null;}
+  var baseDh=avg("dh"),basePeak=avg("peak"),baseT=avg("tTo131"),basePf=avg("pfrpDays"),baseCy=avg("cycles");
+  var passCount=rows.filter(function(r){return r.windrow;}).length;
+  var baseRows=[['Avg degree-hours >131\u00B0F',baseDh!=null?Math.round(baseDh).toLocaleString()+' \u00B0F\u00B7h':'\u2014'],
+     ['Avg peak temp',basePeak!=null?Math.round(basePeak)+'\u00B0F':'\u2014'],
+     ['Avg time to 131\u00B0F',baseT!=null?fmtDuration(baseT*3600000):'\u2014'],
+     ['Avg cycles to maturity',baseCy!=null?(Math.round(baseCy*10)/10):'\u2014']];
+  if(showPFRP){
+    baseRows.splice(3,0,['Avg PFRP days',basePf!=null?(Math.round(basePf*10)/10)+' days':'\u2014']);
+    baseRows.push(['Windrow-PFRP pass rate',passCount+' of '+rows.length]);
+  }
+  var baseHtml='<div class="card"><div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">YOUR BASELINES \u00B7 '+rows.length+' MATURED PILE'+(rows.length>1?"S":"")+'</div>'+
+    baseRows.map(function(r){return '<div class="status-detail"><span class="status-key">'+r[0]+'</span><span class="status-val" style="color:#ccc">'+r[1]+'</span></div>';}).join("")+'</div>';
+  var sortedRows=rows.slice().sort(function(a,b){return b.dh-a.dh;});
+  var tableRows=sortedRows.map(function(r){
+    return '<tr style="border-bottom:1px solid #080808">'+
+      '<td style="padding:0.35rem 0.4rem;color:#ddd;font-size:0.72rem">'+r.name+'</td>'+
+      '<td class="mono" style="padding:0.35rem 0.4rem;color:#ef4444;font-size:0.8rem;text-align:right">'+r.fastN+'%</td>'+
+      '<td class="mono" style="padding:0.35rem 0.4rem;color:#d97706;font-size:0.8rem;text-align:right">'+r.brown+'%</td>'+
+      '<td class="mono" style="padding:0.35rem 0.4rem;color:#f59e0b;font-size:0.8rem;text-align:right">'+(r.tTo131!=null?Math.round(r.tTo131)+'h':'\u2014')+'</td>'+
+      '<td class="mono" style="padding:0.35rem 0.4rem;color:#f97316;font-size:0.8rem;text-align:right">'+r.dh.toLocaleString()+'</td>'+
+      (showPFRP?('<td class="mono" style="padding:0.35rem 0.4rem;font-size:0.8rem;text-align:center;color:'+(r.windrow?"#4ade80":"#ef4444")+'">'+(r.windrow?"\u2713":"\u2717")+' '+r.pfrpDays+'d</td>'):'')+
+    '</tr>';
+  }).join("");
+  var tableHeaders=["PILE","FAST-N","BROWN","\u2192131\u00B0","\u00B0F\u00B7h"];
+  if(showPFRP)tableHeaders.push("PFRP");
+  var tableHtml='<div class="card"><div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em;margin-bottom:0.5rem">RECIPE \u2192 OUTCOME</div>'+
+    '<div style="overflow:auto"><table style="width:100%;border-collapse:collapse">'+
+    '<thead><tr>'+tableHeaders.map(function(h){return '<th class="mono" style="text-align:right;padding:0.3rem 0.4rem;border-bottom:1px solid #111;color:#555;font-size:0.6rem;font-weight:normal">'+h+'</th>';}).join("")+'</tr></thead>'+
+    '<tbody>'+tableRows+'</tbody></table></div></div>';
+  var takeaway='';
+  if(rows.length>=4){
+    var fast=sortedRows.slice(0,Math.ceil(sortedRows.length/2));
+    var slow=sortedRows.slice(Math.ceil(sortedRows.length/2));
+    var fastAvgN=Math.round(fast.reduce(function(a,r){return a+r.fastN;},0)/fast.length);
+    var slowAvgN=Math.round(slow.reduce(function(a,r){return a+r.fastN;},0)/slow.length);
+    takeaway='<div class="card" style="font-size:0.68rem;color:#888;line-height:1.5;font-family:Inter,sans-serif">'+
+      'Your highest degree-hour piles averaged '+fastAvgN+'% fast-N; the lower half averaged '+slowAvgN+'%. '+
+      (fastAvgN>slowAvgN?'Higher fast-N is tracking with more thermal output.':fastAvgN<slowAvgN?'Higher fast-N is not obviously improving output \u2014 other factors may dominate.':'No clear fast-N pattern yet.')+'</div>';
+  } else {
+    takeaway='<div style="font-size:0.62rem;color:#555;font-family:Inter,sans-serif;padding:0 0.25rem">Mature at least 4 piles to surface recipe patterns.</div>';
+  }
+  el.innerHTML=baseHtml+tableHtml+takeaway;
+}
 function renderHome(){
   updateDriveUI();
   renderSortDropdown();
@@ -1386,13 +1962,42 @@ function renderHome(){
     el.innerHTML='<div style="text-align:center;padding:3rem 1rem;border:1px dashed #1a1a1a;border-radius:4px"><div style="font-size:2rem;margin-bottom:0.5rem">&#127793;</div><div class="hd" style="font-size:1.2rem;color:#555">NO PILES YET</div></div>';
     return;
   }
-  el.innerHTML=sortPilesByMode(piles).map(function(p){
+  // Group piles by site (collapsible). Sites in their stored order, then "Unassigned".
+  var sorted=sortPilesByMode(piles);
+  var groups=[];
+  sites.forEach(function(s){
+    var members=sorted.filter(function(p){return p.siteId===s.id;});
+    if(members.length)groups.push({site:s,piles:members});
+  });
+  var unassigned=sorted.filter(function(p){return !p.siteId||!getSite(p.siteId);});
+  if(unassigned.length)groups.push({site:null,piles:unassigned});
+  // If there are no sites at all, render a flat list (no group headers) for simplicity.
+  if(!sites.length){
+    el.innerHTML=sorted.map(renderPileCard).join("");
+    return;
+  }
+  el.innerHTML=groups.map(function(g){
+    var sid=g.site?g.site.id:"__unassigned";
+    var collapsed=homeCollapsedSites[sid];
+    var title=g.site?escapeHtml(g.site.name):"Unassigned";
+    var header='<div onclick="toggleSiteGroup(\''+sid+'\')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0.6rem 0.2rem;border-bottom:1px solid #1a1a1a;margin-bottom:0.6rem">'+
+      '<div style="min-width:0">'+
+        '<span class="hd" style="font-size:1rem;color:'+(g.site?"#2a6":"#777")+'">'+(collapsed?"\u25B8":"\u25BE")+' '+title+'</span>'+
+        '<span class="mono" style="font-size:0.6rem;color:#555;margin-left:0.5rem">'+g.piles.length+'</span>'+
+      '</div>'+
+    '</div>';
+    var body=collapsed?"":g.piles.map(renderPileCard).join("");
+    return '<div style="margin-bottom:1rem">'+header+body+'</div>';
+  }).join("");
+}
+function toggleSiteGroup(sid){homeCollapsedSites[sid]=!homeCollapsedSites[sid];renderHome();}
+function renderPileCard(p){
     var sorted=p.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
     var lat=sorted[sorted.length-1];
     var t=calcSmartTimer(p.entries);
     var band=lat?getBand(avgCore(lat)):null;
     var sinceMs=hoursSinceLastTurn(p.entries);
-    var turnCount=p.entries.filter(function(e){return e.turned;}).length;
+    var turnCount=countTurns(p.entries);
     var isTurnNow=lat&&avgCore(lat)>=175;
     var isCompleted=p.status==="completed";
     var nextDue=(function(){
@@ -1415,40 +2020,29 @@ function renderHome(){
     var sinceHtml=sinceMs!==null
       ?'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.2rem">LAST TURN: '+fmtHours(sinceMs)+' AGO &middot; TURNS: '+turnCount+'</div>'
       :'<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.2rem">NO TURN RECORDED</div>';
-    // Stage progress bars — active stages, full bar style
+    // Active-cycle bar(s) — reuse the dashboard status-card renderer so the home card
+    // shows the IDENTICAL segmented bar. Grey out if data is stale (no reading in 24h);
+    // green when ready/matured.
     var stageBadges='';
-    if(!isCompleted&&sorted.length){
+    var FRESH_MS=24*3600000;
+    var lastTs=lat?new Date(lat.ts).getTime():0;
+    var isStale=lat?(Date.now()-lastTs>FRESH_MS):true;
+    if(isCompleted){
+      stageBadges='<div style="margin-top:0.6rem"><div style="height:10px;background:#16351f;border-radius:3px;overflow:hidden"><div style="height:100%;width:100%;background:#4ade80;border-radius:3px"></div></div>'+
+        '<div class="mono" style="font-size:0.6rem;color:#4ade80;margin-top:0.2rem">MATURED</div></div>';
+    } else if(sorted.length){
       var cyclesPC=buildCycles(sorted);
       if(cyclesPC&&cyclesPC.length){
         var curCyc=cyclesPC[cyclesPC.length-1];
-        var indep=computeIndependentStages(curCyc.entries);
-        var sOrder=["Stage 1","Stage 2","Stage 3","Stage 4"];
-        var sColors={"Stage 1":"#f59e0b","Stage 2":"#f97316","Stage 3":"#ef4444","Stage 4":"#dc2626"};
-        var sHours={"Stage 1":72,"Stage 2":48,"Stage 3":24,"Stage 4":12};
-        var bars=[];
-        sOrder.forEach(function(sn){
-          var si=indep[sn];
-          if(si&&si.active){
-            var reqH=sHours[sn];
-            var elapsedH=reqH-si.remaining;
-            var pct=Math.min(100,Math.max(0,(elapsedH/reqH)*100));
-            var leftStr=si.remaining>0?fmtDuration(si.remaining*3600000)+" LEFT":"COMPLETE";
-            var col=sColors[sn];
-            bars.push(
-              '<div style="margin-top:0.6rem">'+
-                '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem">'+
-                  '<span class="mono" style="font-size:0.72rem;color:'+col+'">'+sn+' · '+reqH+'H</span>'+
-                  '<span class="mono" style="font-size:0.68rem;color:#888">'+leftStr+'</span>'+
-                '</div>'+
-                '<div style="height:7px;background:#1a1a1a;border-radius:3px;overflow:hidden">'+
-                  '<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:3px"></div>'+
-                '</div>'+
-                '<div class="mono" style="font-size:0.6rem;color:#555;margin-top:0.2rem">'+fmtDuration(elapsedH*3600000)+' / '+reqH+'H</div>'+
-              '</div>'
-            );
-          }
-        });
-        if(bars.length)stageBadges='<div style="margin-top:0.3rem">'+bars.join("")+'</div>';
+        var displayIdx=cyclesPC.length;
+        var barHTML=renderActiveCycleBar(curCyc,displayIdx,p,sorted,lat);
+        // If stale, desaturate by wrapping in a grey-tint overlay.
+        if(isStale){
+          stageBadges='<div style="margin-top:0.3rem;position:relative;opacity:0.45;filter:grayscale(0.85)">'+barHTML+'</div>'+
+            '<div class="mono" style="font-size:0.58rem;color:#777;margin-top:0.1rem">\u26A0 STALE \u00B7 last reading '+fmtHours(Date.now()-lastTs)+' ago</div>';
+        } else {
+          stageBadges='<div style="margin-top:0.3rem">'+barHTML+'</div>';
+        }
       }
     }
     var statusPill=isCompleted
@@ -1475,7 +2069,6 @@ function renderHome(){
         '<button onclick="event.stopPropagation();deletePile(\''+p.id+'\')" class="btn-sm" style="font-size:0.62rem;color:#9a4a4a;border-color:#3a1a1a">DELETE</button>'+
       '</div>'+
     '</div>';
-  }).join("");
 }
 function openPile(id){activeId=id;showView("dashboard");}
 var _maturityPileId=null;
@@ -1490,7 +2083,7 @@ function togglePileStatus(id){
   var totalDays=firstEntry&&lastEntry?Math.round((new Date(lastEntry.ts)-new Date(firstEntry.ts))/86400000):0;
   var peakTemp=0;
   sorted.forEach(function(e){var c1=e.core1||0,c2=e.core2||0,c3=e.core3||0;var mx=Math.max(c1,c2,c3);if(mx>peakTemp)peakTemp=mx;});
-  var turns=sorted.filter(function(e){return e.turned;}).length;
+  var turns=countTurns(sorted);
   var daysAbove131=0;
   for(var i=1;i<sorted.length;i++){
     var prev=sorted[i-1],cur=sorted[i];
@@ -1506,7 +2099,7 @@ function togglePileStatus(id){
   ];
   var assess=getPileAssessment(p,sorted);
   document.getElementById("maturity-summary").innerHTML=
-    '<div style="margin-bottom:0.75rem;font-size:0.7rem;color:#555;font-family:Share Tech Mono,monospace">'+
+    '<div style="margin-bottom:0.75rem;font-size:0.8rem;color:#555;font-family:Share Tech Mono,monospace">'+
     'This pile journey at a glance:</div>'+
     rows.map(function(r){return '<div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid #111">'+
       '<span class="mono" style="font-size:0.75rem;color:#555">'+r.label+'</span>'+
@@ -1535,7 +2128,7 @@ function confirmMatured(){
   var sorted=(p.entries||[]).slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   var peakTemp=0;sorted.forEach(function(e){var mx=Math.max(e.core1||0,e.core2||0,e.core3||0);if(mx>peakTemp)peakTemp=mx;});
   var totalDays=sorted.length>1?Math.round((new Date(sorted[sorted.length-1].ts)-new Date(sorted[0].ts))/86400000):0;
-  p.maturityData={totalDays:totalDays,peakTemp:peakTemp,turns:sorted.filter(function(e){return e.turned;}).length,entries:sorted.length};
+  p.maturityData={totalDays:totalDays,peakTemp:peakTemp,turns:countTurns(sorted),entries:sorted.length};
   save();closeMaturityModal();renderHome();
 }
 function renamePile(id){
@@ -1600,7 +2193,7 @@ function deletePile(id){
   },30000);  // 30 seconds for pile deletion
 }
 
-function renderSetup(){newMaterials=newMats();document.getElementById("new-pile-name").value="";document.getElementById("new-pile-name").classList.remove("error");document.getElementById("setup-error").classList.add("hidden");updateTotalVol();renderCatEditors("new");renderRecipesPanel();}
+function renderSetup(){newMaterials=newMats();document.getElementById("new-pile-name").value="";document.getElementById("new-pile-name").classList.remove("error");populateSiteSelect("new-pile-site-select",null);document.getElementById("setup-error").classList.add("hidden");updateTotalVol();renderCatEditors("new");renderRecipesPanel();}
 
 function renderCatEditors(mode){
   var prefix=mode==="edit"?"re":"cat";
@@ -1609,7 +2202,7 @@ function renderCatEditors(mode){
     return '<div style="margin-bottom:1.5rem">'+
       '<div style="display:flex;justify-content:space-between;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:1px solid #111">'+
         '<div><span class="hd" style="font-size:1rem;color:'+cat.color+'">'+cat.label+'</span>'+
-        '<span style="font-size:0.7rem;color:#555;margin-left:0.5rem">'+cat.sub+'</span></div>'+
+        '<span style="font-size:0.8rem;color:#555;margin-left:0.5rem">'+cat.sub+'</span></div>'+
         '<span class="mono" style="font-size:0.75rem;color:#555" id="'+prefix+'-vol-'+cat.key+'">0.0 gal</span>'+
       '</div>'+
       '<div id="'+prefix+'-items-'+cat.key+'"></div>'+
@@ -1888,15 +2481,126 @@ function validatePileSetup(){
   return true;
 }
 
+// Fetch current ambient temperature from Open-Meteo for the active pile's site.
+// Free, no API key, CORS-enabled. Offline / no-site / error → leaves field blank and
+// tells the user; never throws into the entry flow. Always requests Fahrenheit and
+// converts to the app's display unit (internal storage stays °F).
+// Bulk historical ambient backfill for the active pile. Uses Open-Meteo's Historical
+// Forecast API (covers recent years INCLUDING the last few days, closing the ~5-day
+// gap the archive endpoint has). One call spanning the pile's date range, then matches
+// each entry to the nearest hour. Overwrites every entry's ambientApi (fixes bad data).
+function backfillHistoricalAmbient(){
+  var pile=getActivePile();
+  var site=pile&&pile.siteId?getSite(pile.siteId):null;
+  if(!site||site.lat==null||site.lon==null){
+    alert("Assign this pile to a site with coordinates first (\uD83D\uDCCD SITES), then backfill.");
+    return;
+  }
+  if(!navigator.onLine){alert("You're offline. Historical backfill needs internet.");return;}
+  if(!pile.entries||!pile.entries.length){alert("No entries to backfill.");return;}
+  var sorted=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  var startD=new Date(sorted[0].ts), endD=new Date(sorted[sorted.length-1].ts);
+  function ymd(d){return d.getUTCFullYear()+"-"+("0"+(d.getUTCMonth()+1)).slice(-2)+"-"+("0"+d.getUTCDate()).slice(-2);}
+  var url="https://historical-forecast-api.open-meteo.com/v1/forecast?latitude="+encodeURIComponent(site.lat)+
+    "&longitude="+encodeURIComponent(site.lon)+
+    "&start_date="+ymd(startD)+"&end_date="+ymd(endD)+
+    "&hourly=temperature_2m&temperature_unit=fahrenheit&timezone=UTC";
+  if(!confirm("Backfill API ambient for all "+sorted.length+" entries from the weather archive? This overwrites existing API ambient values."))return;
+  var btns=document.querySelectorAll(".backfill-btn");
+  btns.forEach(function(b){b.disabled=true;b.textContent="...";});
+  fetch(url).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(d){
+    if(!d||!d.hourly||!d.hourly.time||!d.hourly.temperature_2m)throw new Error("no hourly data");
+    var times=d.hourly.time.map(function(s){return new Date(s+"Z").getTime();});
+    var temps=d.hourly.temperature_2m;
+    var filled=0;
+    sorted.forEach(function(e){
+      var et=new Date(e.ts).getTime();
+      // nearest hour index (binary-ish linear search is fine for these sizes)
+      var bestI=-1,bestDiff=Infinity;
+      for(var i=0;i<times.length;i++){var diff=Math.abs(times[i]-et);if(diff<bestDiff){bestDiff=diff;bestI=i;}}
+      if(bestI>=0&&temps[bestI]!=null&&!isNaN(temps[bestI])){
+        var tF=temps[bestI];
+        e.ambientApi=(tempUnit==="C")?Math.round(toC(tF)*10)/10:Math.round(tF*10)/10;
+        filled++;
+      }
+    });
+    save();
+    alert("Backfilled "+filled+" of "+sorted.length+" entries with historical weather.");
+    if(typeof renderDashboard==="function")renderDashboard();
+  }).catch(function(e){
+    alert("Backfill failed ("+(e&&e.message?e.message:"error")+"). The weather archive may not cover this location/date range.");
+  }).then(function(){
+    btns.forEach(function(b){b.disabled=false;b.textContent="\u2601 BACKFILL AMBIENT";});
+  });
+}
+function fetchApiAmbient(targetInputId){
+  var pile=getActivePile();
+  var site=pile&&pile.siteId?getSite(pile.siteId):null;
+  if(!site||site.lat==null||site.lon==null){
+    alert("This pile has no site with coordinates. Assign it to a site that has latitude/longitude (\uD83D\uDCCD SITES), then try again. You can still enter ambient manually.");
+    return;
+  }
+  if(!navigator.onLine){
+    alert("You appear to be offline. The weather value needs internet \u2014 enter ambient manually for now.");
+    return;
+  }
+  var btn=document.getElementById(targetInputId+"-btn");
+  if(btn){btn.disabled=true;btn.textContent="...";}
+  var url="https://api.open-meteo.com/v1/forecast?latitude="+encodeURIComponent(site.lat)+"&longitude="+encodeURIComponent(site.lon)+"&current=temperature_2m&temperature_unit=fahrenheit";
+  fetch(url).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(d){
+    var tF=d&&d.current&&d.current.temperature_2m;
+    if(tF==null||isNaN(tF))throw new Error("no temperature in response");
+    var shown=(tempUnit==="C")?toC(tF):tF;       // input shows display unit
+    var inp=document.getElementById(targetInputId);
+    if(inp)inp.value=Math.round(shown*10)/10;
+  }).catch(function(e){
+    alert("Couldn't get the weather temperature ("+(e&&e.message?e.message:"error")+"). You can enter ambient manually.");
+  }).then(function(){
+    if(btn){btn.disabled=false;btn.textContent="☁ API";}
+  });
+}
+function fillCurrentLocation(which){
+  var latId=which==="new"?"new-pile-lat":"site-lat";
+  var lonId=which==="new"?"new-pile-lon":"site-lon";
+  if(!navigator.geolocation){alert("Location is not available on this device. Please enter coordinates manually.");return;}
+  function apply(pos){
+    var la=document.getElementById(latId),lo=document.getElementById(lonId);
+    if(la)la.value=Math.round(pos.coords.latitude*1e6)/1e6;
+    if(lo)lo.value=Math.round(pos.coords.longitude*1e6)/1e6;
+  }
+  function fail(err){
+    var msg="Could not get location. ";
+    if(err&&err.code===1)msg+="Permission was denied — enable Location for your browser in device Settings (e.g. iOS: Settings > Privacy & Security > Location Services > Safari/your browser), then try again.";
+    else if(err&&err.code===2)msg+="Position unavailable right now.";
+    else if(err&&err.code===3)msg+="It timed out.";
+    msg+=" You can also type the coordinates manually.";
+    alert(msg);
+  }
+  // Try high accuracy first; if that errors, retry with low accuracy and a longer timeout.
+  navigator.geolocation.getCurrentPosition(apply,function(){
+    navigator.geolocation.getCurrentPosition(apply,fail,{enableHighAccuracy:false,timeout:20000,maximumAge:60000});
+  },{enableHighAccuracy:true,timeout:12000,maximumAge:0});
+}
+// Populate a <select> with site options (plus "No site"). selectedId pre-selects.
+function populateSiteSelect(selectId,selectedId){
+  var sel=document.getElementById(selectId);if(!sel)return;
+  var opts='<option value="">\u2014 No site \u2014</option>';
+  sites.forEach(function(s){
+    opts+='<option value="'+s.id+'"'+(s.id===selectedId?" selected":"")+'>'+escapeHtml(s.name)+'</option>';
+  });
+  sel.innerHTML=opts;
+}
 function createPile(){
   if(!validatePileSetup())return;
   var name=document.getElementById("new-pile-name").value.trim();
+  var selEl=document.getElementById("new-pile-site-select");
+  var siteId=selEl&&selEl.value?selEl.value:null;
   CATS.forEach(function(cat){
     newMaterials[cat.key].forEach(function(i){if(i.name)addToHist(cat.key,i.name);});
   });
-  var pile={id:uid(),name:name,created:new Date().toISOString(),status:"active",
+  var pile={id:uid(),name:name,siteId:siteId,created:new Date().toISOString(),status:"active",
     volumeUnit:volumeUnit,containerUnit:JSON.parse(JSON.stringify(containerUnit)),
-    lastModified:Date.now(),
+    lastModified:Date.now(),dataSource:"manual",
     materials:JSON.parse(JSON.stringify(newMaterials)),entries:[]};
   piles.push(pile);activeId=pile.id;save();showView("dashboard");
 }
@@ -1933,6 +2637,14 @@ function renderDashboard(){
   var lat=sorted[sorted.length-1];var band=lat?getBand(avgCore(lat)):null;
 
   document.getElementById("dash-name").textContent=pile.name;
+  var siteEl=document.getElementById("dash-site");
+  if(siteEl){
+    var sName=pile.siteId?siteName(pile.siteId):null;
+    siteEl.innerHTML=sName?("📍 "+escapeHtml(sName)+' <span style="color:#555;text-decoration:underline">change</span>'):'<span style="color:#555;text-decoration:underline">📍 assign to site</span>';
+    siteEl.style.display="block";
+    siteEl.style.cursor="pointer";
+    siteEl.onclick=function(){openAssignSite(pile.id);};
+  }
   var pileStartDate=getPileStartDate(pile);
   var daysSinceStart=sorted.length?Math.floor((Date.now()-pileStartDate.getTime())/86400000)+1:0;
   document.getElementById("dash-sub").textContent="DAY "+daysSinceStart+" \u00B7 "+driveLabelShort();
@@ -1973,7 +2685,7 @@ function renderDashboard(){
   timerInterval=setInterval(function(){
     var p=getActivePile();if(!p)return;
     var s=p.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
-    var l=s[s.length-1];var b=l?getBand(avgCore(l)):null;
+    var l=s[s.length-1];var b=l?getBand(displayTemp(l)):null;
     renderStatusCard(p,s,l,b);renderTimer(p);
   },60000);
 }
@@ -1985,6 +2697,15 @@ function toggleMoistureSkip(){
   if(slider)slider.disabled=skip;
   if(slider)slider.style.opacity=skip?"0.3":"1";
   if(val)val.textContent=skip?"—":slider.value+"%";
+  if(val)val.style.color=skip?"#555":"#1e88e5";
+}
+function toggleEditMoistureSkip(){
+  var skip=document.getElementById("e-moisture-skip").checked;
+  var slider=document.getElementById("e-moisture");
+  var val=document.getElementById("e-moist-val");
+  if(slider)slider.disabled=skip;
+  if(slider)slider.style.opacity=skip?"0.3":"1";
+  if(val)val.textContent=skip?"\u2014":slider.value+"%";
   if(val)val.style.color=skip?"#555":"#1e88e5";
 }
 function updateSlider(el){
@@ -2057,12 +2778,12 @@ function renderStatusCard(pile,sorted,lat,band){
       '<div>'+
         '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">AVG TEMP</div>'+
         '<div class="mono" style="font-size:2.8rem;color:'+band.color+';font-weight:bold;line-height:1">'+dispStr(avgCore(lat))+'</div>'+
-        '<div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+band.label+(band.hours>0?' \u00B7 '+bandRange(band):' \u00B7 BELOW 131\u00B0F')+'</div>'+
+        '<div style="font-size:0.8rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+band.label+(band.hours>0?' \u00B7 '+bandRange(band):' \u00B7 BELOW 131\u00B0F')+'</div>'+
       '</div>'+
       '<div style="text-align:right">'+
         '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">'+(isDone?"ACTION":"TIME LEFT")+'</div>'+
         '<div class="mono" style="font-size:'+(isDone?"1.4rem":"2rem")+';color:'+timeColor+';font-weight:bold;line-height:1">'+timeLeft+'</div>'+
-        '<div style="font-size:0.7rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+(band.hours>0?band.hours+'H REQUIRED':'WAITING FOR HEAT')+'</div>'+
+        '<div style="font-size:0.8rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">'+(band.hours>0?band.hours+'H REQUIRED':'WAITING FOR HEAT')+'</div>'+
       '</div>'+
     '</div>'+
     '<div style="margin-top:0.85rem">'+
@@ -2092,48 +2813,15 @@ function renderStatusCard(pile,sorted,lat,band){
           return '<div class="mono" style="font-size:0.6rem;color:#555;padding:0.5rem 0;text-align:center">LOG FIRST ENTRY TO START</div>';
         }
 
-        // Build independent per-stage bars
-        var indep=computeIndependentStages(cycleEntries);
-        var stageBands=BANDS.filter(function(b){return b.hours>0;});
-        var STAGE_COLORS={"Stage 1":"#eab308","Stage 2":"#f97316","Stage 3":"#ef4444","Stage 4":"#dc2626"};
-        var fmtH=function(h){if(h<1)return Math.round(h*60)+"m";return Math.floor(h)+"h"+(Math.round((h%1)*60)>0?" "+Math.round((h%1)*60)+"m":"");};
-
-        // Only show stages that have been reached
-        var reachedBands=stageBands.filter(function(b){
-          var s=indep[b.label];return s&&s.everReached;
-        });
-
-        if(!reachedBands.length){
-          // Not thermophilic yet — show blue stub with heating up message
-          return '<div style="margin-bottom:0.3rem">'+
-            '<div style="display:flex;justify-content:space-between;margin-bottom:0.25rem">'+
-              '<span class="mono" style="font-size:0.6rem;color:#3b82f6">'+trendLabel+'</span>'+
-              '<span class="mono" style="font-size:0.6rem;color:#555">BELOW 131°F</span>'+
-            '</div>'+
-            '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
-              '<div style="width:3%;background:#3b82f6;height:10px"></div>'+
-            '</div>'+
-          '</div>';
+        // STATUS CARD = CURRENT CYCLE ONLY. Uses the SAME shared renderer as the Turn
+        // Timer (renderActiveCycleBar) so the two cards are pixel-identical.
+        var allCycles=buildCycles(sorted);
+        var activeC=allCycles[allCycles.length-1];
+        var activeIdx=allCycles.length;
+        if(!activeC||!activeC.entries.length){
+          return '<div class="mono" style="font-size:0.62rem;color:#555;padding:0.5rem 0;text-align:center">LOG FIRST ENTRY TO START</div>';
         }
-
-        return reachedBands.map(function(b){
-          var s=indep[b.label];
-          var color=STAGE_COLORS[b.label]||b.color;
-          var pct=s.satisfied?100:Math.min(100,(s.elapsed/b.hours)*100);
-          var statusLabel=s.satisfied?"✓ DONE":fmtH(s.remaining)+" LEFT";
-          var statusColor=s.satisfied?"#4ade80":color;
-          var elapsedLabel=s.satisfied?b.hours+"h+ · SATISFIED":fmtH(s.elapsed)+" / "+b.hours+"H";
-          return '<div style="margin-bottom:0.55rem">'+
-            '<div style="display:flex;justify-content:space-between;margin-bottom:0.2rem">'+
-              '<span class="mono" style="font-size:0.65rem;color:'+color+';letter-spacing:0.05em">'+b.label+' · '+b.hours+'H</span>'+
-              '<span class="mono" style="font-size:0.65rem;color:'+statusColor+'">'+statusLabel+'</span>'+
-            '</div>'+
-            '<div class="pbar-wrap" style="height:10px;display:flex;background:#1a1a1a">'+
-              '<div style="width:'+pct+'%;background:'+(s.satisfied?"#4ade80":color)+';height:10px"></div>'+
-            '</div>'+
-            '<div style="font-size:0.55rem;color:#555;margin-top:0.18rem">'+elapsedLabel+'</div>'+
-          '</div>';
-        }).join("");
+        return renderActiveCycleBar(activeC,activeIdx,pile,sorted,lat);
       })()+
     '</div>'+
   '</div>';
@@ -2159,9 +2847,15 @@ function renderStatusCard(pile,sorted,lat,band){
   }
   detailEl.innerHTML=
     '<div class="status-detail"><span class="status-key" style="color:#f97316">NEXT TURN DUE</span><span class="status-val" style="color:'+nextDueColor+';font-weight:600">'+nextDue+'</span></div>'+
-    '<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>'+
+    '<div class="status-detail" style="border-bottom:none"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>'+
+    '<div style="margin-top:0.5rem;border-top:1px solid #111;padding-top:0.4rem">'+
+      '<div onclick="toggleAnalytics()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:0.2rem 0">'+
+        '<span class="mono" style="font-size:0.62rem;color:#666;letter-spacing:0.05em">'+(analyticsOpen?"\u25BE":"\u25B8")+' ANALYTICS</span>'+
+        '<span class="mono" style="font-size:0.55rem;color:#444">'+(analyticsOpen?"hide":"show")+'</span>'+
+      '</div>'+
+      '<div id="analytics-body" style="display:'+(analyticsOpen?"block":"none")+'">'+
     '<div class="status-detail"><span class="status-key">SINCE THERMOPHILIC START</span><span class="status-val" style="color:'+thermoSinceColor+'">'+thermoSinceStr+'</span></div>'+
-    '<div class="status-detail" style="border-bottom:none"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>'+
+    '<div class="status-detail"><span class="status-key">PILE BUILT</span><span class="status-val" style="color:#999">'+pileBuilt+'</span></div>'+
     (function(){
       if(!sorted||sorted.length<2)return'';
       var firstEntry=sorted[0];
@@ -2175,8 +2869,19 @@ function renderStatusCard(pile,sorted,lat,band){
         }
       }
       var r='';
+      var dh=degreeHoursAbove(sorted,131);
+      r+='<div class="status-detail"><span class="status-key" style="color:#f59e0b">DEGREE-HOURS &gt;131\u00B0F</span><span class="status-val" style="color:#f59e0b;font-weight:600">'+dh.toLocaleString()+' \u00B0F\u00B7h</span></div>';
       if(msTo131!=null)r+='<div class="status-detail"><span class="status-key">TIME TO 131\u00B0F</span><span class="status-val" style="color:#f59e0b">'+fmtDuration(msTo131)+'</span></div>';
-      if(msAbove131>0)r+='<div class="status-detail" style="border-bottom:none"><span class="status-key">TIME ABOVE 131\u00B0F</span><span class="status-val" style="color:#f97316">'+fmtDuration(msAbove131)+'</span></div>';
+      if(msAbove131>0)r+='<div class="status-detail"><span class="status-key">TIME ABOVE 131\u00B0F</span><span class="status-val" style="color:#f97316">'+fmtDuration(msAbove131)+'</span></div>';
+      var hr=peakHeatingRate(sorted);
+      if(hr!=null)r+='<div class="status-detail"><span class="status-key">PEAK HEATING RATE</span><span class="status-val" style="color:#60a5fa">'+hr+' \u00B0F/h</span></div>';
+      var spreads=sorted.map(coreSpread).filter(function(s){return s!=null;});
+      if(spreads.length){
+        var latestSpread=coreSpread(lat);
+        var maxSpread=Math.max.apply(null,spreads);
+        var spreadColor=latestSpread==null?"#555":latestSpread<15?"#4ade80":latestSpread<=30?"#f59e0b":"#ef4444";
+        r+='<div class="status-detail" style="border-bottom:none"><span class="status-key">UNIFORMITY (SPREAD)</span><span class="status-val" style="color:'+spreadColor+'">'+(latestSpread!=null?latestSpread+"\u00B0 now":"\u2014")+' \u00B7 '+maxSpread+'\u00B0 max</span></div>';
+      }
       return r;
     })()+
     (function(){
@@ -2187,8 +2892,21 @@ function renderStatusCard(pile,sorted,lat,band){
         '<span class="mono" style="font-size:0.72rem;color:'+a.color+';font-weight:600">'+a.label+'</span>'+
       '</div>'+
       '<div style="font-size:0.62rem;color:#666;line-height:1.4;margin-top:0.3rem;font-family:Inter,sans-serif">'+a.desc+'</div>'+
-      '<div style="font-size:0.6rem;color:#555;margin-top:0.25rem;font-family:Inter,sans-serif">→ '+a.rec+'</div>';
-    })();
+      '<div style="font-size:0.6rem;color:#555;margin-top:0.25rem;font-family:Inter,sans-serif">→ '+a.rec+'</div>'+
+      (function(){
+        if(!showPFRP)return "";
+        var v=pfrpVerdict(sorted);
+        return '<div style="margin-top:0.6rem;padding:0.6rem 0.7rem;background:#050505;border:1px solid '+v.color+'33;border-left:3px solid '+v.color+';border-radius:3px">'+
+          '<div style="display:flex;justify-content:space-between;align-items:baseline">'+
+            '<span class="mono" style="font-size:0.6rem;color:#555;letter-spacing:0.08em">PFRP (TEMP RECORD)</span>'+
+            '<span class="mono" style="font-size:0.72rem;color:'+v.color+';font-weight:600">'+v.verdict+'</span>'+
+          '</div>'+
+          '<div class="mono" style="font-size:0.6rem;color:#888;margin-top:0.3rem">'+v.detail+'</div>'+
+          '<div style="font-size:0.58rem;color:#555;margin-top:0.2rem;font-family:Inter,sans-serif">'+v.sub+'. Not a certified pathogen test.</div>'+
+        '</div>';
+      })();
+    })()+
+    '</div></div>';  // close analytics-body + analytics wrapper
   var canSchedule=t&&t.deadline&&!isDone;
   var calBtnHTML;
   if(canSchedule){
@@ -2249,38 +2967,13 @@ function renderTimer(pile){
   card.style.borderLeftColor=activeCycleColor;
   var displayCycles=cycles;
   var displayOffset=0;
-  if(cycles.length>1){
-    displayCycles=cycles.slice(1);
-    displayOffset=1;
-  }
+  // (Removed the slice(1) offset: cycle numbering now matches buildCycles() exactly,
+  //  so the Turn Timer and the Temperature Status card always agree.)
   var cycleRows=displayCycles.map(function(cycle,idx){
     var displayIdx=idx+1;
     var isActive=cycle.turnEntry===null;
     if(isActive){
-      var classified=classifyCycleTime(cycle.entries);
-      var reachedStages=BANDS.filter(function(b){return b.hours>0&&classified.stages[b.label]&&classified.stages[b.label].everReached;});
-      if(reachedStages.length===0){
-        var heatLabel2=getHeatStateLabel(pile,sorted);
-        var heatColor2=heatLabel2==="NOT HEATING - CHECK PILE"?"#ef4444":heatLabel2==="STABLE / MATURING"?"#999":"#60a5fa";
-        return '<div style="margin-bottom:0.7rem">'+
-          '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.3rem">'+
-            '<span class="mono" style="font-size:0.7rem;color:'+heatColor2+'">CYCLE '+displayIdx+' \u00B7 '+heatLabel2+'</span>'+
-            '<span class="mono" style="font-size:0.65rem;color:'+heatColor2+'">UNDER 131\u00B0F</span>'+
-          '</div>'+
-          '<div class="pbar-wrap" style="height:12px"><div class="pbar" style="width:5%;background:'+heatColor2+';height:12px"></div></div>'+
-        '</div>';
-      }
-      var bestBand=null;var bestPct=-1;var bestTimes=null;
-      reachedStages.forEach(function(b){
-        var t=classified.stages[b.label];
-        var refMs=b.hours*3600000;
-        var totalMs=t.mesoMs+t.thermoMs+t.readyMs;
-        var pct=t.satisfied?100:Math.min(100,(totalMs/refMs)*100);
-        if(pct>bestPct){bestPct=pct;bestBand=b;bestTimes=t;}
-      });
-      var stageBarHTML=renderStageBarActive(bestBand,bestTimes,lat.core1,cycle.entries);
-      stageBarHTML=stageBarHTML.replace(bestBand.label+' \u00B7 '+bestBand.hours+'H','CYCLE '+displayIdx+' \u00B7 '+bestBand.label+' \u00B7 '+bestBand.hours+'H');
-      return stageBarHTML;
+      return renderActiveCycleBar(cycle,displayIdx,pile,sorted,lat);
     } else {
       return renderCompletedCycleBar(cycle.entries,cycle.turnEntry,displayIdx);
     }
@@ -2310,6 +3003,9 @@ function renderChart(sorted){
   var firstTs=sorted.length?new Date(sorted[0].ts).getTime():Date.now();
   function xVal(e){return (new Date(e.ts).getTime()-firstTs)/86400000;}
   function xValTs(ts){return (ts-firstTs)/86400000;}
+  // Stash entries with their x-position so the tooltip can recover the 3 cores for
+  // computing Probe average / Probe min under the cursor.
+  __chartEntries=sorted.map(function(e){return {core1:e.core1,core2:e.core2,core3:e.core3,core4:e.core4,_x:xVal(e)};});
   var xMaxVal=sorted.length?xVal(sorted[sorted.length-1]):1;
   var xMinVal=0;
   if(sorted.length){
@@ -2323,15 +3019,19 @@ function renderChart(sorted){
   if(chartInner&&chartCanvas){
     var n=sorted.length;
     var daySpan=Math.ceil(xMaxVal)+1;
+    var isLandscapeW=window.innerWidth>window.innerHeight;
     if(daySpan>7){
-      var pxPerDay=90;
+      // Fit a target number of days to the visible width: 12 in landscape, 6 in portrait
+      // (built around the 3-day stage rhythm). Each day's pixel width = chart area / target.
+      var targetDays=isLandscapeW?24:12;
+      var chartArea=Math.max(320,(window.innerWidth||700)-80);
+      var pxPerDay=Math.max(50,Math.floor(chartArea/targetDays));
       var totalW=Math.max(500,daySpan*pxPerDay);
       chartInner.style.width=totalW+"px";
       chartCanvas.style.width=totalW+"px";
       chartCanvas.width=totalW;
-      var isLandscape=window.innerWidth>window.innerHeight;
-      chartCanvas.height=isLandscape?380:280;
-      if(hintEl)hintEl.style.display="block";
+      chartCanvas.height=isLandscapeW?380:280;
+      if(hintEl)hintEl.style.display=daySpan>targetDays?"block":"none";
     } else {
       var wrap=document.getElementById("chart-scroll-wrap");
       var w=wrap?wrap.clientWidth:600;
@@ -2354,18 +3054,42 @@ function renderChart(sorted){
     var dk=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();
     if(seenDayTick[dk])return;
     seenDayTick[dk]=true;
-    // Anchor the label at midnight of this calendar day so gaps are exactly 1 day apart.
-    // The first day's midnight is before the first reading (negative x); clamp it to 0
-    // so its label still shows at the left edge without adding empty space.
     var midnight=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,0,0,0).getTime();
     var tx=xValTs(midnight);
     if(tx<0)tx=0;
-    dayTicks.push({x:tx,label:monthNames[d.getMonth()]+" "+d.getDate()});
+    var firstDay=sorted.length?new Date(sorted[0].ts):d;
+    var firstMidnight=new Date(firstDay.getFullYear(),firstDay.getMonth(),firstDay.getDate(),0,0,0,0).getTime();
+    var dayNum=Math.floor((midnight-firstMidnight)/86400000)+1;
+    if(dayNum<1)dayNum=1;
+    dayTicks.push({x:tx,label:"Day "+dayNum});
   });
   var turnAnnotations={};
+  var firstId=sorted.length?sorted[0].id:null;
   turnDays.forEach(function(idx,i){
-    var tx=xVal(sorted[idx]);
-    turnAnnotations["turn"+i]={type:"line",xMin:tx,xMax:tx,borderColor:"#f97316",borderWidth:2.5};
+    var e=sorted[idx];
+    var tx=xVal(e);
+    if(e.id===firstId){
+      // First entry = the initial BUILD: distinct green dashed line, NO text label.
+      turnAnnotations["built"]={type:"line",xMin:tx,xMax:tx,borderColor:"#4ade80",borderWidth:2,borderDash:[4,3]};
+    } else {
+      turnAnnotations["turn"+i]={type:"line",xMin:tx,xMax:tx,borderColor:"#f97316",borderWidth:2.5,
+        label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#f97316",font:{size:8},padding:2}};
+    }
+  });
+  // If the first entry was NOT marked turned, still mark the build origin with a line (no label).
+  if(sorted.length&&!sorted[0].turned){
+    turnAnnotations["built"]={type:"line",xMin:xVal(sorted[0]),xMax:xVal(sorted[0]),borderColor:"#4ade80",borderWidth:2,borderDash:[4,3]};
+  }
+  // Blue "watered" lines (distinct from orange turn lines), labeled with amount/qty.
+  sorted.forEach(function(e,i){
+    if(e.watered){
+      var wx=xVal(e);
+      var amt=e.waterAmount?e.waterAmount.charAt(0).toUpperCase()+e.waterAmount.slice(1):"";
+      var qty=(e.waterQty!=null)?(amt?" "+e.waterQty:e.waterQty):"";
+      var lbl="WATER"+(amt||qty?": "+amt+qty:"");
+      turnAnnotations["water"+i]={type:"line",xMin:wx,xMax:wx,borderColor:"#3b82f6",borderWidth:2,borderDash:[2,2],
+        label:{display:true,content:lbl,position:"start",backgroundColor:"rgba(59,130,246,0.15)",color:"#3b82f6",font:{size:8},padding:2}};
+    }
   });
   var dayAnnotations={};
   var seenDay={};
@@ -2379,14 +3103,53 @@ function renderChart(sorted){
     if(dx<0)return;
     dayAnnotations["day"+dayKey]={type:"line",xMin:dx,xMax:dx,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
   });
-  var tempDatasets=tempMode==="three"?[
+  var tempDatasets;
+  if(tempMode==="three"&&shadeProbes){
+    // SHADED PROBE MODE: a filled band between the coldest and hottest probe, with
+    // visible left/right border lines, and NO individual core lines (cleaner).
+    var bandRowsS=sorted.filter(function(e){return coreSpread(e)!=null;});
+    // Fallback: if there's no multi-probe spread, just show core1 as a single line.
+    if(bandRowsS.length){
+      tempDatasets=[
+        {label:"Probe max",data:bandRowsS.map(function(e){var v=[e.core1,e.core2,e.core3,e.core4].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.max.apply(null,v))};}),
+          borderColor:"rgba(255,255,255,0.85)",borderWidth:2,backgroundColor:"rgba(255,255,255,0.13)",pointRadius:0,fill:"+1",tension:0.3,yAxisID:"y",order:2},
+        {label:"Probe min",data:bandRowsS.map(function(e){var v=[e.core1,e.core2,e.core3,e.core4].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.min.apply(null,v))};}),
+          borderColor:"rgba(255,255,255,0.85)",borderWidth:2,backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,yAxisID:"y",order:3}
+      ];
+    } else {
+      tempDatasets=[
+        {label:"Core 1",data:sorted.filter(function(e){return e.core1!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core1)};}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:3,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1}
+      ];
+    }
+  } else {
+  tempDatasets=tempMode==="three"?[
     {label:"Core 1",data:sorted.filter(function(e){return e.core1!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core1)};}),borderColor:"#ff4444",backgroundColor:"#ff444408",tension:0.3,pointRadius:4,pointBackgroundColor:"#ff4444",spanGaps:true,yAxisID:"y",order:1},
     {label:"Core 2",data:sorted.filter(function(e){return e.core2!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core2)};}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#4ade80",spanGaps:true,yAxisID:"y",order:2},
     {label:"Core 3",data:sorted.filter(function(e){return e.core3!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core3)};}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#a855f7",spanGaps:true,yAxisID:"y",order:3}
-  ]:[
+  ].concat(sorted.some(function(e){return e.core4!=null;})?[
+    {label:"Core 4",data:sorted.filter(function(e){return e.core4!=null;}).map(function(e){return {x:xVal(e),y:disp(e.core4)};}),borderColor:"#22d3ee",backgroundColor:"transparent",tension:0.3,pointRadius:3,pointBackgroundColor:"#22d3ee",spanGaps:true,yAxisID:"y",order:3}
+  ]:[]):[
     {label:"Average",data:sorted.filter(function(e){return avgCore(e)!=null;}).map(function(e){return {x:xVal(e),y:disp(avgCore(e))};}),
       borderColor:"#fff",backgroundColor:"#ffffff08",tension:0.3,pointRadius:4,pointBackgroundColor:"#fff",spanGaps:true,yAxisID:"y",order:1}
   ];
+  // Min-max probe band (only in 3-probe mode with multi-probe data)
+  if(tempMode==="three"){
+    var bandRows=sorted.filter(function(e){return coreSpread(e)!=null;});
+    if(bandRows.length){
+      tempDatasets.push({label:"Probe max",data:bandRows.map(function(e){var v=[e.core1,e.core2,e.core3,e.core4].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.max.apply(null,v))};}),
+        borderColor:"transparent",backgroundColor:"rgba(255,255,255,0.09)",pointRadius:0,fill:"+1",tension:0.3,yAxisID:"y",order:20});
+      tempDatasets.push({label:"Probe min",data:bandRows.map(function(e){var v=[e.core1,e.core2,e.core3,e.core4].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.min.apply(null,v))};}),
+        borderColor:"transparent",backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,yAxisID:"y",order:21});
+    }
+  }
+  }
+  // Ensure the annotation plugin is registered so threshold lines (131F/175F) render.
+  // The UMD build usually auto-registers, but registering explicitly guards against
+  // load-order/version issues that can make the reference lines silently disappear.
+  try{
+    var _annPlugin=(typeof window!=="undefined")&&(window["chartjs-plugin-annotation"]||window.ChartAnnotation||window.chartjsPluginAnnotation);
+    if(_annPlugin&&typeof Chart!=="undefined"&&Chart.register){Chart.register(_annPlugin);}
+  }catch(e){}
   tempChart=new Chart(document.getElementById("temp-chart"),{
     type:"line",
     data:{datasets:tempDatasets.concat([
@@ -2404,17 +3167,60 @@ function renderChart(sorted){
       {label:"Ambient",data:sorted.filter(function(e){return e.ambient!=null;}).map(function(e){return {x:xVal(e),y:disp(e.ambient)};}),
         borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,
         pointRadius:3,pointBackgroundColor:"#f59e0b",spanGaps:true,yAxisID:"y",order:4,borderDash:[4,3]}
-    ]:[]))},
+    ]:[])
+    .concat(showAmbientApi&&sorted.some(function(e){return e.ambientApi!=null;})?[
+      {label:"Ambient API",data:sorted.filter(function(e){return e.ambientApi!=null;}).map(function(e){return {x:xVal(e),y:disp(e.ambientApi)};}),
+        borderColor:"#fbbf24",backgroundColor:"transparent",tension:0.3,
+        pointRadius:3,pointBackgroundColor:"#fbbf24",spanGaps:true,yAxisID:"y",order:4,borderDash:[2,2]}
+    ]:[])
+    .concat(showRate?(function(){
+      var rs=heatingRateSeries(sorted);
+      var pts=[];
+      sorted.forEach(function(e,i){if(rs[i]!=null)pts.push({x:xVal(e),y:rs[i]});});
+      return [{label:"Heating rate",data:pts,
+        borderColor:"#22d3ee",backgroundColor:"transparent",tension:0.3,
+        pointRadius:2,pointBackgroundColor:"#22d3ee",spanGaps:true,yAxisID:"yRate",order:6,borderWidth:1.5}];
+    })():[]))},
     options:{
       responsive:true,maintainAspectRatio:false,animation:false,
       interaction:{mode:"index",intersect:false},
       plugins:{
         legend:{display:false},
+        tooltip:{
+          callbacks:{
+            // Show Core 1/2/3 and Moisture as-is; hide the band helper line "Probe max";
+            // then append computed Probe average and Probe min from the three cores.
+            label:function(ctx){
+              var lbl=ctx.dataset.label||"";
+              if(lbl==="Probe max"||lbl==="Probe min")return null; // drop band helper rows
+              if(lbl==="Heating rate")return "Rate: "+ctx.parsed.y+"\u00B0/h";
+              return lbl+": "+ctx.parsed.y;
+            },
+            afterBody:function(items){
+              if(!items||!items.length)return [];
+              // Find the entry under the cursor via its x to recover the 3 cores.
+              var xv=items[0].parsed.x;
+              var best=null,bestD=1e9;
+              for(var i=0;i<__chartEntries.length;i++){
+                var ex=__chartEntries[i]._x;
+                if(ex==null)continue;
+                var dd=Math.abs(ex-xv);
+                if(dd<bestD){bestD=dd;best=__chartEntries[i];}
+              }
+              if(!best)return [];
+              var vals=[best.core1,best.core2,best.core3,best.core4].filter(function(v){return v!=null&&v>0;});
+              if(vals.length<1)return [];
+              var avg=Math.round((vals.reduce(function(a,b){return a+b;},0)/vals.length));
+              var mn=Math.min.apply(null,vals);
+              return ["Probe average: "+disp(avg),"Probe min: "+disp(mn)];
+            }
+          }
+        },
         annotation:{annotations:Object.assign({
-          r131:{type:"line",yMin:cr(131),yMax:cr(131),borderColor:"#f59e0b77",borderWidth:1,borderDash:[5,4],yScaleID:"y"},
-          r175:{type:"line",yMin:cr(175),yMax:cr(175),borderColor:"#ff000055",borderWidth:1,borderDash:[3,3],yScaleID:"y"},
+          r131:{type:"line",yMin:cr(131),yMax:cr(131),borderColor:"#f59e0b77",borderWidth:1,borderDash:[5,4],yScaleID:"y",label:{display:true,content:"THERMO 131\u00B0F",position:"start",backgroundColor:"rgba(245,158,11,0.15)",color:"#f59e0b",font:{size:9},padding:2}},
+          r175:{type:"line",yMin:cr(175),yMax:cr(175),borderColor:"#ff000055",borderWidth:1,borderDash:[3,3],yScaleID:"y",label:{display:true,content:"TURN 175\u00B0",position:"start",backgroundColor:"rgba(255,0,0,0.12)",color:"#ff6666",font:{size:9},padding:2}},
           danger:{type:"box",yMin:cr(175),yMax:cMax+5,backgroundColor:"rgba(255,0,0,0.04)",borderColor:"rgba(255,0,0,0.15)",borderWidth:1,yScaleID:"y"}
-        },dayAnnotations,turnAnnotations)}
+        },dayAnnotations,turnAnnotations,showRate?{rateZero:{type:"line",yMin:0,yMax:0,yScaleID:"yRate",borderColor:"rgba(34,211,238,0.35)",borderWidth:1,borderDash:[4,3],label:{display:true,content:"0\u00B0/h",position:"end",backgroundColor:"rgba(34,211,238,0.12)",color:"#22d3ee",font:{size:8},padding:1}}}:{})}
       },
       scales:{
         x:{type:"linear",min:0,max:xMaxVal,
@@ -2428,7 +3234,11 @@ function renderChart(sorted){
         y:{min:showDelta?0:cMin,max:cMax,position:"left",ticks:{color:"#888",font:{size:11}},grid:{color:"#111"},
           title:{display:true,text:"\u00B0"+tempUnit,color:"#555",font:{size:11}}},
         y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:9},padding:1,callback:function(v){return v+"%";}},
-          grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:9},padding:{top:0,bottom:0}}}
+          grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:9},padding:{top:0,bottom:0}}},
+        yRate:{display:showRate,position:"right",ticks:{color:"#22d3ee",font:{size:8},callback:function(v){return v+"\u00B0/h";}},
+          grid:{drawOnChartArea:false},
+          title:{display:false},
+          suggestedMin:-6,suggestedMax:8}
       }
     }
   });
@@ -2463,6 +3273,14 @@ function getPileAssessment(pile,sorted){
     }
   }
   var daysAbove131=msAbove131/86400000;
+  var spreadsA=sorted.map(coreSpread).filter(function(s){return s!=null;});
+  var recentSpread=null;
+  if(spreadsA.length){
+    var lastFew=sorted.slice(-3).map(coreSpread).filter(function(s){return s!=null;});
+    if(lastFew.length)recentSpread=Math.round((lastFew.reduce(function(a,b){return a+b;},0)/lastFew.length)*10)/10;
+  }
+  var dhA=degreeHoursAbove(sorted,131);
+  var uniform=(recentSpread!=null&&recentSpread<15);
 
   // Assessment logic
   var label,color,desc,rec;
@@ -2477,9 +3295,15 @@ function getPileAssessment(pile,sorted){
     rec=highHeatCycles>=2?"Monitor closely — extended high heat may stress beneficial microbes. Consider turning sooner.":
       "Continue monitoring. Turn when stage timer completes.";
   } else if(stabilized&&numCycles>=3&&numCycles<=5){
-    label="OPTIMAL MATURITY";color="#4ade80";
-    desc="Pile stabilized after "+numCycles+" cycles with "+fmtDuration(msAbove131)+" above 131°F. Biological activity winding down.";
-    rec="Recommend germination test (radish seeds) before field application.";
+    if(uniform){
+      label="OPTIMAL MATURITY";color="#4ade80";
+      desc="Temperature has stabilized and probes have converged (spread "+recentSpread+"\u00B0). "+dhA.toLocaleString()+" \u00B0F\u00B7h accumulated above 131\u00B0F across "+numCycles+" cycles \u2014 consistent with biological maturity.";
+      rec="Recommend a germination test (radish seeds) before field application.";
+    } else {
+      label="STABILIZING \u2014 UNEVEN";color="#f59e0b";
+      desc="Heat has wound down after "+numCycles+" cycles ("+dhA.toLocaleString()+" \u00B0F\u00B7h above 131\u00B0F), but probes still differ (spread "+(recentSpread!=null?recentSpread+"\u00B0":"n/a")+"). Cool zones may be under-processed.";
+      rec="Turn to homogenize, then re-check that all probes track together before testing.";
+    }
   } else if(stabilized&&numCycles<3){
     label="EARLY STABILIZATION";color="#f59e0b";
     desc="Temperature stabilized after only "+numCycles+" cycle(s). Fewer cycles increases pathogen risk.";
@@ -2516,14 +3340,57 @@ function toggleDelta(){
   showDelta=!showDelta;
   var btn=document.getElementById("btn-toggle-delta");
   if(btn){btn.textContent=showDelta?"DELTA ON":"DELTA OFF";btn.style.color=showDelta?"#06b6d4":"#555";}
+  var legDl=document.getElementById("legend-delta");if(legDl)legDl.style.display=showDelta?"flex":"none";
   var pile=getActivePile();if(!pile)return;
   renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+}
+function toggleAnalytics(){
+  analyticsOpen=!analyticsOpen;
+  var pile=getActivePile();if(!pile)return;
+  renderDashboard();
+}
+// Watering capture helpers. prefix is "f" (new entry) or "e" (edit).
+var _waterAmt={f:null,e:null};
+function toggleWaterFields(prefix){
+  var cb=document.getElementById(prefix+"-watered");
+  var box=document.getElementById(prefix+"-water-fields");
+  if(box)box.style.display=cb&&cb.checked?"block":"none";
+}
+function setWaterAmount(prefix,amt){
+  _waterAmt[prefix]=amt;
+  ["light","medium","heavy"].forEach(function(a){
+    var b=document.getElementById(prefix+"-water-"+a);
+    if(b){b.style.background=(a===amt)?"#3b82f6":"";b.style.color=(a===amt)?"#fff":"";b.style.borderColor=(a===amt)?"#3b82f6":"";}
+  });
 }
 function toggleAmbient(){
   showAmbient=!showAmbient;
   var btn=document.getElementById("btn-toggle-ambient");
-  if(btn){btn.textContent=showAmbient?"AMBIENT ON":"AMBIENT OFF";btn.style.color=showAmbient?"#f59e0b":"#555";}
+  if(btn){btn.textContent=showAmbient?"AMB ON":"AMB OFF";btn.style.color=showAmbient?"#f59e0b":"#555";}
   var legAmb=document.getElementById("legend-ambient");if(legAmb)legAmb.style.display=showAmbient?"flex":"none";
+  var pile=getActivePile();if(!pile)return;
+  renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+}
+function toggleAmbientApi(){
+  showAmbientApi=!showAmbientApi;
+  var btn=document.getElementById("btn-toggle-ambient-api");
+  if(btn){btn.textContent=showAmbientApi?"AMB API ON":"AMB API OFF";btn.style.color=showAmbientApi?"#fbbf24":"#555";}
+  var leg=document.getElementById("legend-ambient-api");if(leg)leg.style.display=showAmbientApi?"flex":"none";
+  var pile=getActivePile();if(!pile)return;
+  renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+}
+function toggleRate(){
+  showRate=!showRate;
+  var btn=document.getElementById("btn-toggle-rate");
+  if(btn){btn.textContent=showRate?"RATE ON":"RATE OFF";btn.style.color=showRate?"#06b6d4":"#555";}
+  var legR=document.getElementById("legend-rate");if(legR)legR.style.display=showRate?"flex":"none";
+  var pile=getActivePile();if(!pile)return;
+  renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+}
+function toggleShade(){
+  shadeProbes=!shadeProbes;
+  var btn=document.getElementById("btn-toggle-shade");
+  if(btn){btn.textContent=shadeProbes?"SHADE ON":"SHADE OFF";btn.style.color=shadeProbes?"#ff8c5a":"#555";}
   var pile=getActivePile();if(!pile)return;
   renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
 }
@@ -2661,28 +3528,54 @@ function renderLogTable(sorted,pile){
     hdrEl.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><span>ALL ENTRIES ('+sorted.length+')</span><button onclick="toggleEntriesSort()" class="btn-sm" style="font-size:0.55rem">'+sortLabel+'</button></div>';
   }
   var table=document.getElementById("log-table");
+  // Thermophilic-started info (moved here from the timer card): which reading the
+  // current cycle's 72h streak counts from.
+  var thermoEl=document.getElementById("log-thermo");
+  if(thermoEl){
+    var tt=calcSmartTimer(pile.entries);
+    var ts=tt&&tt.thermophilicStart?tt.thermophilicStart:null;
+    if(ts){
+      var dd=new Date(ts);
+      var dstr=(dd.getMonth()+1)+"/"+dd.getDate()+" "+("0"+dd.getHours()).slice(-2)+":"+("0"+dd.getMinutes()).slice(-2);
+      thermoEl.textContent="THERMOPHILIC STARTED: "+dstr;
+      thermoEl.style.display="block";
+    } else {
+      thermoEl.textContent="";
+      thermoEl.style.display="none";
+    }
+  }
   if(!sorted.length){table.innerHTML="";return;}
-  var headers=["DAY","DATE","TIME","AMB","C1","C2","C3","MOIST","TURN",""];
-  var thead='<thead><tr>'+headers.map(function(h){return '<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#555;font-size:0.62rem;letter-spacing:0.05em">'+h+'</th>';}).join("")+'</tr></thead>';
+  var showApi=sorted.some(function(e){return e.ambientApi!=null;});
+  var showC4=sorted.some(function(e){return e.core4!=null;});
+  var headers=["DAY","DATE","TIME","AMB"];
+  if(showApi)headers.push("AMB API");
+  headers.push("C1","C2","C3");
+  if(showC4)headers.push("C4");
+  headers.push("MOIST","TURN","");
+  var thead='<thead><tr>'+headers.map(function(h){return '<th class="mono" style="text-align:left;padding:0.3rem 0.4rem;border-bottom:1px solid #111;font-weight:normal;color:#555;font-size:0.7rem;letter-spacing:0.05em">'+h+'</th>';}).join("")+'</tr></thead>';
   var sortedDisplay=entriesSortMode==="oldest"?sorted.slice():sorted.slice().reverse();
   var tbody='<tbody>'+sortedDisplay.map(function(en,i){
-    var moistCell=en.moisture!=null?'<span style="background:'+mColor(en.moisture)+';color:#fff;padding:0.05rem 0.25rem;border-radius:2px;font-family:Share Tech Mono,monospace;font-size:0.65rem">'+en.moisture+'%</span>':"-";
+    var moistCell=en.moisture!=null?'<span style="background:'+mColor(en.moisture)+';color:#fff;padding:0.05rem 0.25rem;border-radius:2px;font-family:Share Tech Mono,monospace;font-size:0.72rem">'+en.moisture+'%</span>':"-";
     var earliestTs=sorted.length?new Date(sorted[0].ts):new Date(pile.created);
     var earliestDay=new Date(earliestTs.getFullYear(),earliestTs.getMonth(),earliestTs.getDate());
     var entryDate=new Date(en.ts);
     var entryDayOnly=new Date(entryDate.getFullYear(),entryDate.getMonth(),entryDate.getDate());
     var dayNum=Math.floor((entryDayOnly-earliestDay)/86400000)+1;
+    var apiCell=showApi?'<td class="mono" style="padding:0.3rem 0.4rem;color:#fbbf24;font-size:0.8rem">'+(en.ambientApi!=null?dispStr(en.ambientApi):"-")+'</td>':"";
+    var c4Cell=showC4?'<td class="mono" style="padding:0.3rem 0.4rem;color:#22d3ee;font-size:0.8rem">'+(en.core4!=null?dispStr(en.core4):"-")+'</td>':"";
     return '<tr style="border-bottom:1px solid #080808">'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+dayNum+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+en.date+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.7rem">'+(en.time||"-")+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#f59e0b;font-size:0.7rem">'+(en.ambient!=null?dispStr(en.ambient):"-")+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.7rem">'+(en.core1!=null?dispStr(en.core1):"-")+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.7rem">'+(en.core2!=null?dispStr(en.core2):"-")+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.7rem">'+(en.core3!=null?dispStr(en.core3):"-")+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+dayNum+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+en.date+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+(en.time||"-")+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#f59e0b;font-size:0.8rem">'+(en.ambient!=null?dispStr(en.ambient):"-")+'</td>'+
+      apiCell+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.8rem">'+(en.core1!=null?dispStr(en.core1):"-")+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.8rem">'+(en.core2!=null?dispStr(en.core2):"-")+'</td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.8rem">'+(en.core3!=null?dispStr(en.core3):"-")+'</td>'+
+      c4Cell+
       '<td style="padding:0.3rem 0.4rem">'+moistCell+'</td>'+
-      '<td class="mono" style="padding:0.3rem 0.4rem;color:'+(en.turned?"#f97316":"#1a1a1a")+';font-size:0.7rem">'+(en.turned?"YES":"-")+'</td>'+
-      '<td style="padding:0.3rem 0.3rem"><button onclick="openEdit(\''+en.id+'\')" class="btn-sm" style="padding:0.2rem 0.4rem;font-size:0.6rem">EDIT</button></td>'+
+      '<td class="mono" style="padding:0.3rem 0.4rem;color:'+(en.turned?"#f97316":"#1a1a1a")+';font-size:0.8rem">'+(en.turned?((sorted.length&&en.id===sorted[0].id)?"BUILT":"YES"):"-")+(en.watered?' <span title="watered" style="color:#3b82f6">\uD83D\uDCA7</span>':"")+'</td>'+
+      '<td style="padding:0.3rem 0.3rem"><button onclick="openEdit(\''+en.id+'\')" class="btn-sm" style="padding:0.2rem 0.4rem;font-size:0.66rem">EDIT</button></td>'+
     '</tr>';
   }).join("")+'</tbody>';
   table.innerHTML=thead+tbody;
@@ -2706,13 +3599,16 @@ function validateEntry(){
   var coreEl=document.getElementById("f-core");
   var topEl=document.getElementById("f-top");
   var botEl=document.getElementById("f-bottom");
+  var c4El=document.getElementById("f-core4");
   coreEl.classList.remove("error");
   topEl.classList.remove("error");
   botEl.classList.remove("error");
+  if(c4El)c4El.classList.remove("error");
   var core=fromInput(coreEl.value);
   var top=fromInput(topEl.value);
   var bottom=fromInput(botEl.value);
-  if(core==null&&top==null&&bottom==null){
+  var core4=c4El?fromInput(c4El.value):null;
+  if(core==null&&top==null&&bottom==null&&core4==null){
     coreEl.classList.add("error");
     errors.push("Enter at least one temperature");
   } else {
@@ -2729,6 +3625,10 @@ function validateEntry(){
       botEl.classList.add("error");
       errors.push("Bottom temperature out of range (0-250"+unitLbl()+")");
     }
+    if(core4!=null&&(core4<minF||core4>maxF)){
+      if(c4El)c4El.classList.add("error");
+      errors.push("Core 4 temperature out of range (0-250"+unitLbl()+")");
+    }
   }
   var errEl=document.getElementById("entry-error");
   if(errors.length){
@@ -2738,21 +3638,32 @@ function validateEntry(){
   }
   errEl.classList.add("hidden");
   var ambient=fromInput(document.getElementById("f-ambient").value);
-  return{core1:core,core2:top,core3:bottom,ambient:ambient,date:date,time:time,ts:entryTs};
+  var apiEl=document.getElementById("f-ambient-api");
+  var ambientApi=apiEl?fromInput(apiEl.value):null;
+  return{core1:core,core2:top,core3:bottom,core4:core4,ambient:ambient,ambientApi:ambientApi,date:date,time:time,ts:entryTs};
 }
 
 function addEntry(){
   var pile=getActivePile();if(!pile)return;
   var v=validateEntry();if(!v)return;
-  pile.entries.push({id:uid(),ts:v.ts.toISOString(),date:v.date,time:v.time,core1:v.core1,core2:v.core2,core3:v.core3,ambient:v.ambient,
+  var wateredCb=document.getElementById("f-watered");
+  var isWatered=wateredCb&&wateredCb.checked;
+  var wQtyEl=document.getElementById("f-water-qty");
+  var wQty=(isWatered&&wQtyEl&&wQtyEl.value!=="")?parseFloat(wQtyEl.value):null;
+  pile.entries.push({id:uid(),ts:v.ts.toISOString(),date:v.date,time:v.time,core1:v.core1,core2:v.core2,core3:v.core3,core4:v.core4,ambient:v.ambient,ambientApi:v.ambientApi,
     moisture:document.getElementById("f-moisture-skip").checked?null:parseInt(document.getElementById("f-moisture-slider").value),
     turned:document.getElementById("f-turned").checked,
+    watered:isWatered||false,
+    waterAmount:isWatered?_waterAmt.f:null,
+    waterQty:wQty,
     notes:document.getElementById("f-notes").value});
   save();
   var skipEl=document.getElementById("f-moisture-skip");if(skipEl){skipEl.checked=false;toggleMoistureSkip();}
-  ["f-core","f-top","f-bottom","f-ambient","f-notes"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
+  ["f-core","f-top","f-bottom","f-core4","f-ambient","f-ambient-api","f-notes","f-water-qty"].forEach(function(id){var el=document.getElementById(id);if(el)el.value="";});
   var sl=document.getElementById("f-moisture-slider");sl.value=50;updateSlider(sl);
   document.getElementById("f-turned").checked=false;
+  var wc=document.getElementById("f-watered");if(wc)wc.checked=false;
+  _waterAmt.f=null;setWaterAmount("f",null);toggleWaterFields("f");
   renderDashboard();
 }
 
@@ -2800,11 +3711,22 @@ function openEdit(entryId){
   dateEl.setAttribute("max",todayStr);
   document.getElementById("e-time").value=entry.time;
   document.getElementById("e-ambient").value=entry.ambient!=null?disp(entry.ambient):"";
+  var eApi=document.getElementById("e-ambient-api");if(eApi)eApi.value=entry.ambientApi!=null?disp(entry.ambientApi):"";
   document.getElementById("e-core").value=entry.core1!=null?disp(entry.core1):"";
   document.getElementById("e-top").value=entry.core2!=null?disp(entry.core2):"";
   document.getElementById("e-bottom").value=entry.core3!=null?disp(entry.core3):"";
+  var ec4=document.getElementById("e-core4");if(ec4)ec4.value=entry.core4!=null?disp(entry.core4):"";
   var sl=document.getElementById("e-moisture");sl.value=entry.moisture!=null?entry.moisture:50;updateEditSlider(sl);
+  var eskip=document.getElementById("e-moisture-skip");if(eskip){eskip.checked=(entry.moisture==null);toggleEditMoistureSkip();}
   document.getElementById("e-turned").checked=entry.turned;
+  var ewc=document.getElementById("e-watered");
+  if(ewc){
+    ewc.checked=!!entry.watered;
+    _waterAmt.e=entry.waterAmount||null;
+    setWaterAmount("e",entry.waterAmount||null);
+    var ewq=document.getElementById("e-water-qty");if(ewq)ewq.value=(entry.waterQty!=null?entry.waterQty:"");
+    toggleWaterFields("e");
+  }
   document.getElementById("e-notes").value=entry.notes||"";
   var eAmbLbl=document.getElementById("e-unit-amb");if(eAmbLbl)eAmbLbl.textContent=unitLbl();
   ["core","top","bot"].forEach(function(k){var el=document.getElementById("e-unit-"+k);if(el)el.textContent=unitLbl();});
@@ -2835,16 +3757,20 @@ function saveEdit(){
   var eCore=fromInput(document.getElementById("e-core").value);
   var eTop=fromInput(document.getElementById("e-top").value);
   var eBot=fromInput(document.getElementById("e-bottom").value);
+  var ec4El=document.getElementById("e-core4");
+  var eC4=ec4El?fromInput(ec4El.value):null;
   var coreElE=document.getElementById("e-core");
   var topElE=document.getElementById("e-top");
   var botElE=document.getElementById("e-bottom");
   coreElE.classList.remove("error");
   topElE.classList.remove("error");
   botElE.classList.remove("error");
+  if(ec4El)ec4El.classList.remove("error");
   var rangeErrors=[];
   if(eCore!=null&&(eCore<0||eCore>250)){coreElE.classList.add("error");rangeErrors.push("Core out of range");}
   if(eTop!=null&&(eTop<0||eTop>250)){topElE.classList.add("error");rangeErrors.push("Top out of range");}
   if(eBot!=null&&(eBot<0||eBot>250)){botElE.classList.add("error");rangeErrors.push("Bottom out of range");}
+  if(eC4!=null&&(eC4<0||eC4>250)){if(ec4El)ec4El.classList.add("error");rangeErrors.push("Core 4 out of range");}
   if(rangeErrors.length){
     errEl.innerHTML=rangeErrors.join("<br>")+" (0-250"+unitLbl()+")";
     errEl.classList.remove("hidden");
@@ -2852,11 +3778,20 @@ function saveEdit(){
   }
   entry.date=newDate;entry.time=newTime;entry.ts=newTs.toISOString();
   entry.ambient=fromInput(document.getElementById("e-ambient").value);
+  var eApiEl=document.getElementById("e-ambient-api");
+  entry.ambientApi=eApiEl?fromInput(eApiEl.value):null;
   entry.core1=eCore;
   entry.core2=eTop;
   entry.core3=eBot;
-  entry.moisture=parseInt(document.getElementById("e-moisture").value);
+  entry.core4=eC4;
+  entry.moisture=document.getElementById("e-moisture-skip")&&document.getElementById("e-moisture-skip").checked?null:parseInt(document.getElementById("e-moisture").value);
   entry.turned=document.getElementById("e-turned").checked;
+  var ewCb=document.getElementById("e-watered");
+  var ewIs=ewCb&&ewCb.checked;
+  entry.watered=ewIs||false;
+  entry.waterAmount=ewIs?_waterAmt.e:null;
+  var ewqEl=document.getElementById("e-water-qty");
+  entry.waterQty=(ewIs&&ewqEl&&ewqEl.value!=="")?parseFloat(ewqEl.value):null;
   entry.notes=document.getElementById("e-notes").value;
   save();closeEdit();renderDashboard();
 }
@@ -2898,6 +3833,50 @@ function exportCSV(){
   a.click();
 }
 
+function exportGraphImage(){
+  toggleExportMenu();
+  var pile=getActivePile();if(!pile){alert("No pile selected.");return;}
+  var srcCanvas=document.getElementById("temp-chart");
+  if(!srcCanvas){alert("Chart not ready yet.");return;}
+  try{
+    var legendPad=46; // larger strip at the BOTTOM for a readable legend
+    var out=document.createElement("canvas");
+    out.width=srcCanvas.width;out.height=srcCanvas.height+legendPad;
+    var ctx=out.getContext("2d");
+    ctx.fillStyle="#000";ctx.fillRect(0,0,out.width,out.height);
+    // Draw the chart at the top
+    ctx.drawImage(srcCanvas,0,0);
+    // Build legend items from the live chart's visible temp datasets.
+    var items=[];
+    try{
+      if(tempChart&&tempChart.data&&tempChart.data.datasets){
+        tempChart.data.datasets.forEach(function(ds){
+          if(!ds.label)return;
+          if(/Probe (min|max|average)|helper|band/i.test(ds.label))return;
+          var col=(typeof ds.borderColor==="string"&&ds.borderColor!=="transparent")?ds.borderColor:null;
+          if(!col)return;
+          items.push({label:ds.label,color:col});
+        });
+      }
+    }catch(e){}
+    var seen={};items=items.filter(function(it){if(seen[it.label])return false;seen[it.label]=1;return true;});
+    // Draw legend strip at the BOTTOM, larger font
+    ctx.font="16px Arial";ctx.textBaseline="middle";
+    var ly=srcCanvas.height+legendPad/2;
+    var lx=14;
+    items.forEach(function(it){
+      var w=ctx.measureText(it.label).width;
+      if(lx+26+w>out.width-12){return;}
+      ctx.fillStyle=it.color;ctx.fillRect(lx,ly-6,18,12);
+      ctx.fillStyle="#eee";ctx.fillText(it.label,lx+24,ly);
+      lx+=24+w+24;
+    });
+    var url=out.toDataURL("image/png");
+    var a=document.createElement("a");
+    a.href=url;a.download=pile.name.replace(/\s+/g,"-")+"-graph.png";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  }catch(e){alert("Could not export graph image: "+e.message);}
+}
 function exportPDF(){
   document.getElementById("export-menu").classList.add("hidden");
   var pile=getActivePile();if(!pile)return;
@@ -2913,8 +3892,82 @@ function exportPDF(){
   doc.text("COMPOST LOGGER - PILE REPORT",M,12);
   doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(180,180,180);
   doc.text(pile.name,M,20);
-  doc.text("Created: "+new Date(pile.created).toLocaleDateString()+" - Days: "+(pile.entries.length?Math.round((new Date(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);})[pile.entries.length-1].ts)-new Date(pile.created).getTime())/86400000)+1:0)+" - Turns: "+pile.entries.filter(function(e){return e.turned;}).length,M,26);
+  doc.text("Created: "+new Date(pile.created).toLocaleDateString()+" - Days: "+(pile.entries.length?Math.round((new Date(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);})[pile.entries.length-1].ts)-new Date(pile.created).getTime())/86400000)+1:0)+" - Turns: "+buildTurnHistory(pile.entries).length,M,26);
   y=38;
+  // ---- VERDICT-FIRST SUMMARY ----
+  var sortedV=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
+  var vAssess=getPileAssessment(pile,sortedV);
+  if(showPFRP){
+  var vPfrp=pfrpVerdict(sortedV);
+  function pdfRgb(hex){if(!/^#[0-9a-fA-F]{6}$/.test(hex))hex="#666666";return[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];}
+  var pc=pdfRgb(vPfrp.color);
+  doc.setFillColor(245,245,245);doc.rect(M,y-3,CW,24,"F");
+  doc.setFillColor(pc[0],pc[1],pc[2]);doc.rect(M,y-3,2,24,"F");
+  doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(90,90,90);
+  doc.text("PFRP - PROCESS TO FURTHER REDUCE PATHOGENS (TEMPERATURE RECORD)",M+5,y+1);
+  doc.setTextColor(pc[0],pc[1],pc[2]);doc.setFontSize(12);
+  function ascii(s){return s.replace(/\u2014/g,"-").replace(/\u2265/g,">=").replace(/\u00B7/g,"-").replace(/\u00B0/g,"deg ").replace(/deg F/g,"F").replace(/deg /g,"");}
+  doc.text(ascii(vPfrp.verdict),M+5,y+7);
+  doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(90,90,90);
+  doc.text(ascii(vPfrp.detail),M+5,y+12);
+  var subLines=doc.splitTextToSize(ascii(vPfrp.sub)+".",CW-10);
+  doc.text(subLines[0]||"",M+5,y+15.5);
+  doc.setTextColor(140,140,140);doc.text("On-pile temperature record only - not a certified pathogen test.",M+5,y+19);
+  y+=27;
+  }
+  if(sortedV.length>=2){
+    var dhV=degreeHoursAbove(sortedV,131);
+    var peakV=0;sortedV.forEach(function(e){var mx=Math.max(e.core1||0,e.core2||0,e.core3||0);if(mx>peakV)peakV=mx;});
+    var firstThermoV=null,firstEntryV=sortedV[0];
+    for(var fi=0;fi<sortedV.length;fi++){if(complianceTemp(sortedV[fi])>=131){firstThermoV=sortedV[fi];break;}}
+    var msTo131V=firstThermoV?new Date(firstThermoV.ts)-new Date(firstEntryV.ts):null;
+    var spreadsVv=sortedV.map(coreSpread).filter(function(s){return s!=null;});
+    var maxSpreadV=spreadsVv.length?Math.max.apply(null,spreadsVv):null;
+    var turnsV=buildTurnHistory(pile.entries).length;
+    var hrV=peakHeatingRate(sortedV);
+    var basisLbl=complianceBasis==="avg"?"avg probe":"min probe";
+    doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(50,50,50);
+    doc.text("KEY METRICS",M,y);
+    doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(140,140,140);
+    doc.text("(compliance basis: "+basisLbl+")",M+30,y);
+    y+=4;doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=4.5;
+    // Current cycle's thermophilic start (which reading the live 72h counts from).
+    var curStartStr="not yet thermophilic";
+    (function(){
+      var allCyc=buildCycles(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+      var activeCyc=allCyc[allCyc.length-1];
+      if(activeCyc&&activeCyc.entries.length){
+        var ai=computeIndependentStages(activeCyc.entries);
+        var as1=ai&&ai["Stage 1"];
+        if(as1&&as1.streakStart){var d=new Date(as1.streakStart);curStartStr=(d.getMonth()+1)+"/"+d.getDate()+" "+("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);}
+      }
+    })();
+    var metrics=[
+      ["Degree-hours >131F",dhV.toLocaleString()+" F-h"],
+      ["Peak temperature",Math.round(peakV)+"F"],
+      ["Time to 131F",msTo131V!=null?fmtDuration(msTo131V):"-"],
+      ["Peak heating rate",hrV!=null?hrV+" F/h":"-"],
+      ["Max probe spread",maxSpreadV!=null?maxSpreadV+"F":"-"],
+      ["Total turns",String(turnsV)],
+      ["Thermophilic started",curStartStr],
+      ["Assessment",vAssess?vAssess.label.replace(/\u2014/g,"-"):"-"]
+    ];
+    doc.setFontSize(8);
+    var colW=CW/2;
+    metrics.forEach(function(m,mi){
+      var col=mi%2, row=Math.floor(mi/2);
+      var mx=M+col*colW, my=y+row*5;
+      doc.setTextColor(110,110,110);doc.text(m[0]+":",mx,my);
+      doc.setTextColor(40,40,40);doc.setFont("helvetica","bold");
+      doc.text(m[1],mx+colW-4,my,{align:"right"});
+      doc.setFont("helvetica","normal");
+    });
+    y+=Math.ceil(metrics.length/2)*5+4;
+  }
+  doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=6;
+  // ---- RECIPE (defined as a function; called later so it renders AFTER the chart) ----
+  function drawRecipe(){
+  check(40);
   doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
   doc.text("MATERIAL RECIPE",M,y);y+=5;
   doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
@@ -2924,28 +3977,46 @@ function exportPDF(){
   var pdfCU=pileContainerUnit(pile);
   // Summary table
   doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(100,100,100);
-  doc.text("Total Volume: "+pdfTot.toFixed(1)+" "+pdfVL,M,y);y+=5;
-  doc.text("C:N  Fast N: "+pdfRatio.fastN+"% | Slow N: "+pdfRatio.slowN+"% | Brown: "+pdfRatio.brown+"%",M,y);y+=6;
-  var tCols=[55,28,22,22,28];
-  var tX=[M,M+tCols[0],M+tCols[0]+tCols[1],M+tCols[0]+tCols[1]+tCols[2],M+tCols[0]+tCols[1]+tCols[2]+tCols[3]];
-  doc.setFillColor(240,240,240);doc.rect(M,y-3,CW,6,"F");
-  doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(60,60,60);
-  doc.text("CATEGORY",tX[0],y);doc.text("VOLUME",tX[1],y);doc.text("% BATCH",tX[2],y);doc.text("ITEMS",tX[3],y);doc.text(pdfCU.name.toUpperCase(),tX[4],y);y+=5;
-  doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=3;
-  CATS.forEach(function(cat){
-    var items=(pile.materials[cat.key]||[]).filter(function(i){return i.name;});
-    var cv=catVol(pile.materials[cat.key]||[]);
-    var pct=pdfTot>0?Math.round(cv/pdfTot*100):0;
-    var catCount=Math.round(cv/pdfCU.size);
-    doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(80,80,80);
-    doc.text(cat.label,tX[0],y);
-    doc.text(cv.toFixed(1)+" "+pdfVL,tX[1],y);
-    doc.text(pct+"%",tX[2],y);
-    doc.text(String(items.length),tX[3],y);
-    doc.text(catCount>0?String(catCount):"-",tX[4],y);
-    y+=5;
-  });
-  doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=6;
+  doc.text("Total Volume: "+pdfTot.toFixed(1)+" "+pdfVL,M,y);y+=6;
+  // Two C:N ratio bars: BY CATEGORY (planning view) and BY ACTUAL (real blend).
+  (function(){
+    var catR=calcCategoryRatio(pile.materials);
+    var actR=pdfRatio; // calcPileRatio already computed above
+    var drawBar=function(label,r){
+      var segs=[{pct:r.fastN,rgb:[239,68,68],lbl:"FAST N"},{pct:r.slowN,rgb:[74,222,128],lbl:"SLOW N"},{pct:r.brown,rgb:[217,119,6],lbl:"BROWN"}];
+      doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(110,110,110);
+      doc.text(label,M,y);y+=2.5;
+      var barW=CW,barH=4.5,bx=M,rad=1.2;
+      // rounded background track
+      doc.setFillColor(235,235,235);doc.roundedRect(M,y,barW,barH,rad,rad,"F");
+      // colored segments (clip to rounded ends visually by using roundedRect on whole, then segments)
+      segs.forEach(function(s){
+        var sw=(s.pct/100)*barW;
+        if(sw<=0.3)return;
+        doc.setFillColor(s.rgb[0],s.rgb[1],s.rgb[2]);
+        doc.rect(bx,y,sw,barH,"F");
+        bx+=sw;
+      });
+      // re-stroke rounded corners over the square segment ends
+      doc.setDrawColor(255,255,255);doc.setLineWidth(0.8);
+      doc.roundedRect(M,y,barW,barH,rad,rad,"S");
+      doc.setLineWidth(0.2);
+      y+=barH+3; // gap between bar and legend
+      // legend
+      doc.setFont("helvetica","normal");doc.setFontSize(6.5);
+      var lx=M;
+      segs.forEach(function(s){
+        doc.setFillColor(s.rgb[0],s.rgb[1],s.rgb[2]);doc.roundedRect(lx,y-2.2,2.5,2.5,0.5,0.5,"F");
+        doc.setTextColor(110,110,110);doc.text(s.lbl+" "+s.pct+"%",lx+3.5,y);
+        lx+=30;
+      });
+      y+=6;
+    };
+    drawBar("BY CATEGORY",catR);
+    drawBar("BY ACTUAL",actR);
+  })();
+  // (Removed the category volume table that used to sit here; the category figures live
+  //  in the ingredient detail below, and the two bars cover the C:N picture.)
   // Ingredient detail
   doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(50,50,50);
   doc.text("INGREDIENT DETAIL",M,y);y+=5;
@@ -2959,14 +4030,30 @@ function exportPDF(){
     doc.text(cat.label,M,y);y+=5;
     var catTotalVol=0;
     items.forEach(function(item){
-      check(7);
-      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(80,80,80);
+      check(8);
       var iVol=parseFloat(item.volume)||0;
       catTotalVol+=iVol;
       var iCount=iVol>0?containerCount(String(iVol),pdfCU):null;
-      doc.text("  - "+item.name+(item.notes?" — "+item.notes:""),M,y);
-      if(iVol>0)doc.text(iVol.toFixed(1)+" "+pdfVL+(iCount?" · "+iCount+" "+cuLabel:""),W-M,y,{align:"right"});
-      y+=5;
+      // Name + inline note (left), volume (right) — compact single line.
+      doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(55,55,55);
+      var nameLine="- "+item.name+(item.notes?" \u2014 "+item.notes:"");
+      doc.text(nameLine,M+2,y);
+      if(iVol>0){doc.setTextColor(90,90,90);doc.text(iVol.toFixed(1)+" "+pdfVL+(iCount?" \u00B7 "+iCount+" "+cuLabel:""),W-M,y,{align:"right"});}
+      y+=4;
+      // F/S/B breakdown (volume-weighted from the ingredient's own split)
+      var fn=item.fastN||0,sn=item.slowN||0,b=item.brown||0;
+      if(fn+sn+b===0&&item.name){var pp=getPreset(item.name);if(pp){fn=pp.fastN;sn=pp.slowN;b=pp.brown;}}
+      if(fn+sn+b>0){
+        doc.setFontSize(7);
+        var bx2=M+6;
+        var parts=[["F",fn,[239,68,68]],["S",sn,[74,222,128]],["B",b,[217,119,6]]];
+        parts.forEach(function(pr){
+          doc.setTextColor(pr[2][0],pr[2][1],pr[2][2]);
+          doc.text(pr[0]+" "+pr[1]+"%",bx2,y);
+          bx2+=15;
+        });
+        y+=4.5;
+      } else { y+=1; }
     });
     doc.setDrawColor(210,210,210);doc.line(M+4,y,W-M,y);y+=3;
     doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(60,60,60);
@@ -2974,6 +4061,7 @@ function exportPDF(){
     doc.text("TOTAL: "+catTotalVol.toFixed(1)+" "+pdfVL+(catCount?" · "+catCount+" "+cuLabel:""),M+4,y);
     y+=7;
   });
+  } // end drawRecipe
   y+=2;
   var history=buildTurnHistory(pile.entries);
   if(history.length){
@@ -2981,25 +4069,25 @@ function exportPDF(){
     doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
     doc.text("TURN HISTORY",M,y);y+=5;
     doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
-    var cycleBoundaries=[];
-    var prevTurnIdx=-1;
     var sortedAll=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
-    for(var hi=0;hi<sortedAll.length;hi++){
-      if(sortedAll[hi].turned){
-        cycleBoundaries.push({from:prevTurnIdx+1,to:hi});
-        prevTurnIdx=hi;
+    var cycles2PDF=buildCycles(sortedAll);
+    // Map each history turn to the cycle it CLOSED (matched by turn timestamp), so peak
+    // and the cycle bar reflect that cycle's real entries (not the build entry).
+    function cycleForTurn(t){
+      for(var ci=0;ci<cycles2PDF.length;ci++){
+        var te=cycles2PDF[ci].turnEntry;
+        if(te&&new Date(te.ts).getTime()===new Date(t.ts).getTime())return cycles2PDF[ci];
       }
+      return null;
     }
-    var sortedAll2=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
-    var cycles2PDF=buildCycles(sortedAll2);
     history.forEach(function(t,turnIdx){
       check(14);
       doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(60,60,60);
       var hsBand=BANDS.find(function(b){return b.label===t.highestSatisfied;});
-      var icon=t.highestSatisfied?(hsBand?hsBand.hours+"H":"")+" SATISFIED":t.isWarning?"WARNING":"TURN "+t.num;
+      var icon=t.highestSatisfied?(hsBand?hsBand.hours+"H":"")+" SATISFIED":(t.turnedHot?"TURNED HOT":"TURN "+t.num);
       doc.text("Turn "+t.num+" - "+icon,M,y);y+=5;
       // Multicolor cycle bar in PDF
-      var cycleForBar=cycles2PDF[turnIdx];
+      var cycleForBar=cycleForTurn(t);
       if(cycleForBar){
         var cr2=buildChronologicalSegments(cycleForBar.entries,true);
         if(cr2.totalMs>0){
@@ -3018,89 +4106,134 @@ function exportPDF(){
           // Background for unfilled portion
           doc.setFillColor(230,230,230);
           doc.rect(xOff,y,barW-(xOff-barX),barH,"F");
-          y+=8;
+          y+=6.5;
+          // Stage-duration breakdown under the bar (matches the dashboard).
+          var pdfMs={MESO:0,THERMO:0,READY:0};
+          cr2.segments.forEach(function(seg){
+            if(seg.label==="MESO")pdfMs.MESO+=seg.ms;
+            else if(seg.label==="READY")pdfMs.READY+=seg.ms;
+            else pdfMs.THERMO+=seg.ms;
+          });
+          var fmtPdfH=function(ms){var h=ms/3600000;if(h<1)return Math.round(h*60)+"m";return Math.floor(h)+"h"+(Math.round((h%1)*60)>0?" "+Math.round((h%1)*60)+"m":"");};
+          var dparts=[];
+          if(pdfMs.MESO>0)dparts.push("MESO "+fmtPdfH(pdfMs.MESO));
+          if(pdfMs.THERMO>0)dparts.push("THERMO "+fmtPdfH(pdfMs.THERMO));
+          if(pdfMs.READY>0)dparts.push("READY "+fmtPdfH(pdfMs.READY));
+          if(dparts.length){
+            doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(130,130,130);
+            doc.text(dparts.join("  \u00B7  "),M,y);
+            y+=5.5;
+          }
         }
       }
       doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(100,100,100);
       var peakStr="";
-      if(cycleBoundaries[turnIdx]){
-        var cb=cycleBoundaries[turnIdx];
+      var pkCycle=cycleForTurn(t);
+      if(pkCycle&&pkCycle.entries.length){
         var peak=null;
-        for(var pi=cb.from;pi<=cb.to;pi++){
-          var c=sortedAll[pi]&&sortedAll[pi].core1;
+        pkCycle.entries.forEach(function(e){
+          var c=displayTemp(e);
           if(c!=null&&(peak===null||c>peak))peak=c;
-        }
+        });
         if(peak!=null)peakStr=" | Peak: "+Math.round(peak)+"F";
       }
-      // Cooling rate: compare turn temp to next entry
+      // (Post-turn cooldown is normal and no longer flagged as a warning.)
       var coolingStr="";
-      if(t.core1&&sortedAll[turnIdx+1]){
-        var nextE=null;
-        for(var ni=0;ni<sortedAll.length;ni++){if(sortedAll[ni].turned&&ni>0){var prevTurnTs=new Date(sortedAll[ni].ts).getTime();if(prevTurnTs>new Date(t.ts||t.date+"T"+t.time).getTime()){break;}}
-        }
-        // Find first entry after this turn
-        var turnTs=new Date(t.date+"T"+t.time).getTime();
-        for(var xi=0;xi<sortedAll.length;xi++){if(new Date(sortedAll[xi].ts).getTime()>turnTs&&sortedAll[xi].core1){nextE=sortedAll[xi];break;}}
-        if(nextE){var drop=Math.round((avgCore(t)||t.core1||0)-(avgCore(nextE)||nextE.core1||0));var hrs=Math.round((new Date(nextE.ts).getTime()-turnTs)/3600000);if(drop>0)coolingStr=" | Dropped "+drop+"°F in "+hrs+"h";}
-      }
       doc.text("Date: "+t.date+" "+t.time+(t.core1?" | Core at turn: "+t.core1+"F":"")+peakStr+(t.activeBand?" | "+t.activeBand.label:"")+coolingStr,M+4,y);y+=4;
       if(t.sinceMs!=null){doc.text("Since previous turn: "+fmtHours(t.sinceMs),M+4,y);y+=4;}
       if(t.highestSatisfied){doc.text("Stage satisfied: "+t.highestSatisfied,M+4,y);y+=4;}
-      if(t.isWarning){doc.setTextColor(200,60,60);doc.text("Warning: turned without satisfying stage requirement",M+4,y);doc.setTextColor(100,100,100);y+=4;}
+      // Thermophilic-started line for this cycle (which reading the 72h counts from).
+      if(pkCycle&&pkCycle.entries.length){
+        var pkIndep=computeIndependentStages(pkCycle.entries);
+        var pkS1=pkIndep&&pkIndep["Stage 1"];
+        if(pkS1&&pkS1.streakStart){
+          var sd=new Date(pkS1.streakStart);
+          var sdstr=(sd.getMonth()+1)+"/"+sd.getDate()+" "+("0"+sd.getHours()).slice(-2)+":"+("0"+sd.getMinutes()).slice(-2);
+          doc.setTextColor(130,130,130);
+          doc.text("Thermophilic started: "+sdstr,M+4,y);y+=4;
+          doc.setTextColor(100,100,100);
+        }
+      }
       y+=1;
     });
   }
   var sortedEntries=pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   function finishPDF(){
-  check(20);
+  // Recipe renders here so the PDF order is: PFRP/metrics -> Turn History -> Chart ->
+  // Recipe -> Log. drawRecipe() continues from the current y (right after the chart).
+  try{drawRecipe();}catch(e){console.error("recipe draw failed",e);}
+  doc.addPage();y=20;   // Log Entries always begins on a fresh page (no orphan rows)
     doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(50,50,50);
     doc.text("LOG ENTRIES",M,y);y+=5;
     doc.setDrawColor(200,200,200);doc.line(M,y,W-M,y);y+=5;
-    // Single-column log with inline notes
-    function drawLogHeader(){
-      var hx=M;
-      doc.setFont("helvetica","bold");doc.setFontSize(7.5);doc.setTextColor(80,80,80);
-      [["#",8],["Date",20],["Time",16],["Amb",16],["Avg",16],["Moist",18],["Turn",14]].forEach(function(h){
-        doc.text(h[0],hx,y);hx+=h[1];
-      });
-    }
-    drawLogHeader();
-    y+=1;
-    doc.setDrawColor(180,180,180);doc.line(M,y,W-M,y);y+=3.5;
 
-    sortedEntries.forEach(function(e,idx){
-      check(6);
-      var band2=getBand(avgCore(e));
-      var bandColor=band2?band2.color:"#555";
-      var avg2=avgCore(e);
+    // Full-width single-column log so every reading shows ambient + all three probes
+    // plus the basis figure (Avg or Min per the display-basis setting).
+    var basisLabel=(typeof displayBasis!=="undefined"&&displayBasis==="min")?"Min":"Avg";
+    var hasCore4=sortedEntries.some(function(e){return e.core4!=null;});
+    var hasAmbM=sortedEntries.some(function(e){return e.ambient!=null;});
+    var hasAmbApi=sortedEntries.some(function(e){return e.ambientApi!=null;});
+    // Build columns dynamically so optional ones (ambient manual/API, C4) only appear
+    // when there's data. Widths are weights; x-offsets computed to fit CW.
+    var colDefs=[["#",0.7],["Date",2.6],["Time",1.7]];
+    if(hasAmbM)colDefs.push(["AmbM",1.4]);
+    if(hasAmbApi)colDefs.push(["AmbA",1.4]);
+    colDefs.push(["C1",1.3]);colDefs.push(["C2",1.3]);colDefs.push(["C3",1.3]);
+    if(hasCore4)colDefs.push(["C4",1.3]);
+    colDefs.push([basisLabel,1.6]);colDefs.push(["Moist",1.6]);colDefs.push(["Turn",1.3]);
+    var totalWeight=colDefs.reduce(function(s,c){return s+c[1];},0);
+    var cols=[];var xAcc=0;
+    colDefs.forEach(function(c){cols.push([c[0],Math.round(xAcc*100)/100]);xAcc+=(c[1]/totalWeight)*CW;});
+    var manyColsFsz=(cols.length>9)?7:8;
+    function colX(label){for(var i=0;i<cols.length;i++)if(cols[i][0]===label)return M+cols[i][1];return M;}
+    function drawFullHeader(yy){
+      doc.setFont("helvetica","bold");doc.setFontSize(manyColsFsz);doc.setTextColor(80,80,80);
+      cols.forEach(function(c){doc.text(c[0],M+c[1],yy);});
+      doc.setDrawColor(180,180,180);doc.line(M,yy+1.4,W-M,yy+1.4);
+      return yy+5.5;
+    }
+    function colColor(hex){var h=/^#[0-9a-fA-F]{6}$/.test(hex)?hex:"#3c3c3c";return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+    function drawFullEntry(e,idx,yLocal,zebra){
+      var rowH=5;
+      var fsz=manyColsFsz;
       var hasNote=e.notes&&e.notes.trim();
-      // Row background (alternating)
-      if(idx%2===1){doc.setFillColor(246,246,246);doc.rect(M,y-3.2,CW,5,"F");}
-      doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(60,60,60);
-      var hx=M;
-      doc.text(String(idx+1),hx,y);hx+=8;
-      doc.text(e.date||"",hx,y);hx+=20;
-      doc.text(e.time||"—",hx,y);hx+=16;
-      doc.text(e.ambient!=null?String(Math.round(e.ambient)):"—",hx,y);hx+=16;
-      if(avg2!=null){
-        var hxc=/^#[0-9a-fA-F]{6}$/.test(bandColor)?bandColor:"#3c3c3c";
-        doc.setTextColor(parseInt(hxc.slice(1,3),16),parseInt(hxc.slice(3,5),16),parseInt(hxc.slice(5,7),16));
-        doc.text(String(Math.round(avg2)),hx,y);
-        doc.setTextColor(60,60,60);
-      } else { doc.text("—",hx,y); }
-      hx+=16;
-      doc.text(e.moisture!=null?e.moisture+"%":"—",hx,y);hx+=18;
-      doc.text(e.turned?"YES":"",hx,y);
-      y+=5;
-      // Inline note directly under the entry row
+      if(zebra%2===1){doc.setFillColor(247,247,247);doc.rect(M,yLocal-3.2,CW,5,"F");}
+      doc.setFont("helvetica","normal");doc.setFontSize(fsz);doc.setTextColor(55,55,55);
+      doc.text(String(idx+1),colX("#"),yLocal);
+      doc.text(e.date||"",colX("Date"),yLocal);
+      doc.text(e.time||"-",colX("Time"),yLocal);
+      if(hasAmbM){doc.setTextColor(245,158,11);doc.text(e.ambient!=null?String(Math.round(disp(e.ambient))):"-",colX("AmbM"),yLocal);doc.setTextColor(55,55,55);}
+      if(hasAmbApi){doc.setTextColor(251,191,36);doc.text(e.ambientApi!=null?String(Math.round(disp(e.ambientApi))):"-",colX("AmbA"),yLocal);doc.setTextColor(55,55,55);}
+      var p1=colColor("#ff4444");doc.setTextColor(p1[0],p1[1],p1[2]);doc.text(e.core1!=null?String(Math.round(disp(e.core1))):"-",colX("C1"),yLocal);
+      var p2=colColor("#16a34a");doc.setTextColor(p2[0],p2[1],p2[2]);doc.text(e.core2!=null?String(Math.round(disp(e.core2))):"-",colX("C2"),yLocal);
+      var p3=colColor("#9333ea");doc.setTextColor(p3[0],p3[1],p3[2]);doc.text(e.core3!=null?String(Math.round(disp(e.core3))):"-",colX("C3"),yLocal);
+      if(hasCore4){var p4=colColor("#0891b2");doc.setTextColor(p4[0],p4[1],p4[2]);doc.text(e.core4!=null?String(Math.round(disp(e.core4))):"-",colX("C4"),yLocal);}
+      var basisVal=(basisLabel==="Min")?strictMinTemp(e):avgCore(e);
+      var band2=getBand(basisVal);var bc=colColor(band2?band2.color:"#3c3c3c");
+      doc.setTextColor(bc[0],bc[1],bc[2]);doc.text(basisVal!=null?String(Math.round(disp(basisVal))):"-",colX(basisLabel),yLocal);
+      doc.setTextColor(55,55,55);
+      doc.text(e.moisture!=null?e.moisture+"%":"-",colX("Moist"),yLocal);
+      if(e.turned){var tc=colColor("#f97316");doc.setTextColor(tc[0],tc[1],tc[2]);doc.text((sortedEntries.length&&e.id===sortedEntries[0].id)?"BUILT":"YES",colX("Turn"),yLocal);doc.setTextColor(55,55,55);}
+      yLocal+=rowH;
       if(hasNote){
-        doc.setFont("helvetica","italic");doc.setFontSize(6.8);doc.setTextColor(110,110,110);
-        var noteLines=doc.splitTextToSize("Note: "+e.notes.trim(),CW-10);
-        noteLines.forEach(function(ln){check(4);doc.text(ln,M+8,y);y+=3.6;});
-        y+=1.2;
-        doc.setTextColor(60,60,60);
+        doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(110,110,110);
+        var noteLines=doc.splitTextToSize("Note: "+e.notes.trim(),CW-8);
+        noteLines.forEach(function(ln){doc.text(ln,M+4,yLocal);yLocal+=3.7;});
+        yLocal+=1.2;doc.setTextColor(55,55,55);
       }
+      return yLocal;
+    }
+    function fullEntryHeight(e){
+      var h=5;
+      if(e.notes&&e.notes.trim()){doc.setFontSize(7);h+=doc.splitTextToSize("Note: "+e.notes.trim(),CW-8).length*3.7+1.2;}
+      return h;
+    }
+    var yL=drawFullHeader(y);
+    sortedEntries.forEach(function(e,k){
+      if(yL+fullEntryHeight(e)>284){doc.addPage();yL=drawFullHeader(20);}
+      yL=drawFullEntry(e,k,yL,k);
     });
+    y=yL+2;
     // Maturity Assessment section
     var assess2=getPileAssessment(pile,sortedEntries);
     if(assess2){
@@ -3135,25 +4268,37 @@ function exportPDF(){
       exportCanvas.width=800;exportCanvas.height=300;
       exportCanvas.style.position="absolute";exportCanvas.style.left="-9999px";
       document.body.appendChild(exportCanvas);
-      function crPDF(f){return f;} // always export in °F for PDF
+      function crPDF(f){return tempUnit==="C"?toC(f):f;}
       var exportChart=new Chart(exportCanvas,{
         type:"line",
         data:{
-          labels:sortedEntries.map(function(e,i){return i+1;}),
-          datasets:[
-            {label:"Core 1",data:sortedEntries.map(function(e){return e.core1;}),borderColor:"#ff4444",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
-            {label:"Core 2",data:sortedEntries.map(function(e){return e.core2;}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
-            {label:"Core 3",data:sortedEntries.map(function(e){return e.core3;}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
+          labels:sortedEntries.map(function(e){
+            var dnum=Math.floor((new Date(e.ts).getTime()-new Date(pile.created).getTime())/86400000)+1;
+            return "Day "+dnum;
+          }),
+          datasets:(shadeProbes&&sortedEntries.some(function(e){return coreSpread(e)!=null;})?[
+            {label:"Probe max",data:sortedEntries.map(function(e){var v=[e.core1,e.core2,e.core3,e.core4].filter(function(x){return x!=null&&x>0;});return v.length?crPDF(Math.max.apply(null,v)):null;}),borderColor:"rgba(120,120,120,0.9)",borderWidth:1.5,backgroundColor:"rgba(150,150,150,0.18)",pointRadius:0,fill:"+1",tension:0.3,spanGaps:true,yAxisID:"y"},
+            {label:"Probe min",data:sortedEntries.map(function(e){var v=[e.core1,e.core2,e.core3,e.core4].filter(function(x){return x!=null&&x>0;});return v.length?crPDF(Math.min.apply(null,v)):null;}),borderColor:"rgba(120,120,120,0.9)",borderWidth:1.5,backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,spanGaps:true,yAxisID:"y"},
             {label:"Moisture",data:sortedEntries.map(function(e){return e.moisture;}),borderColor:"#1e88e5",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y2"}
-          ].concat(tempMode==="average"?[
-            {label:"Average",data:sortedEntries.map(function(e){return avgCore(e)!=null?e.avgTemp||avgCore(e):null;}),borderColor:"#ffffff",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[6,3]}
+          ]:[
+            {label:"Core 1",data:sortedEntries.map(function(e){return e.core1!=null?crPDF(e.core1):null;}),borderColor:"#ff4444",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
+            {label:"Core 2",data:sortedEntries.map(function(e){return e.core2!=null?crPDF(e.core2):null;}),borderColor:"#4ade80",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"},
+            {label:"Core 3",data:sortedEntries.map(function(e){return e.core3!=null?crPDF(e.core3):null;}),borderColor:"#a855f7",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"}
+          ].concat(sortedEntries.some(function(e){return e.core4!=null;})?[{label:"Core 4",data:sortedEntries.map(function(e){return e.core4!=null?crPDF(e.core4):null;}),borderColor:"#22d3ee",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y"}]:[]).concat([
+            {label:"Moisture",data:sortedEntries.map(function(e){return e.moisture;}),borderColor:"#1e88e5",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y2"}
+          ])).concat(tempMode==="average"?[
+            {label:"Average",data:sortedEntries.map(function(e){var a=avgCore(e);return a!=null?crPDF(a):null;}),borderColor:"#ffffff",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[6,3]}
           ]:[])
           .concat(showAmbient&&sortedEntries.some(function(e){return e.ambient!=null;})?[
-            {label:"Ambient",data:sortedEntries.map(function(e){return e.ambient!=null?e.ambient:null;}),borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[4,3]}
+            {label:"Ambient",data:sortedEntries.map(function(e){return e.ambient!=null?crPDF(e.ambient):null;}),borderColor:"#f59e0b",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[4,3]}
+          ]:[])
+          .concat(showAmbientApi&&sortedEntries.some(function(e){return e.ambientApi!=null;})?[
+            {label:"Ambient API",data:sortedEntries.map(function(e){return e.ambientApi!=null?crPDF(e.ambientApi):null;}),borderColor:"#d97706",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[2,2]}
           ]:[])
           .concat(showDelta&&sortedEntries.some(function(e){return e.ambient!=null&&avgCore(e)!=null;})?[
-            {label:"Delta",data:sortedEntries.map(function(e){var a=avgCore(e);return(a!=null&&e.ambient!=null)?Math.round((a-e.ambient)*10)/10:null;}),borderColor:"#06b6d4",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[2,2]}
+            {label:"Delta",data:sortedEntries.map(function(e){var a=avgCore(e);return(a!=null&&e.ambient!=null)?Math.round((crPDF(a)-crPDF(e.ambient))*10)/10:null;}),borderColor:"#06b6d4",backgroundColor:"transparent",tension:0.3,pointRadius:2,spanGaps:true,yAxisID:"y",borderDash:[2,2]}
           ]:[])
+          .concat(showRate?(function(){var rs=heatingRateSeries(sortedEntries);return [{label:"Rate \u00B0/h",data:rs,borderColor:"#0891b2",backgroundColor:"transparent",tension:0.3,pointRadius:1.5,spanGaps:true,yAxisID:"yRate",borderWidth:1.2}];})():[])
         },
         options:{
           responsive:false,maintainAspectRatio:false,animation:false,
@@ -3164,14 +4309,29 @@ function exportPDF(){
                   return{text:ds.label,fillStyle:ds.borderColor,strokeStyle:ds.borderColor,
                     lineWidth:3,hidden:false,datasetIndex:i,pointStyle:"line"};
                 });
-              }}},annotation:{annotations:{
-            r131:{type:"line",yMin:131,yMax:131,borderColor:"#f59e0b",borderWidth:1,borderDash:[5,4],yScaleID:"y"},
-            r175:{type:"line",yMin:175,yMax:175,borderColor:"#ff0000",borderWidth:1,borderDash:[3,3],yScaleID:"y"}
-          }}},
+              }}},annotation:{annotations:Object.assign({
+            r131:{type:"line",yMin:crPDF(131),yMax:crPDF(131),borderColor:"#f59e0b",borderWidth:1,borderDash:[5,4],yScaleID:"y"},
+            r175:{type:"line",yMin:crPDF(175),yMax:crPDF(175),borderColor:"#ff0000",borderWidth:1,borderDash:[3,3],yScaleID:"y"}
+          },(function(){
+            var ta={};
+            var pdfFirstId=sortedEntries.length?sortedEntries[0].id:null;
+            sortedEntries.forEach(function(e,i){
+              if(e.id===pdfFirstId){
+                ta["built"]={type:"line",xMin:i,xMax:i,borderColor:"#16a34a",borderWidth:1.5,borderDash:[4,3]};
+              } else if(e.turned){
+                ta["turn"+i]={type:"line",xMin:i,xMax:i,borderColor:"#f97316",borderWidth:1.5,label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#c2410c",font:{size:7},padding:1,rotation:90}};
+              }
+              if(e.watered){
+                ta["water"+i]={type:"line",xMin:i,xMax:i,borderColor:"#3b82f6",borderWidth:1.2,borderDash:[2,2],label:{display:true,content:"WATER",position:"start",backgroundColor:"rgba(59,130,246,0.15)",color:"#2563eb",font:{size:7},padding:1,rotation:90}};
+              }
+            });
+            return ta;
+          })())}},
           scales:{
-            x:{ticks:{color:"#333",font:{size:9}},grid:{color:"#eee"},title:{display:true,text:"Entry #",color:"#333",font:{size:9}}},
-            y:{min:80,max:180,position:"left",ticks:{color:"#333",font:{size:9}},grid:{color:"#eee"},title:{display:true,text:"\u00B0F",color:"#333",font:{size:9}}},
-            y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:9},callback:function(v){return v+"%";}},grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:9}}}
+            x:{ticks:{color:"#333",font:{size:9},maxTicksLimit:12},grid:{color:"#eee"},title:{display:true,text:"Day",color:"#333",font:{size:9}}},
+            y:{min:crPDF(80),max:crPDF(180),position:"left",ticks:{color:"#333",font:{size:9}},grid:{color:"#eee"},title:{display:true,text:"\u00B0"+tempUnit,color:"#333",font:{size:9}}},
+            y2:{min:0,max:100,position:"right",ticks:{color:"#1e88e5",font:{size:9},callback:function(v){return v+"%";}},grid:{drawOnChartArea:false},title:{display:true,text:"Moisture",color:"#1e88e5",font:{size:9}}},
+            yRate:{display:showRate,position:"right",ticks:{color:"#0891b2",font:{size:8},callback:function(v){return v+"\u00B0/h";}},grid:{drawOnChartArea:false},suggestedMin:-6,suggestedMax:8}
           }
         }
       });
@@ -3305,6 +4465,7 @@ async function initDriveStorage(){
         var driveIngHist=d.ingHist||DEF_HIST;
         var driveUnit=d.tempUnit||tempUnit;
         var driveDeletedIds=d.deletedPileIds||[];
+        var driveSites=d.sites; // may be undefined on old Drive files; do NOT default to []
         // Combine tombstones from both sides
         var allDeletedIds=driveDeletedIds.slice();
         deletedPileIds.forEach(function(id){if(allDeletedIds.indexOf(id)<0)allDeletedIds.push(id);});
@@ -3332,6 +4493,8 @@ async function initDriveStorage(){
             var merged=JSON.parse(JSON.stringify(base));
             merged.entries=mergedEntries;
             merged.lastModified=Date.now();
+            // If the base (e.g. an old Drive copy) has no siteId but local does, keep local's.
+            if((merged.siteId===undefined||merged.siteId===null)&&lm.siteId!=null)merged.siteId=lm.siteId;
             mergedPiles.push(merged);
           } else {
             mergedPiles.push(dp);
@@ -3356,12 +4519,22 @@ async function initDriveStorage(){
         });
         piles=mergedPiles;recipes=mergedRecipes;ingHist=driveIngHist;tempUnit=driveUnit;
         deletedPileIds=allDeletedIds;
-        localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
-        await driveUpload(driveFileId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
+        // Merge Drive sites into local by id (local wins on conflict). Only when the
+        // Drive file actually carries a sites array; an old file without one must not
+        // wipe local sites. Then re-link any newly merged piles to their sites.
+        if(Array.isArray(driveSites)){
+          var siteMap0={};
+          driveSites.forEach(function(st){siteMap0[st.id]=st;});
+          sites.forEach(function(st){siteMap0[st.id]=st;});
+          sites=Object.values(siteMap0);
+        }
+        migrateSites();
+        localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
+        await driveUpload(driveFileId,{piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
       }
     }
   } else {
-    var f=await driveCreateFile("compost_data.json",folderId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit});
+    var f=await driveCreateFile("compost_data.json",folderId,{piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
     driveFileId=f.id;
   }
 }
@@ -3410,6 +4583,8 @@ async function driveSaveNow(){
             var mp=JSON.parse(JSON.stringify(base));
             mp.entries=mergedEntries;
             mp.lastModified=Date.now();
+            // If the base (e.g. an old Drive copy) has no siteId but local does, keep local's.
+            if((mp.siteId===undefined||mp.siteId===null)&&lm.siteId!=null)mp.siteId=lm.siteId;
             merged2.push(mp);
           } else {
             merged2.push(dp);
@@ -3421,12 +4596,22 @@ async function driveSaveNow(){
         });
         piles=merged2;
         deletedPileIds=allDeleted2;
-        localStorage.setItem("ca_v5",JSON.stringify({piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
+        // Merge sites (union by id; local copy wins on conflict). Drive is applied
+        // first, then local overwrites, so a local rename is never lost. An old Drive
+        // file without a sites array leaves local sites untouched. Then re-run the
+        // inline-site migration so any newly-merged piles get linked.
+        var driveSites2=d.sites||[];
+        var siteMap2={};
+        driveSites2.forEach(function(st){siteMap2[st.id]=st;});
+        sites.forEach(function(st){siteMap2[st.id]=st;});
+        sites=Object.values(siteMap2);
+        migrateSites();
+        localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
         renderHome();
       }
     }
     // PUSH merged result to Drive
-    await driveUpload(driveFileId,{piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
+    await driveUpload(driveFileId,{piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
     pendingSave=false;
     syncInProgress=false;
     setStatus("saved");
@@ -3544,6 +4729,35 @@ window.addEventListener("beforeunload",function(e){
 // CSV IMPORT + TEMPLATE
 // ============================================================
 
+function toggleImportMenu(ev){
+  if(ev)ev.stopPropagation();
+  var m=document.getElementById("import-menu");
+  var btn=document.getElementById("import-menu-btn");
+  if(!m||!btn)return;
+  if(m.classList.contains("hidden")){
+    var r=btn.getBoundingClientRect();
+    m.style.top=(r.bottom+4)+"px";
+    // align right edge of menu under button, but keep on screen
+    var left=r.left;
+    if(left+180>window.innerWidth)left=window.innerWidth-180;
+    if(left<8)left=8;
+    m.style.left=left+"px";
+    m.classList.remove("hidden");
+  } else {
+    m.classList.add("hidden");
+  }
+}
+function closeImportMenu(){
+  var m=document.getElementById("import-menu");
+  if(m)m.classList.add("hidden");
+}
+// Close on any outside click
+document.addEventListener("click",function(ev){
+  var m=document.getElementById("import-menu");
+  if(!m||m.classList.contains("hidden"))return;
+  if(ev.target.closest("#import-menu")||ev.target.closest("#import-menu-btn"))return;
+  m.classList.add("hidden");
+});
 function downloadCSVTemplate(){
   var lines=[
     "[PILE]",
@@ -4100,6 +5314,19 @@ function openSettings(){
   if(fBtn)fBtn.style.borderColor=tempUnit==="F"?"#fff":"#222";
   if(cBtn)cBtn.style.color=tempUnit==="C"?"#38bdf8":"#555";
   if(cBtn)cBtn.style.borderColor=tempUnit==="C"?"#38bdf8":"#222";
+  var minB=document.getElementById("s-basis-min");
+  var avgB=document.getElementById("s-basis-avg");
+  if(minB){minB.style.color=displayBasis==="min"?"#fff":"#555";minB.style.borderColor=displayBasis==="min"?"#fff":"#222";}
+  if(avgB){avgB.style.color=displayBasis==="avg"?"#fff":"#555";avgB.style.borderColor=displayBasis==="avg"?"#fff":"#222";}
+  var onB=document.getElementById("s-pfrp-on");
+  var offB=document.getElementById("s-pfrp-off");
+  if(onB){onB.style.color=showPFRP?"#4ade80":"#555";onB.style.borderColor=showPFRP?"#4ade80":"#222";}
+  if(offB){offB.style.color=!showPFRP?"#fff":"#555";offB.style.borderColor=!showPFRP?"#fff":"#222";}
+  var keyEl=document.getElementById("s-anthropic-key");
+  var keySt=document.getElementById("s-key-status");
+  var savedKey=localStorage.getItem("ca_anthropicKey")||"";
+  if(keyEl)keyEl.value=savedKey;
+  if(keySt){if(savedKey){keySt.style.color="#4ade80";keySt.textContent="\u2713 Key saved on this device.";}else{keySt.textContent="";}}
   // Sync volume buttons
   ["gal","l","yd"].forEach(function(k){
     var el=document.getElementById("s-vol-"+k);if(!el)return;
@@ -4141,8 +5368,63 @@ function setTempUnit(unit){
   if(fBtn){fBtn.style.color=unit==="F"?"#fff":"#555";fBtn.style.borderColor=unit==="F"?"#fff":"#222";}
   if(cBtn){cBtn.style.color=unit==="C"?"#38bdf8":"#555";cBtn.style.borderColor=unit==="C"?"#38bdf8":"#222";}
 }
+function setDisplayBasis(b){
+  displayBasis=b;
+  complianceBasis=b; // keep legacy alias in sync
+  localStorage.setItem("ca_displayBasis",b);
+  var minB=document.getElementById("s-basis-min");
+  var avgB=document.getElementById("s-basis-avg");
+  if(minB){minB.style.color=b==="min"?"#fff":"#555";minB.style.borderColor=b==="min"?"#fff":"#222";}
+  if(avgB){avgB.style.color=b==="avg"?"#fff":"#555";avgB.style.borderColor=b==="avg"?"#fff":"#222";}
+  var dash=document.getElementById("view-dashboard");
+  if(dash&&!dash.classList.contains("hidden"))renderDashboard();
+}
+function saveAnthropicKey(){
+  var el=document.getElementById("s-anthropic-key");
+  if(!el)return;
+  var k=(el.value||"").trim();
+  var st=document.getElementById("s-key-status");
+  if(!k){if(st){st.style.color="#ef4444";st.textContent="Enter a key first.";}return;}
+  localStorage.setItem("ca_anthropicKey",k);
+  if(st){st.style.color="#4ade80";st.textContent="\u2713 Key saved on this device. SCAN button is now available.";}
+  updateScanButtonVisibility();
+}
+function clearAnthropicKey(){
+  localStorage.removeItem("ca_anthropicKey");
+  var el=document.getElementById("s-anthropic-key");if(el)el.value="";
+  var st=document.getElementById("s-key-status");if(st){st.style.color="#888";st.textContent="Key removed.";}
+  updateScanButtonVisibility();
+}
+function onKeyFieldInput(){
+  var st=document.getElementById("s-key-status");if(st)st.textContent="";
+}
+function setShowPFRP(on){
+  showPFRP=!!on;
+  localStorage.setItem("ca_showPFRP",on?"on":"off");
+  var onB=document.getElementById("s-pfrp-on");
+  var offB=document.getElementById("s-pfrp-off");
+  if(onB){onB.style.color=on?"#4ade80":"#555";onB.style.borderColor=on?"#4ade80":"#222";}
+  if(offB){offB.style.color=!on?"#fff":"#555";offB.style.borderColor=!on?"#fff":"#222";}
+  var dash=document.getElementById("view-dashboard");
+  if(dash&&!dash.classList.contains("hidden"))renderDashboard();
+}
 function exportAllJSON(){
-  var data={piles:piles,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,exportedAt:new Date().toISOString()};
+  var data={
+    piles:piles,
+    sites:sites,
+    recipes:recipes,
+    ingHist:ingHist,
+    tempUnit:tempUnit,
+    volumeUnit:volumeUnit,
+    containerUnit:containerUnit,
+    deletedPileIds:deletedPileIds,
+    displayBasis:displayBasis,
+    showPFRP:showPFRP,
+    pilesSortMode:pilesSortMode,
+    entriesSortMode:entriesSortMode,
+    exportVersion:"v3.77q",
+    exportedAt:new Date().toISOString()
+  };
   var a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
   a.download="compost-logger-backup-"+localDateStr(new Date())+".json";
@@ -4217,9 +5499,20 @@ async function handleScanPhotos(event){
     // Add text prompt
     imageBlocks.push({type:"text",text:"You are reading compost temperature monitoring instruments. Identify each instrument in the photos:\n1. REOTEMP analog gauge (circular dial with needle, \u00b0F scale 0-200) \u2014 these show CORE temperatures\n2. ETHMEAS digital display (black box with red buttons, shows OUT temperature) \u2014 this shows AMBIENT temperature\n\nFor each instrument, read the temperature value as accurately as possible.\nIf the analog needle is between marks, estimate to the nearest 2\u00b0F.\nReturn ONLY valid JSON in this exact format:\n{\"ambient\": null_or_number, \"core1\": null_or_number, \"core2\": null_or_number, \"core3\": null_or_number, \"confidence\": \"high\" or \"medium\" or \"low\", \"notes\": \"brief note about any uncertainty\"}\nAll temperatures should be in Fahrenheit. Return null for any reading you cannot determine."});
 
+    var apiKey=localStorage.getItem("ca_anthropicKey")||"";
+    if(!apiKey){
+      status.textContent="No API key set. Add your Anthropic key in Settings to use photo scan.";
+      actions.style.display="none";
+      return;
+    }
     var resp=await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{
+        "Content-Type":"application/json",
+        "x-api-key":apiKey,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"
+      },
       body:JSON.stringify({
         model:"claude-sonnet-4-6",
         max_tokens:400,
@@ -4227,6 +5520,7 @@ async function handleScanPhotos(event){
       })
     });
 
+    if(resp.status===401){throw new Error("Invalid API key \u2014 check it in Settings.");}
     if(!resp.ok)throw new Error("API error: "+resp.status);
     var data=await resp.json();
     var text=(data.content||[]).filter(function(b){return b.type==="text";}).map(function(b){return b.text;}).join("");
@@ -4304,6 +5598,18 @@ var BANNER_B64="data:image/jpeg;base64,"+
 "JOcZ5/nk18tlnBeEhRq0qNNw5k4+9rZa6R7WepxYrL4Q1Ukz95P21/BHiDwt+y54m8LftBGysbm11aHUfC62EXl5vpH8i7i+bY0izQBppGIfYVjAc7cH8bbyy+F+sfD7wpo/gW01U+M3muk1l5jG1pN5siixSzVfnBVMiTf95m44FcH4i8UX+vW1la3uoXd8LSLy0+0ys6xgnO2IMTtUfz5wK900jxx8H/hj4Th0/QtMh1/xH5hln1S4M4SJtp2R2aK8aBUOCZZEaQyDKBVHzd2UZVXy/Cqi25yvdJKyWlvu6+pjgcAnpKSSR618XP2OdC+BVpDYfEjXJp9bgmkh1G0so4lhilhUmeCGaSTdK1qcLcS+UIkc7FLsK+FkOnJqkj2iFrfc/kibGdvOzfjAzjGccZ9q1dY8W6pqc80sNxNGl1v8yLe+35zkqSWJYHALFuWIyea7HStS+Gvhrwr5clmNY165XzPOlL/ZrVWUgRpENnmSD7zu5KA4VVO0s3u4GliaFL9/Lnk+ySPWrTo1Jr2UVFI+svgN+zppz+Err4u/Hu60XRPh5YTwrfzyXCXGsTSyq7xWWnWFrcLcG7njRmi88R26AeZLIsfX6Z8N/tafsr/sseAPEXxd/ZJ+GF/4b8e65L/ZXgvX/E2rxa9e6ZaK7/b9TigFjbWkN4F8q3tpVR3iZpXjcMgY/ljo/iz/AISi8+yfETVbhdLSQ3LxR5YvJgIRFHxEjsgC7iAqqvfAU8/4ubwvca40fhkSx6cjYj81xJIFzycgKD+QpxoydT2dT8NvQqc1yc8Gux+qn/BJL4o/F7Rf20fEn7T0Wr3DT+E/B3jLX/EHiC/meWRWm0a8ignuJ5GLSTS6jNbCPcWZ5mXgnkep2/g39mz/AIK6eO28ZeCdSl+F3x81m2utR8QeHU01rrQPEV7bwS3F1faK9tIJbO7uhGZZrCWIxNM7GCQAiIflh4R/aE8ReBdD1/wt4UI0/SNb099KnsYMhJbadlM0krE5lm2rtR5N2zcQgVflryj4deO9W+GvjnSvHvh9yl9o13FeWzekkLh13YPTjkVpWwtSXPOGjtoc0KsI8sZao7f4o/Dfxx8F/HE/g7xXZ31hdQxxyCHU7OazlaGZNyM1tdKGCkMcHBU9VJHJm+HfhP4d61o97L4p1eXTLzJWEhFMEY2lt0uT5jqT8u2Ncj73PAPVz/tV/FHUPho/wh8R38esaJZyiXShqVtDfSWCAOrW1pNOkktvbyq+WiidUDgMAGyT84LqVsL8XHkloVbd5TNnj+6TgcevFH1evOm4/C+6sbQr0oT5nqux9D/AL4mTfs0ftR+E/io88VwPBmt2ups1sfOiuY7SQSmJShwyXCDy+ww/zY5x9e6n/wAFBPEHiHxbJ4M+PVtYfEvwRdwbNJvfEtlBq+ueHYLyPen2LUpwbqf+zmcotpczSWsgiKiOMsHT8/vFfiLwH4r0r7XaaVFo2qB2f/RN4t2jH3UaJtwVufldWxxhlyd1eZQmz+zyLcK3mceWVI2jHUMuMnI6EEY9+29Okqsb1Fbp/wAMc1e0Hyxat5fket+P7HRLPX59T8P6rYatZzyzRxy21mtmSqscM1myAQlwQVC5AHAOQRWHq2g6L5tlYeDLx7uW+gRbhZFEarKzZKAk42ggcnoRnNaHg3WPhamlT6X410uVncArd20j/aFPPKKx8ogcZRl+bHDqeaybfUdF8Oa5KsCw6xbRsyxPKrojqRwxQFWB9s8H1rC9RaJPT01/r5G7jC121Z/gbnh74VeILr4jWnw68TXUWgXcxKwzXm/ydxBMe14g+RI3COuVJI5xzXtHxB/Zj8QaZpGq+KNM8Xab4j1TS1NzqFjG1zFfJChKvOou44/PWPA3eWzsFy2Nqkjxfx3f+ANUsItS8Ll7K/iYCS3+cwsGy26HduaLY3BRmIIIKkcit+P426jrt3pdv42QajZaWS8MF0POjDbThMDa/lMcAoHwBkjk1w1f"+
 "rk3GtTdkt1Zf1r6nV7LCxvTfyfQ6TwX8WbXVfD8Pgf4oG61nSZJZpFWKNRcaU/BE9lMXyQ3Jlt2CxMBnIfDp+sv7Fn7bmu/ADU9MGs+OtJ1DwjptzFKZZLmSK9+zRF8wfYZGV2yuVEXMWXLEkc1+HfirxJpH/CQ3mo+A4206yvwzC1VmPkLL9+3Dty6L90E9VxnnNchqMmmSCOTTleM7cOjHdggDkHA4PPHauHNeEsPjoclWNl200/y+R8/iMJG7Sex7P4+8St4b+P2ueKPAaSeFm0/Wru+0qK2ZZWsis7S2saSIxU+WNqh1LDgEZFeYa9rV94svH1nxDI0uqXc81xeXs7s8lw8pDEuDn5gdxyPvZ9RXQ/Dzx3pfgq8TULnSrW+lRiwNzEk6n5SAvlyApjnup5we1dV8RvFPww8c6b/a+jacND1kEvJHaqRaTKzH5dnSORBzuTEbDjapGT7qlOnVVP2bsla/9dD0aWFp+yupq/Y5ay8I+G9ZsGi0DWRJqEasfs08JhWXH8MUm5gWxyAwXOPXAry1i2cHtWze6tc39nBa3Sxn7MNqMqKr7cABSVxuAxxnnk81jHA56130KM4X5nf+vkcterCVuVDKUY70lKBngVuc4lFFL0oAVevPSkOO1JRQAUUUpx2oAMHGaSiigB+QBjrTKKXHGaAADPAoAzwKORxQCR0oASl6HikpRnPFACU75R702lII60ABx2oGO9JSnHagA68UlFKRjigBzNngU3GOKSigBwGR702ilAzwKAHK2ODSZ5yOKbRQAUvJNAJHSl3HGKAEOc80E5oOO1JQAvTpRkjpR70lAH//0f4ACMdaSl4B9aAAfagBQdvSnY/u0zgdKMDsaaYD/wCLijIAyKjopDuTE8cdKjyAOKbRTuDY8HBx2pevFR0UXESN0xSbqZSgZ4oTsA/O2nsxAqHBzigknrQmA7PPFKEHSmYOM0lFwHD7ppBj0ozxtpdv92hALu9KVuOPWmEEdaShMB+OOvFKQRzUdFFwH5x3pvQ80lFFwHcDpScUlFFwFxmnBsUnX60gGeKEwHEn71MopSMHFIBKKKKAClA5xSUvJ5oAAcdKSnZGMYptACgZ4FKcAYFBYkYo6DHrQADb3pApPSgDnBoIwcUABGOtJSkY60DGeaAAknrSUU4L68UANpQSOlHANJQA7aQM0Yzk02l5U0AJRTs85NHT71ADaeOnHWmUuCBmgAAyfSjBzignNJQAUo46UBc9KSgApcnGKAOcGkoAUAnpQcdqSigBykA80FdtNpc5oAUDOTS7zRuPfpTKAP/S/gAAJ6UAE9KSigBQCelOVcimUUAKRjrSU9AD1plABRRRQA4KSOKbRRQAUoGeBSqMnFNoAeNp60hORwMUhOaSgAoopzDBwKAG0p4PFJRQAUUUUAFFFFADsDGc0gGeBTlUGmUAKRjikoooAKcCVptSsBtzQAzHGabT8/JTck0AHbFPJG3GaZSUAKBnpRjikooAKKKKAFGc8UlFFAC479qMcZoycYpKAHBSRkUhGOKSpQgxQBFRRRQAUUUUAFFFFABRTlGTim0AKAT0pSpFAYigsTQA2l7YpKKAFIxxSUo5NJQAUU5Rk4p7KAOKAIqKKKAFGO9L16Cm0UALjjNJS5Oc0E5oA//Z";
 document.getElementById("logo-img").src=BANNER_B64;
+(function(){
+  var vh=document.getElementById("app-version-home");
+  if(vh)vh.textContent=APP_VERSION;
+  var vs=document.getElementById("app-version-settings");
+  if(vs)vs.innerHTML="COMPOST LOGGER &middot; "+APP_VERSION;
+  updateScanButtonVisibility();
+})();
+function updateScanButtonVisibility(){
+  // Photo-scan feature cancelled — keep the button permanently hidden.
+  var btn=document.getElementById("scan-photos-btn");
+  if(btn)btn.style.display="none";
+}
 load();
 renderHome();
 showView("home");
@@ -4323,5 +5629,10 @@ window.addEventListener("resize",function(){
 </script>
 
 <div id="toast-container"></div>
+<div id="import-menu" class="hidden" style="position:fixed;z-index:9999;background:#0a0a0a;border:1px solid #222;border-radius:4px;min-width:170px;box-shadow:0 6px 24px rgba(0,0,0,0.7)">
+  <button onclick="closeImportMenu();downloadCSVTemplate()" class="import-menu-item">DOWNLOAD TEMPLATE</button>
+  <button onclick="closeImportMenu();document.getElementById('csv-import-input').click()" class="import-menu-item">IMPORT CSV</button>
+  <button onclick="closeImportMenu();document.getElementById('xlsx-import-input').click()" class="import-menu-item">IMPORT EXCEL</button>
+</div>
 </body>
 </html>

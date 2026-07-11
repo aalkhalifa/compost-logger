@@ -737,7 +737,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.78";
+var BUILD_VER="v3.78a";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -5573,7 +5573,13 @@ if("Notification" in window && Notification.permission==="default"){
 }
 
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js").catch(function(){});
+  // Register the repo-root sw.js from EITHER the production root (/<repo>/) or the
+  // beta subfolder (/<repo>/beta/). Take this page's directory, then strip a trailing
+  // "beta/" so both locations resolve to the SAME root sw.js. Its default scope is that
+  // root dir, which covers /beta/ too. No hardcoded repo path, so promotion
+  // (cp beta/index.html -> root index.html) stays a plain copy with no edits.
+  var swDir=location.pathname.replace(/[^/]*$/,"").replace(/beta\/$/,"");
+  navigator.serviceWorker.register(swDir+"sw.js").catch(function(){});
 }
 
 var BANNER_B64="data:image/jpeg;base64,"+

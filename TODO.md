@@ -2,14 +2,14 @@
 
 > One source of truth for what's next.
 > Updated: July 11 2026
-> Current version: v3.78 (beta) / v3.77q (production)
+> Current version: v3.78a (beta) / v3.77q (production)
 
 ---
 
-## 🔴 NOW — Active beta work (v3.78)
+## 🔴 NOW — Active beta work (v3.78a)
 
 - [ ] **Rename "EXPORT ALL PILES" button to "Download My Data"** (export now complete as of v3.77q)
-- [ ] **Fix beta service worker path** — `register("sw.js")` 404s on `/beta/`; use an absolute path so beta gets offline support too (prod is fine)
+- [x] **Fix beta service worker path** (v3.78a) — registration now derives the repo root from `location.pathname` and registers the root `sw.js`; works from `/` and `/beta/`, no hardcoded path, promotion stays a plain copy
 
 ---
 

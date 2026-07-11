@@ -16,13 +16,37 @@
 
 ## 🟡 NEXT — After bugs are fixed
 
-- [ ] **PocketBase migration (major)**
-  - Set up PocketBase on DigitalOcean server
-  - Replace Google Drive sync with PocketBase API calls
-  - Build email/password auth (no Google OAuth = no scary popup)
-  - Add opt-in analytics consent checkbox at signup
-  - Migration path: detect localStorage on first login, offer one-tap import
-  - Offline queue: write to localStorage first, sync to PocketBase in background
+- [ ] **PocketBase migration (major)** — SCOPED July 11 2026, awaiting build approval.
+  Decisions locked: **blob-per-user** data model, **import-then-remove** Drive cutover,
+  **existing DigitalOcean box + subdomain** hosting. Phase 1 = drop-in replacement for
+  Drive that reuses the current merge logic. Approvable change groups:
+  - **A. Server/infra (outside repo):** PocketBase binary on the existing DO box behind
+    a TLS subdomain; `users` (built-in) + one `vaults` collection (`user` relation,
+    `data` JSON = full ca_v5 shape, `updated` autodate, `analyticsOptIn` bool); CORS
+    allows the GitHub Pages origin.
+  - **B. Auth:** remove `gsi/client` script + `CLIENT_ID`; add a single configurable
+    `PB_BASE_URL` constant (all PB calls read from it); add `pbLogin/pbSignup/
+    pbLogout/pbRestoreAuth` via raw `fetch` (no PB JS SDK — respects single-file +
+    Safari/no-optional-chaining rules); store `pb_auth` in localStorage.
+  - **C. Storage/sync:** extract the duplicated merge into `mergeCloudData(remote)`;
+    add `pbLoad()` + `pbSaveNow()` (PULL-merge-PUSH, same shape as driveSaveNow, with
+    `updated`-based optimistic concurrency); repoint `save()` from driveSaveNow.
+  - **D. Migration path:** on first PB login detect local `ca_v5` (and optionally an
+    existing Drive file) → one-tap import that pushes to the vault.
+  - **E. Analytics consent:** opt-in checkbox on signup → `analyticsOptIn` (wiring
+    only; analytics pipeline stays backlog).
+  - **F. UI:** swap DATA-card CONNECT/DISCONNECT/SYNC for login/signup/logout + email +
+    status; `updateDriveUI` -> `updatePbUI`.
+  - **G. Drive removal:** keep a one-time "import from Drive" during beta, then delete
+    all Drive/GSI code once migrated.
+  - **H. Release:** bump BUILD_VER (v3.79 line) + sw.js cache key; ship to /beta/ first,
+    beta-test, then promote. Offline-first `save()` (localStorage first) is unchanged.
+  - **Deploy prerequisite (NOT a build blocker):** no domain purchased yet. Build
+    against the configurable `PB_BASE_URL` constant using a placeholder/IP for now.
+    Acquiring a domain (rootsofarabia.com or alternative) + TLS subdomain is required
+    before beta deploy, but not before writing/testing the code.
+  - **Out of scope (stays backlog):** relational per-pile records, instructor/share
+    tokens, actual analytics pipeline, Capacitor, custom domain.
 
 - [x] **Promote beta to production** — done July 11 2026 (v3.78b, tag v3.78b)
 

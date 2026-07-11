@@ -213,8 +213,21 @@ piles, `recipes`, `volumeUnit`, `containerUnit`, `deletedPileIds`) plus separate
 - Drive API is a hack for what should be a proper backend
 - PocketBase: single binary, runs on existing DigitalOcean server, no extra cost,
   clean email/password auth, no scary popups, full data ownership
-**Status:** Decision made, migration not yet started.
-**Migration path for existing users:** On first login, detect localStorage data, offer one-tap import.
+**Status:** Scoped July 11 2026 (approvable change list in TODO.md), build not yet started.
+**Locked design decisions (July 11 2026):**
+- **Data model:** blob-per-user — one `vaults` record holds the full `ca_v5` JSON;
+  reuses the existing pile/entry/site/recipe/tombstone merge logic (extracted once into
+  `mergeCloudData(remote)`). Relational per-pile records deferred until the share view needs them.
+- **Drive cutover:** import-then-remove — keep a one-time "import from Drive" during the
+  beta, then delete all Drive/GSI code once users are migrated.
+- **Hosting:** PocketBase on the existing DigitalOcean box behind a TLS subdomain.
+- **Base URL:** a single configurable `PB_BASE_URL` constant in the app; build/test against
+  a placeholder or IP. **No domain purchased yet** — acquiring one (rootsofarabia.com or
+  alternative) is a *deploy* prerequisite, not a build blocker.
+- **Auth transport:** raw `fetch` against PB's REST API (no PB JS SDK) to respect the
+  single-file + Safari/no-optional-chaining constraints.
+**Migration path for existing users:** On first PB login, detect localStorage data (and
+optionally an existing Drive file), offer one-tap import.
 
 ### Hosting plan
 - Keep GitHub Pages for now

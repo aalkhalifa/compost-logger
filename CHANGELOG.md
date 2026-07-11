@@ -7,10 +7,11 @@ This project uses date-stamped `v3.XX` releases with letter sub-revisions
 (e.g. `v3.77q`). Beta builds ship from `/beta/`; production is promoted by copying
 `beta/index.html` to the repo-root `index.html`. `sw.js` is shared by both.
 
-## [3.78] - 2026-07-11 [beta]
+## [3.78] - 2026-07-11
 
-Active beta line opened after v3.77q was promoted to production. Sub-revisions below
-are newest first: v3.78b, v3.78a, v3.78 (open).
+Promoted to production on 2026-07-11 (git tag `v3.78b`; production went v3.77q to
+v3.78b) — `cp beta/index.html` to root `index.html`, a plain copy. Sub-revisions below
+are newest first: v3.78b, v3.78a, v3.78.
 
 ### Added
 - **LICENSE** — Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa /

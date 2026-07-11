@@ -24,15 +24,15 @@
 
 ## Current Version
 
-**Live beta:** v3.78b (as of July 11 2026) — renamed "EXPORT ALL PILES" label to "Download My Data"
-**Production:** v3.77q (promoted from beta on July 11 2026, tag v3.77q)
+**Live beta:** v3.78b (as of July 11 2026) — clean; identical to production after the v3.78b promotion
+**Production:** v3.78b (promoted from beta on July 11 2026, tag v3.78b)
 
 ### Deployment structure
 ```
 compost-logger/
-├── index.html          ← production (v3.77q, stable)
+├── index.html          ← production (v3.78b, stable)
 ├── beta/
-│   └── index.html      ← active development (v3.78b)
+│   └── index.html      ← active development (v3.78b — clean, next line not yet opened)
 ├── sw.js               ← service worker (shared)
 ├── manifest.json
 ├── LICENSE             ← proprietary, all rights reserved
@@ -74,6 +74,16 @@ When beta is stable: copy `beta/index.html` → root `index.html`, commit with v
 ---
 
 ## Session Log
+
+### July 11 2026 (Claude Code) — later session
+
+Promoted **v3.78b to production** (`cp beta/index.html -> root index.html`, annotated
+tag `v3.78b`, pushed to `origin/main`). Production went v3.77q -> v3.78b, so the real
+SW-registration fix (v3.78a) and the "Download My Data" label (v3.78b) are now live on
+prod. `sw.js` cache key was already `compost-logger-v3.78b` (shared file), so no SW edit
+was needed. Promotion stayed a plain copy — the `app-version-home` / `app-version-settings`
+divs are populated at runtime from `BUILD_VER` (no `/beta/` in the prod path = no " BETA"
+suffix), so no per-file version edits. Next: scope the PocketBase migration (not started).
 
 ### July 11 2026 (Claude Code)
 

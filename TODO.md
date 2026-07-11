@@ -2,14 +2,15 @@
 
 > One source of truth for what's next.
 > Updated: July 11 2026
-> Current version: v3.78b (beta) / v3.77q (production)
+> Current version: v3.78b (beta = production; promoted July 11 2026)
 
 ---
 
 ## 🔴 NOW — Active beta work (v3.78b)
 
-- Beta v3.78b is clean — all today's items shipped (see DONE). Next up is the
-  PocketBase migration below; nothing else queued for the v3.78 line yet.
+- Beta v3.78b is clean and **now promoted to production** (tag v3.78b). Beta == prod.
+  Next major work is the PocketBase migration below; nothing else queued for the
+  v3.78 line yet.
 
 ---
 
@@ -23,10 +24,7 @@
   - Migration path: detect localStorage on first login, offer one-tap import
   - Offline queue: write to localStorage first, sync to PocketBase in background
 
-- [ ] **Promote beta to production**
-  - Fix bugs above first
-  - Copy beta/index.html → root index.html
-  - Commit with version tag
+- [x] **Promote beta to production** — done July 11 2026 (v3.78b, tag v3.78b)
 
 - [ ] **Custom domain**
   - Decide: rootsofarabia.com or product-specific
@@ -71,6 +69,7 @@
 
 ## ✅ DONE — Reference
 
+- **v3.78b promoted to production** (July 11 2026, tag v3.78b); prod went v3.77q -> v3.78b
 - **v3.78b — rename** "EXPORT ALL PILES" label to "Download My Data" (July 11 2026)
 - **v3.78a — fix beta service worker path** — registration derives the repo root from
   `location.pathname` and registers the root `sw.js`; works from `/` and `/beta/`, no

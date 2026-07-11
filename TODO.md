@@ -30,10 +30,15 @@
       TLS/CORS-lockdown wait on the domain. Testing-before-domain path documented (local
       `http://localhost` dev, or a temporary `nip.io`/Cloudflare-Tunnel HTTPS host).
       Group B needs one value out of this: the reachable base URL -> `PB_BASE_URL`.
-  - **B. Auth:** remove `gsi/client` script + `CLIENT_ID`; add a single configurable
-    `PB_BASE_URL` constant (all PB calls read from it); add `pbLogin/pbSignup/
-    pbLogout/pbRestoreAuth` via raw `fetch` (no PB JS SDK — respects single-file +
-    Safari/no-optional-chaining rules); store `pb_auth` in localStorage.
+  - **B. Auth:** add a single configurable `PB_BASE_URL` constant (all PB calls read from
+    it); add `pbLogin/pbSignup/pbLogout/pbRestoreAuth` (+ `pbApi` helper) via raw `fetch`
+    (no PB JS SDK — respects single-file + Safari/no-optional-chaining rules); store
+    `pb_auth` in localStorage.
+    - **[DONE in beta, July 11 2026 — v3.79 line]** Additive: functions added, callable,
+      `pbRestoreAuth()` wired into load (no-op with no stored session). GSI/`CLIENT_ID`
+      removal was moved to **Group G** (import-then-remove needs Drive alive during beta).
+      Not yet surfaced in UI (Group F) or wired to sync (Group C). Untested end-to-end
+      until PB is reachable (`PB_BASE_URL` still the `localhost:8090` placeholder).
   - **C. Storage/sync:** extract the duplicated merge into `mergeCloudData(remote)`;
     add `pbLoad()` + `pbSaveNow()` (PULL-merge-PUSH, same shape as driveSaveNow, with
     `updated`-based optimistic concurrency); repoint `save()` from driveSaveNow.

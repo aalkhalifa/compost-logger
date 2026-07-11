@@ -7,6 +7,22 @@ This project uses date-stamped `v3.XX` releases with letter sub-revisions
 (e.g. `v3.77q`). Beta builds ship from `/beta/`; production is promoted by copying
 `beta/index.html` to the repo-root `index.html`. `sw.js` is shared by both.
 
+## [3.79] - 2026-07-11 [beta]
+
+PocketBase migration line (replacing Google Drive sync). Ships from `/beta/`; additive
+during the transition (Drive/GSI keeps working until Group G's import-then-remove).
+
+### Added
+- **Group A (infra, no app code).** `deploy/pocketbase/` — deployment runbook, importable
+  blob-per-user `vaults` collection schema, systemd unit, and Caddy TLS template.
+- **Group B (auth layer).** PocketBase email/password auth in `beta/index.html`: a single
+  configurable `PB_BASE_URL` constant and `pbApi` / `pbSignup` / `pbLogin` / `pbLogout` /
+  `pbRestoreAuth` (raw `fetch`, no PB JS SDK). Session persists in the `pb_auth`
+  localStorage key; `pbRestoreAuth()` validates it on load via `auth-refresh` and makes
+  zero network calls when no session is stored. No Google popup. Storage/sync (Group C)
+  and login UI (Group F) not yet wired, so the auth functions are callable but not yet
+  surfaced. Drive/GSI untouched (removed in Group G).
+
 ## [3.78] - 2026-07-11
 
 Promoted to production on 2026-07-11 (git tag `v3.78b`; production went v3.77q to

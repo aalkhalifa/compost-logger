@@ -734,10 +734,18 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 
 <script>
 var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercontent.com";
+// PocketBase backend base URL (migration). Single source of truth for every PB call.
+// No domain purchased yet - set this to your reachable PocketBase URL:
+//   local dev:        http://localhost:8090
+//   temp HTTPS host:  https://pb.SERVER-IP.nip.io   (or a Cloudflare Tunnel URL)
+//   production:       https://pb.YOUR-DOMAIN        (after domain + TLS)
+// GitHub Pages is HTTPS, so a deployed build needs an HTTPS PB URL (mixed-content rule);
+// http://localhost is exempt and works for local testing. See deploy/pocketbase/README.md.
+var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.78b";
+var BUILD_VER="v3.79";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -798,6 +806,10 @@ var containerUnit={name:"5 gal",size:5};
 var tempChart=null;
 var driveToken=null,driveFileId=null,driveStatus="disconnected";
 var tokenClient=null,timerInterval=null;
+// PocketBase auth state (migration). Coexists with Drive during the beta transition
+// (Drive/GSI is removed in Group G). Auth persists in the "pb_auth" localStorage key.
+var pbToken=null,pbUserId=null,pbEmail=null,pbStatus="signedout";
+var pbAnalyticsOptIn=false;  // captured at signup; applied to the vault in Group E
 var newMaterials={},editMaterials={};
 var editingEntryId=null;
 var expandedCats=new Set();
@@ -4707,6 +4719,114 @@ function initGoogleAuth(){
   },300);
 }
 
+// ============================================================
+// POCKETBASE AUTH (migration, Group B)
+// Email/password against PocketBase - no Google popup. Additive: coexists with the
+// Drive path through the beta; Drive/GSI is removed later (Group G). Auth token +
+// user id + email persist in the "pb_auth" localStorage key. Storage/sync
+// (pbLoad/pbSaveNow) is Group C; the login/signup UI is Group F. All UI refreshes go
+// through updatePbUI(), which does not exist yet - hence the typeof guards below.
+// ============================================================
+
+// Thin fetch wrapper. opts: {method, json, auth, headers}. Returns the parsed body,
+// or throws an Error with .status and .body on a non-2xx response.
+function pbApi(path,opts){
+  opts=opts||{};
+  var headers=opts.headers||{};
+  if(opts.json!==undefined)headers["Content-Type"]="application/json";
+  if(opts.auth&&pbToken)headers["Authorization"]=pbToken;
+  var cfg={method:opts.method||"GET",headers:headers};
+  if(opts.json!==undefined)cfg.body=JSON.stringify(opts.json);
+  return fetch(PB_BASE_URL+path,cfg).then(function(r){
+    return r.text().then(function(t){
+      var body=null;
+      if(t){try{body=JSON.parse(t);}catch(e){body=t;}}
+      if(!r.ok){
+        var msg="PocketBase error "+r.status;
+        if(body&&body.message)msg=body.message;
+        var err=new Error(msg);
+        err.status=r.status;err.body=body;
+        throw err;
+      }
+      return body;
+    });
+  });
+}
+
+function pbSaveAuth(){
+  try{
+    if(pbToken&&pbUserId)localStorage.setItem("pb_auth",JSON.stringify({token:pbToken,userId:pbUserId,email:pbEmail}));
+    else localStorage.removeItem("pb_auth");
+  }catch(e){}
+}
+
+function pbSetAuth(token,record){
+  pbToken=token||null;
+  pbUserId=(record&&record.id)?record.id:null;
+  pbEmail=(record&&record.email)?record.email:pbEmail;
+  pbStatus=pbToken?"signedin":"signedout";
+  pbSaveAuth();
+  if(typeof updatePbUI==="function")updatePbUI();
+}
+
+// Create an account, then immediately authenticate to obtain a token. analyticsOptIn
+// is stashed for the vault write in Group E (needs the vault, which does not exist yet).
+function pbSignup(email,password,analyticsOptIn){
+  pbAnalyticsOptIn=!!analyticsOptIn;
+  pbStatus="connecting";
+  if(typeof updatePbUI==="function")updatePbUI();
+  return pbApi("/api/collections/users/records",{
+    method:"POST",
+    json:{email:email,password:password,passwordConfirm:password}
+  }).then(function(){
+    return pbLogin(email,password);
+  }).catch(function(err){
+    pbStatus="signedout";
+    if(typeof updatePbUI==="function")updatePbUI();
+    throw err;
+  });
+}
+
+function pbLogin(email,password){
+  pbStatus="connecting";
+  if(typeof updatePbUI==="function")updatePbUI();
+  return pbApi("/api/collections/users/auth-with-password",{
+    method:"POST",
+    json:{identity:email,password:password}
+  }).then(function(res){
+    pbSetAuth(res&&res.token,res&&res.record);
+    return res;
+  }).catch(function(err){
+    pbStatus="signedout";
+    if(typeof updatePbUI==="function")updatePbUI();
+    throw err;
+  });
+}
+
+function pbLogout(){
+  pbToken=null;pbUserId=null;pbEmail=null;pbStatus="signedout";
+  try{localStorage.removeItem("pb_auth");}catch(e){}
+  if(typeof updatePbUI==="function")updatePbUI();
+}
+
+// Restore a persisted session on load and validate it via auth-refresh. Returns true
+// if a stored token was found (validation happens asynchronously). No stored token =>
+// no network call, so existing (non-migrated) users hit the backend zero times.
+function pbRestoreAuth(){
+  var stored=null;
+  try{stored=JSON.parse(localStorage.getItem("pb_auth")||"null");}catch(e){stored=null;}
+  if(!stored||!stored.token){pbStatus="signedout";return false;}
+  pbToken=stored.token;pbUserId=stored.userId||null;pbEmail=stored.email||null;
+  pbStatus="connecting";
+  if(typeof updatePbUI==="function")updatePbUI();
+  pbApi("/api/collections/users/auth-refresh",{method:"POST",auth:true}).then(function(res){
+    pbSetAuth(res&&res.token,res&&res.record);
+  }).catch(function(){
+    pbLogout();
+  });
+  return true;
+}
+
 window.addEventListener("online",function(){
   if(driveStatus==="offline"&&driveToken){
     if(pendingSave)driveSaveNow();
@@ -5620,6 +5740,7 @@ load();
 renderHome();
 showView("home");
 initGoogleAuth();
+pbRestoreAuth();  // migration: restore a persisted PocketBase session (no-op if none)
 
 var __resizeTimer=null;
 window.addEventListener("resize",function(){

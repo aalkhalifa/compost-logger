@@ -1,29 +1,16 @@
 # Compost Logger — Task List
 
 > One source of truth for what's next.
-> Updated: July 5 2026
-> Current version: v3.77p (beta)
+> Updated: July 11 2026
+> Current version: v3.77q (beta)
 
 ---
 
 ## 🔴 NOW — Fix these before promoting to production
 
-- [ ] **BUG: Location/siteId resets on Drive sync**
-  - Site assignments disappear when Drive syncs
-  - siteId absent from Drive JSON, sites stored separately
-  - Fix: include sites in sync payload, preserve siteId on load
-  - Also: add sites to JSON export
-  - Use Claude Code to find exact storage location in code
-
-- [ ] **BUG: classifyCycleTime extrapolation (500-900h READY)**
-  - Last entry interval extends to "now" — inflated READY times
-  - Fix: cap at 8h, freeze bar if last entry > 8h ago
-  - Use Claude Code to find and fix classifyCycleTime()
-
-- [ ] **BUG: JSON export incomplete**
-  - Missing: sites array, possibly recipe templates, some settings
-  - Fix: audit export function, add all missing data
-  - Rename button to "Download My Data" after fix
+- [ ] **Beta-test v3.77q, then promote to production**
+  - Verify the three fixes below on the live beta (see test plan), THEN copy beta → root
+  - [ ] Still TODO: rename "EXPORT ALL PILES" button to "Download My Data"
 
 ---
 
@@ -85,6 +72,14 @@
 
 ## ✅ DONE — Reference
 
+- **v3.77q — siteId Drive sync fix:** Drive payload = full ca_v5 shape; connect + sync
+  merge sites by id (local wins), preserve pile.siteId, no wipe when Drive lacks sites,
+  migrateSites() after merge
+- **v3.77q — 8h extrapolation cap:** cappedNow() applied in computeIndependentStages,
+  classifyCycleTime, buildChronologicalSegments, computeSatisfiedStages
+- **v3.77q — complete JSON export:** full ca_v5 shape + separate-key settings + exportVersion
+- **v3.77q — sw.js repaired:** was corrupted with curly quotes (would not parse); fixed to
+  ASCII, cache key bumped to compost-logger-v3.77q
 - Multi-probe (CORE 1-4)
 - Sites system with GPS
 - Ambient temperature (manual + Open-Meteo API + backfill)

@@ -16,21 +16,21 @@
 **Stack:** Single HTML file, vanilla JS, Chart.js, chartjs-plugin-annotation, jsPDF, SheetJS
 **Storage:** localStorage primary (`ca_v5` key), Google Drive as cloud backup (to be replaced with PocketBase)
 **Auth:** Google Identity Services OAuth (testing mode, max 100 users, 7-day token expiry)
-**Service worker:** sw.js — standard offline cache, cache key = `compost-logger-v3.77p` (bump on every deploy)
+**Service worker:** sw.js — network-first, falls back to cache offline. Cache key = `compost-logger-v3.77q` (bump on every deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
 
 ---
 
 ## Current Version
 
-**Live beta:** v3.77p (as of July 2026)
-**Production:** Behind beta — needs to be promoted
+**Live beta:** v3.77q (as of July 2026)
+**Production:** Behind beta — needs to be promoted (do NOT promote v3.77q until beta-tested)
 
 ### Deployment structure
 ```
 compost-logger/
 ├── index.html          ← production (stable, promote beta here when ready)
 ├── beta/
-│   └── index.html      ← active development (v3.77p)
+│   └── index.html      ← active development (v3.77q)
 ├── sw.js               ← service worker (shared)
 ├── manifest.json
 ├── PROJECT.md          ← this file
@@ -84,8 +84,9 @@ Everything is one `index.html`. No build system. Surgical edits only — never r
 - `renderCompletedCycleBar(entries, turnEntry, idx)` — renders history bar (BLUE/ORANGE/RED)
 
 ### localStorage key
-`ca_v5` — stores `{piles, recipes, ingHist, tempUnit}`
-Sites may be stored in a separate key — confirm in code.
+`ca_v5` — stores `{piles, sites, recipes, ingHist, tempUnit, volumeUnit, containerUnit, deletedPileIds}`.
+`sites` live INSIDE `ca_v5` (each pile carries `siteId`), NOT a separate key. A few
+settings live in their own keys: `ca_displayBasis`, `ca_showPFRP`, `ca_pilesSort`, `ca_entriesSort`.
 
 ### Temperature bands (Compost Academy model)
 - Stage 1: 131-149°F, 72h continuous required
@@ -105,7 +106,10 @@ Sites may be stored in a separate key — confirm in code.
 - On connect: merges local + Drive data
 - Local-only piles: uploaded to Drive
 - Conflict: local pile renamed "[Name] — Local Copy"
-- **Known issue:** siteId not included in Drive JSON — site assignments lost on sync
+- **Fixed in v3.77q:** Drive payload now carries `sites` (full `ca_v5` shape); connect/sync
+  paths merge sites by id (local wins on conflict), preserve `pile.siteId` when a Drive
+  copy lacks it, never wipe local sites when a Drive file has no `sites` array, and run
+  `migrateSites()` after merge.
 
 ### Critical DO-NOTs (Safari/iOS compatibility)
 - No backticks inside JS string literals
@@ -122,26 +126,31 @@ A build was rolled back for violating this (v3.77n incident).
 
 ## Known Bugs
 
-### BUG 1 — ACTIVE: Location/siteId resets on Drive sync (PRIORITY)
+### BUG 1 — FIXED (v3.77q): Location/siteId resets on Drive sync (PRIORITY)
 **Symptom:** Pile shows correct site assignment when opened from localStorage.
 As soon as Drive syncs, site assignment disappears ("Uncategorized").
-**Root cause confirmed:** JSON export shows no `siteId` on any pile and no `sites` array.
-Drive JSON is missing site data entirely. On sync, Drive copy overwrites local, losing siteId.
-**Likely cause:** Sites stored in separate localStorage key not included in Drive sync payload.
-**Fix:** Include sites in Drive sync. Ensure siteId preserved on load. Add sites to JSON export.
-**Status:** Diagnosed, not yet fixed. Needs Claude Code to read actual code.
+**Root cause:** The connect path (`initDriveStorage`) never read/merged `d.sites`, and both
+merge paths could replace a pile with an older Drive copy that had no `siteId`.
+**Fix (v3.77q):** Drive payload now = full `ca_v5` shape. Connect + sync paths merge sites by
+id (local wins), preserve `pile.siteId` when the Drive copy lacks it, skip the site merge when
+`driveData.sites` is undefined (no wipe), and run `migrateSites()` after merge.
+**Status:** Fixed in beta v3.77q. Awaiting beta test before promotion.
 
-### BUG 2 — ACTIVE: classifyCycleTime extrapolation
+### BUG 2 — FIXED (v3.77q): active-cycle extrapolation
 **Symptom:** Active cycle bars show 500-900h READY time.
-**Root cause:** Last entry interval extends to "now". If last entry was days ago at a hot temp,
-all elapsed time counts as READY.
-**Fix agreed:** Cap extrapolation at 8h. If last entry > 8h ago, freeze bar at last known state.
-**Status:** Diagnosed and fix agreed, not yet built.
+**Root cause:** Last entry interval extended to "now". If last entry was days ago at a hot temp,
+all elapsed time counted as READY.
+**Fix (v3.77q):** Added `cappedNow(lastTs)` helper (caps at lastEntry + 8h). Applied in
+`computeIndependentStages`, `classifyCycleTime`, `buildChronologicalSegments`, and
+`computeSatisfiedStages`. `calcSmartTimer` inherits the cap.
+**Status:** Fixed in beta v3.77q. Awaiting beta test before promotion.
 
-### BUG 3 — ACTIVE: JSON export incomplete
-**Symptom:** Export JSON missing sites array, possibly missing saved recipe templates and some settings.
-**Fix:** Audit export function, add all missing data.
-**Status:** Confirmed from exported file, not yet fixed.
+### BUG 3 — FIXED (v3.77q): JSON export incomplete
+**Symptom:** Export JSON missing sites array, recipe templates, and some settings.
+**Fix (v3.77q):** `exportAllJSON` now emits the full `ca_v5` shape (incl. `sites`, `siteId` on
+piles, `recipes`, `volumeUnit`, `containerUnit`, `deletedPileIds`) plus separate-key settings
+(`displayBasis`, `showPFRP`, `pilesSortMode`, `entriesSortMode`) and `exportVersion`/`exportedAt`.
+**Status:** Fixed in beta v3.77q. Awaiting beta test before promotion.
 
 ---
 

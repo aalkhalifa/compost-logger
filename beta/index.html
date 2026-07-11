@@ -737,7 +737,7 @@ var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercont
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.77p";
+var BUILD_VER="v3.77q";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -1097,7 +1097,7 @@ function computeSatisfiedStages(cycleEntries){
       var inBand=getBand(displayTemp(rel[i]))&&getBand(displayTemp(rel[i])).label===band.label;
       if(inBand){
         if(streakStart===null)streakStart=new Date(rel[i].ts);
-        var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):new Date();
+        var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):cappedNow(rel[i].ts);
         var len=(streakEnd-streakStart)/3600000;
         if(len>maxStreak)maxStreak=len;
       } else {streakStart=null;}
@@ -1107,10 +1107,16 @@ function computeSatisfiedStages(cycleEntries){
   return satisfied;
 }
 
+// Shared cap for active-cycle extrapolation. The last entry's interval extends to
+// now so times accumulate in real time, but only up to 8h past that entry. If the
+// last reading is older than 8h, the bar freezes at lastEntry + 8h instead of
+// running away to hundreds of hours when logging is overdue.
+function cappedNow(lastTs){var cap=new Date(new Date(lastTs).getTime()+8*3600000);var now=new Date();return now<cap?now:cap;}
+
 // INDEPENDENT STAGES: tracks each stage's streak based on its own min temp floor.
-// Option B: for the active cycle's last entry, the interval does NOT extend to now.
-// This prevents wildly inflated MESO/THERMO/READY times when no entries are logged
-// for days or weeks. A stale-data badge is shown separately instead.
+// Active cycle: the last entry extrapolates to now, capped at 8h past that entry
+// (see cappedNow). Completed cycles stop at their turn entry. The cap prevents
+// wildly inflated MESO/THERMO/READY times when no entries are logged for days.
 function computeIndependentStages(cycleEntries){
   var result={};
   var rel=cycleEntries.filter(function(e){return complianceTemp(e)!=null;});
@@ -1131,9 +1137,9 @@ function computeIndependentStages(cycleEntries){
       if(aboveFloor){
         everReached=true;
         if(streakStart===null)streakStart=new Date(rel[i].ts);
-        // Active cycle: extrapolate last entry to now so time accumulates in real time.
+        // Active cycle: extrapolate last entry to now, capped at 8h past that entry.
         // Completed cycles stop at their last entry (the turn).
-        var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?new Date(rel[i].ts):new Date());
+        var streakEnd=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?new Date(rel[i].ts):cappedNow(rel[i].ts));
         streakElapsed=(streakEnd-streakStart)/3600000;
         if(streakElapsed>maxStreak)maxStreak=streakElapsed;
         if(streakElapsed>=band.hours)satisfied=true;
@@ -1165,9 +1171,9 @@ function computeIndependentStages(cycleEntries){
 //     "Stage 2": {...}
 //   }
 // }
-// Option B: active cycle last entry does NOT extend to now.
-// This means MESO/THERMO/READY times reflect only what has been measured.
-// A separate stale-data badge tells the user when logging is overdue.
+// Active cycle: the last entry extrapolates to now, capped at 8h past that entry
+// (see cappedNow), so MESO/THERMO/READY times keep advancing without running away
+// when logging is overdue. Completed cycles stop at the turn entry.
 
 function classifyCycleTime(cycleEntries){
   var rel=cycleEntries.filter(function(e){return displayTemp(e)!=null;});
@@ -1194,8 +1200,8 @@ function classifyCycleTime(cycleEntries){
         // Completed cycle: stop at the turn entry — frozen with actual data
         endTs=startTs;
       } else {
-        // Active cycle: extrapolate to now so bars and countdown reflect real time
-        endTs=now;
+        // Active cycle: extrapolate to now, capped at 8h past the last entry
+        endTs=cappedNow(sorted[i].ts);
       }
       var intervalMs=endTs-startTs;
       if(intervalMs<=0)continue;
@@ -1268,7 +1274,7 @@ function buildChronologicalSegments(cycleEntries,isCompleted){
   var segments=[];
   for(var i=0;i<rel.length;i++){
     var startTs=new Date(rel[i].ts);
-    var endTs=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?startTs:now);
+    var endTs=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?startTs:cappedNow(rel[i].ts));
     var intervalMs=endTs-startTs;
     if(intervalMs<=0)continue;
     var temp=rel[i].core1;
@@ -4459,6 +4465,7 @@ async function initDriveStorage(){
         var driveIngHist=d.ingHist||DEF_HIST;
         var driveUnit=d.tempUnit||tempUnit;
         var driveDeletedIds=d.deletedPileIds||[];
+        var driveSites=d.sites; // may be undefined on old Drive files; do NOT default to []
         // Combine tombstones from both sides
         var allDeletedIds=driveDeletedIds.slice();
         deletedPileIds.forEach(function(id){if(allDeletedIds.indexOf(id)<0)allDeletedIds.push(id);});
@@ -4486,6 +4493,8 @@ async function initDriveStorage(){
             var merged=JSON.parse(JSON.stringify(base));
             merged.entries=mergedEntries;
             merged.lastModified=Date.now();
+            // If the base (e.g. an old Drive copy) has no siteId but local does, keep local's.
+            if((merged.siteId===undefined||merged.siteId===null)&&lm.siteId!=null)merged.siteId=lm.siteId;
             mergedPiles.push(merged);
           } else {
             mergedPiles.push(dp);
@@ -4510,12 +4519,22 @@ async function initDriveStorage(){
         });
         piles=mergedPiles;recipes=mergedRecipes;ingHist=driveIngHist;tempUnit=driveUnit;
         deletedPileIds=allDeletedIds;
+        // Merge Drive sites into local by id (local wins on conflict). Only when the
+        // Drive file actually carries a sites array; an old file without one must not
+        // wipe local sites. Then re-link any newly merged piles to their sites.
+        if(Array.isArray(driveSites)){
+          var siteMap0={};
+          driveSites.forEach(function(st){siteMap0[st.id]=st;});
+          sites.forEach(function(st){siteMap0[st.id]=st;});
+          sites=Object.values(siteMap0);
+        }
+        migrateSites();
         localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
         await driveUpload(driveFileId,{piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
       }
     }
   } else {
-    var f=await driveCreateFile("compost_data.json",folderId,{piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit});
+    var f=await driveCreateFile("compost_data.json",folderId,{piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
     driveFileId=f.id;
   }
 }
@@ -4564,6 +4583,8 @@ async function driveSaveNow(){
             var mp=JSON.parse(JSON.stringify(base));
             mp.entries=mergedEntries;
             mp.lastModified=Date.now();
+            // If the base (e.g. an old Drive copy) has no siteId but local does, keep local's.
+            if((mp.siteId===undefined||mp.siteId===null)&&lm.siteId!=null)mp.siteId=lm.siteId;
             merged2.push(mp);
           } else {
             merged2.push(dp);
@@ -4575,12 +4596,14 @@ async function driveSaveNow(){
         });
         piles=merged2;
         deletedPileIds=allDeleted2;
-        // Merge sites (union by id; Drive copy wins on conflict). Then re-run the
+        // Merge sites (union by id; local copy wins on conflict). Drive is applied
+        // first, then local overwrites, so a local rename is never lost. An old Drive
+        // file without a sites array leaves local sites untouched. Then re-run the
         // inline-site migration so any newly-merged piles get linked.
         var driveSites2=d.sites||[];
         var siteMap2={};
-        sites.forEach(function(st){siteMap2[st.id]=st;});
         driveSites2.forEach(function(st){siteMap2[st.id]=st;});
+        sites.forEach(function(st){siteMap2[st.id]=st;});
         sites=Object.values(siteMap2);
         migrateSites();
         localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
@@ -5386,7 +5409,22 @@ function setShowPFRP(on){
   if(dash&&!dash.classList.contains("hidden"))renderDashboard();
 }
 function exportAllJSON(){
-  var data={piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,exportedAt:new Date().toISOString()};
+  var data={
+    piles:piles,
+    sites:sites,
+    recipes:recipes,
+    ingHist:ingHist,
+    tempUnit:tempUnit,
+    volumeUnit:volumeUnit,
+    containerUnit:containerUnit,
+    deletedPileIds:deletedPileIds,
+    displayBasis:displayBasis,
+    showPFRP:showPFRP,
+    pilesSortMode:pilesSortMode,
+    entriesSortMode:entriesSortMode,
+    exportVersion:"v3.77q",
+    exportedAt:new Date().toISOString()
+  };
   var a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
   a.download="compost-logger-backup-"+localDateStr(new Date())+".json";

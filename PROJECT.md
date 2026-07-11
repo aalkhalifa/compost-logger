@@ -36,6 +36,7 @@ compost-logger/
 ├── sw.js               ← service worker (shared)
 ├── manifest.json
 ├── LICENSE             ← proprietary, all rights reserved
+├── CHANGELOG.md        ← Keep a Changelog format, grouped by version
 ├── PROJECT.md          ← this file
 └── TODO.md
 ```

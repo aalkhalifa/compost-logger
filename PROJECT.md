@@ -17,14 +17,14 @@
 **Storage:** localStorage primary (`ca_v5` key), Google Drive as cloud backup (to be replaced with PocketBase)
 **Auth:** Google Identity Services OAuth (testing mode, max 100 users, 7-day token expiry)
 **License:** Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia. See LICENSE.
-**Service worker:** sw.js — network-first, falls back to cache offline. Cache key = `compost-logger-v3.78a` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
+**Service worker:** sw.js — network-first, falls back to cache offline. Cache key = `compost-logger-v3.78b` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
 **SW registration (fixed v3.78a):** registration derives the repo root from `location.pathname` (strip the page filename, then a trailing `beta/`) and registers that root `sw.js`. Works from both `/<repo>/` and `/<repo>/beta/`, no hardcoded repo path. The root sw.js's default scope covers `/beta/`. Because the path is computed at runtime, promoting via `cp beta/index.html -> root index.html` stays a plain copy with no edits.
 
 ---
 
 ## Current Version
 
-**Live beta:** v3.78a (as of July 11 2026) — fixed SW registration path (works from / and /beta/)
+**Live beta:** v3.78b (as of July 11 2026) — renamed "EXPORT ALL PILES" label to "Download My Data"
 **Production:** v3.77q (promoted from beta on July 11 2026, tag v3.77q)
 
 ### Deployment structure
@@ -32,7 +32,7 @@
 compost-logger/
 ├── index.html          ← production (v3.77q, stable)
 ├── beta/
-│   └── index.html      ← active development (v3.78a)
+│   └── index.html      ← active development (v3.78b)
 ├── sw.js               ← service worker (shared)
 ├── manifest.json
 ├── LICENSE             ← proprietary, all rights reserved

@@ -8,8 +8,8 @@
 
 ## 🔴 NOW — Active beta work (v3.78b)
 
-- [x] **Rename "EXPORT ALL PILES" label to "Download My Data"** (v3.78b; export completed in v3.77q)
-- [x] **Fix beta service worker path** (v3.78a) — registration now derives the repo root from `location.pathname` and registers the root `sw.js`; works from `/` and `/beta/`, no hardcoded path, promotion stays a plain copy
+- Beta v3.78b is clean — all today's items shipped (see DONE). Next up is the
+  PocketBase migration below; nothing else queued for the v3.78 line yet.
 
 ---
 
@@ -71,6 +71,10 @@
 
 ## ✅ DONE — Reference
 
+- **v3.78b — rename** "EXPORT ALL PILES" label to "Download My Data" (July 11 2026)
+- **v3.78a — fix beta service worker path** — registration derives the repo root from
+  `location.pathname` and registers the root `sw.js`; works from `/` and `/beta/`, no
+  hardcoded path, promotion stays a plain copy (July 11 2026)
 - **v3.77q promoted to production** (July 11 2026, tag v3.77q); v3.78 beta opened
 - **LICENSE added** — proprietary / all rights reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia
 - **v3.77q — siteId Drive sync fix:** Drive payload = full ca_v5 shape; connect + sync

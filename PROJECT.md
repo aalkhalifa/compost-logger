@@ -72,6 +72,40 @@ When beta is stable: copy `beta/index.html` → root `index.html`, commit with v
 
 ---
 
+## Session Log
+
+### July 11 2026 (Claude Code)
+
+Shipped v3.77q (all three priority bugs) then promoted it to production, opened the
+v3.78 beta line, and added a license. All changes pushed to `origin/main`; live on
+GitHub Pages. Remote was switched from HTTPS to SSH (`git@github.com:...`) so pushes
+work without credential prompts.
+
+- **v3.77q** — the three NOW bugs, all fixed and beta-tested:
+  - BUG 1 (siteId lost on Drive sync): Drive payload now = full `ca_v5` shape; connect
+    (`initDriveStorage`) + sync (`driveSaveNow`) merge `sites` by id (local wins),
+    preserve `pile.siteId` when a Drive copy lacks it, never wipe local sites when
+    `driveData.sites` is undefined, and run `migrateSites()` after merge.
+  - BUG 2 (500-900h READY): added `cappedNow(lastTs)` (caps active-cycle extrapolation
+    at lastEntry + 8h); applied in `computeIndependentStages`, `classifyCycleTime`,
+    `buildChronologicalSegments`, and `computeSatisfiedStages`. Rewrote misleading
+    "Option B" comments. `calcSmartTimer` inherits the cap.
+  - BUG 3 (incomplete export): `exportAllJSON` now emits full `ca_v5` shape + separate-key
+    settings (`displayBasis`, `showPFRP`, `pilesSortMode`, `entriesSortMode`) +
+    `exportVersion`/`exportedAt`.
+  - Repaired `sw.js`: it was corrupted with smart/curly quotes and did not parse at all
+    (SW never ran anywhere); fixed to ASCII, kept network-first.
+- **Promoted v3.77q to production** — `cp beta/index.html -> root index.html`; annotated
+  tag `v3.77q`. Production went v3.75 -> v3.77q.
+- **Added LICENSE** — Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa /
+  Roots of Arabia.
+- **v3.78 / v3.78a / v3.78b beta** — opened v3.78; v3.78a fixed the SW registration path
+  (derives repo root from `location.pathname`, registers root `sw.js`, works from `/`
+  and `/beta/`, promotion stays a plain copy); v3.78b renamed the "EXPORT ALL PILES"
+  label to "Download My Data".
+
+---
+
 ## Architecture Notes
 
 ### Single-file constraint

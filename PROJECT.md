@@ -85,7 +85,33 @@ SW-registration fix (v3.78a) and the "Download My Data" label (v3.78b) are now l
 prod. `sw.js` cache key was already `compost-logger-v3.78b` (shared file), so no SW edit
 was needed. Promotion stayed a plain copy — the `app-version-home` / `app-version-settings`
 divs are populated at runtime from `BUILD_VER` (no `/beta/` in the prod path = no " BETA"
-suffix), so no per-file version edits. Next: scope the PocketBase migration (not started).
+suffix), so no per-file version edits.
+
+Then **scoped the PocketBase migration into an approvable change list** (groups A-H in
+TODO.md), locked the design decisions (blob-per-user, import-then-remove, existing DO box
++ TLS subdomain, single configurable `PB_BASE_URL`, raw-fetch auth), and — after explicit
+approval — began building. Commits: `Scope PocketBase migration` -> `Group A` -> `Group B`.
+
+- **Group A (infra, no app code)** — added `deploy/pocketbase/`: deployment runbook
+  (`README.md`), importable blob-per-user `vaults` collection schema
+  (`vaults.collection.json`), systemd unit (`pocketbase.service`), Caddy TLS template
+  (`Caddyfile`). Server execution is on Abdulla (I can't reach the DO box); TLS + CORS
+  lockdown wait on a domain. No domain purchased yet, so the runbook documents a
+  test-before-domain path (local `http://localhost` dev, or a temp `nip.io` /
+  Cloudflare-Tunnel HTTPS host). Handoff to Group B is one value: the reachable base URL.
+- **Group B (auth, beta only)** — opened the **v3.79** beta line. Added the PocketBase
+  email/password auth layer to `beta/index.html`, purely additively (Drive/GSI untouched;
+  their removal is Group G's import-then-remove): `PB_BASE_URL` constant (placeholder
+  `http://localhost:8090`), `pbApi` helper + `pbSignup`/`pbLogin`/`pbLogout`/
+  `pbRestoreAuth` via raw `fetch` (no PB JS SDK), session persisted in the `pb_auth`
+  localStorage key. `pbRestoreAuth()` runs on load and makes zero network calls when no
+  session is stored, so existing users are unaffected. No Google popup. Verified: one
+  inline script block, `node --check` passes, no `?.`/`??`/backticks/non-ASCII introduced.
+  Not yet surfaced in UI (Group F) or wired to sync (Group C); untestable end-to-end
+  until PB is reachable.
+
+**Next:** stand up Group A on the DO box to unblock testing, then build **Group C**
+(storage/sync: extract `mergeCloudData(remote)`, add `pbLoad`/`pbSaveNow`). Groups C-H remain.
 
 ### July 11 2026 (Claude Code)
 

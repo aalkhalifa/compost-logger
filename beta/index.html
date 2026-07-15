@@ -745,7 +745,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79f";
+var BUILD_VER="v3.79g";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -3229,7 +3229,23 @@ function renderChart(sorted){
   tempChart=new Chart(document.getElementById("temp-chart"),{
     type:"line",
     data:{datasets:tempDatasets.concat([
-      {label:"Moisture %",data:sorted.filter(function(e){return e.moisture!=null;}).map(function(e){return {x:xVal(e),y:e.moisture};}),borderColor:"#1e88e5",
+      {label:"Moisture %",data:(function(){
+        // Moisture dries out GRADUALLY (smooth curve) but rises INSTANTLY when watered.
+        // For any rise, insert a "hold" point at the previous level just before the new
+        // reading so the line holds flat then steps vertically up; drops stay curved.
+        var mp=[],prevX=null,prevY=null;
+        sorted.forEach(function(e){
+          if(e.moisture==null)return;
+          var x=xVal(e),y=e.moisture;
+          if(prevY!=null&&y>prevY){
+            var holdX=prevX!=null?x-Math.min(0.03,(x-prevX)*0.5):x;
+            mp.push({x:holdX,y:prevY});
+          }
+          mp.push({x:x,y:y});
+          prevX=x;prevY=y;
+        });
+        return mp;
+      })(),borderColor:"#1e88e5",
         backgroundColor:"rgba(30,136,229,0.12)",fill:true,tension:0.3,
         pointRadius:3,pointBackgroundColor:"#1e88e5",spanGaps:true,yAxisID:"y2",order:10}
     ].concat(showDelta&&sorted.some(function(e){return e.ambient!=null&&avgCore(e)!=null;})?[
@@ -3692,27 +3708,37 @@ function validateEntry(){
   var top=fromInput(topEl.value);
   var bottom=fromInput(botEl.value);
   var core4=c4El?fromInput(c4El.value):null;
-  if(core==null&&top==null&&bottom==null&&core4==null){
+  // Turn/water/moisture-only entries are allowed. Keep an "at least one field present"
+  // guard, but count moisture (unless skipped), a turn, or a watering as a valid field —
+  // don't demand a temperature.
+  var hasTemp=core!=null||top!=null||bottom!=null||core4!=null;
+  var mSkipEl=document.getElementById("f-moisture-skip");
+  var hasMoisture=!(mSkipEl&&mSkipEl.checked);
+  var fTurnedEl=document.getElementById("f-turned");
+  var fWateredEl=document.getElementById("f-watered");
+  var hasTurned=fTurnedEl&&fTurnedEl.checked;
+  var hasWatered=fWateredEl&&fWateredEl.checked;
+  if(!hasTemp&&!hasMoisture&&!hasTurned&&!hasWatered){
     coreEl.classList.add("error");
-    errors.push("Enter at least one temperature");
-  } else {
-    var maxF=250,minF=0;
-    if(core!=null&&(core<minF||core>maxF)){
-      coreEl.classList.add("error");
-      errors.push("Core temperature out of range (0-250"+unitLbl()+")");
-    }
-    if(top!=null&&(top<minF||top>maxF)){
-      topEl.classList.add("error");
-      errors.push("Top temperature out of range (0-250"+unitLbl()+")");
-    }
-    if(bottom!=null&&(bottom<minF||bottom>maxF)){
-      botEl.classList.add("error");
-      errors.push("Bottom temperature out of range (0-250"+unitLbl()+")");
-    }
-    if(core4!=null&&(core4<minF||core4>maxF)){
-      if(c4El)c4El.classList.add("error");
-      errors.push("Core 4 temperature out of range (0-250"+unitLbl()+")");
-    }
+    errors.push("Enter a temperature, moisture, turn, or watering");
+  }
+  // Range-check any temperatures that ARE present (all optional now).
+  var maxF=250,minF=0;
+  if(core!=null&&(core<minF||core>maxF)){
+    coreEl.classList.add("error");
+    errors.push("Core temperature out of range (0-250"+unitLbl()+")");
+  }
+  if(top!=null&&(top<minF||top>maxF)){
+    topEl.classList.add("error");
+    errors.push("Top temperature out of range (0-250"+unitLbl()+")");
+  }
+  if(bottom!=null&&(bottom<minF||bottom>maxF)){
+    botEl.classList.add("error");
+    errors.push("Bottom temperature out of range (0-250"+unitLbl()+")");
+  }
+  if(core4!=null&&(core4<minF||core4>maxF)){
+    if(c4El)c4El.classList.add("error");
+    errors.push("Core 4 temperature out of range (0-250"+unitLbl()+")");
   }
   var errEl=document.getElementById("entry-error");
   if(errors.length){

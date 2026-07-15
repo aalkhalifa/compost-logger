@@ -745,7 +745,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79b";
+var BUILD_VER="v3.79c";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -1068,15 +1068,24 @@ function buildCycles(entries){
   // at-or-above each band's floor. Higher temps clear the bar faster, so any one of
   // these completing means the cycle did its pathogen-reduction work.
   // A turn before any stage is satisfied stays part of the same cycle (e.g. a mixing turn).
-  function anyStageSatisfied(cycleEntries){
+  //
+  // The turn reading that is CLOSING the cycle must not let its OWN temperature decide
+  // closure: a turn logged while the governing temp sits at/just below the band floor
+  // (e.g. core dips during the turn, or a turn-only entry with no probes) must still
+  // close a cycle whose EARLIER readings already satisfied a stage. So the closing turn
+  // extends an already-running hot streak (by its timestamp) but never breaks one and
+  // never starts one on its own; every other reading gates the streak by its temperature.
+  function anyStageSatisfied(cycleEntries,closingTurn){
     var rel=cycleEntries.filter(function(e){return complianceTemp(e)!=null;});
     var stageBands=BANDS.filter(function(b){return b.hours>0;});
     for(var bi=0;bi<stageBands.length;bi++){
       var band=stageBands[bi];
       var streakStart=null;
       for(var i=0;i<rel.length;i++){
-        // "at or above this band's floor" — being hotter still counts toward the floor
-        var atFloor=complianceTemp(rel[i])>=band.min;
+        var isClosingTurn=closingTurn&&rel[i]===closingTurn;
+        // "at or above this band's floor" — being hotter still counts toward the floor.
+        // The closing turn only extends an active streak; it can't gate it.
+        var atFloor=isClosingTurn?(streakStart!==null):(complianceTemp(rel[i])>=band.min);
         if(atFloor){
           if(streakStart===null)streakStart=new Date(rel[i].ts);
           var end=i<rel.length-1?new Date(rel[i+1].ts):new Date(rel[i].ts);
@@ -1087,10 +1096,11 @@ function buildCycles(entries){
     return false;
   }
   var cycles=[];var current=[];
+  var firstId=sorted.length?sorted[0].id:null;   // the initial BUILD entry never closes a cycle
   for(var i=0;i<sorted.length;i++){
     var e=sorted[i];
     current.push(e);
-    if(e.turned&&anyStageSatisfied(current)){
+    if(e.turned&&e.id!==firstId&&anyStageSatisfied(current,e)){
       cycles.push({entries:current.slice(),turnEntry:e});current=[];
     }
   }

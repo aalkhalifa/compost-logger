@@ -745,7 +745,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79d";
+var BUILD_VER="v3.79e";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -1561,6 +1561,21 @@ function calcSmartTimer(entries){
   }
   var cycles=buildCycles(sorted);
   var currentCycle=cycles[cycles.length-1];
+  // If the most recent cycle is already CLOSED by a turn (the turn is the last entry),
+  // the pile has just been turned and no reading has started the next cycle yet — it is
+  // BETWEEN cycles, not awaiting a turn. Return a distinct state so cards stop nagging
+  // TURN NOW / CLEAR TO TURN for a cycle the user already turned.
+  if(currentCycle.turnEntry){
+    var doneStages=computeSatisfiedStages(currentCycle.entries);
+    return{
+      band:null,betweenCycles:true,turnNow:false,complete:false,stageDone:false,
+      deadline:null,remaining:null,elapsed:0,progress:0,
+      completedCycleNum:cycles.length,
+      completedStage:getHighestSatisfied(doneStages),
+      turnedAt:currentCycle.turnEntry.ts,
+      satisfiedStages:{},independentStages:{},thermophilicStart:null
+    };
+  }
   var status=cycleHighestStageStatus(currentCycle.entries);
   var independentStages=status.independentStages;
   var satisfiedStages={};
@@ -2042,6 +2057,8 @@ function renderPileCard(p){
     var timerHtml="";
     if(isTurnNow){
       timerHtml='<div class="mono" style="margin-top:0.5rem;color:#ff0000;font-size:0.85rem">&#9888; TURN NOW</div>';
+    } else if(t&&t.betweenCycles){
+      timerHtml='<div class="mono" style="margin-top:0.5rem;color:#4ade80;font-size:0.78rem">&#10003; TURNED · CYCLE '+(t.completedCycleNum||"")+' COMPLETE</div>';
     } else if(t&&(t.complete||t.stageDone)){
       timerHtml='<div class="mono" style="margin-top:0.5rem;color:#4ade80;font-size:0.78rem">&#10003; CLEAR TO TURN</div>';
     } else if(t&&!t.turnNow){
@@ -2065,7 +2082,11 @@ function renderPileCard(p){
       if(cyclesPC&&cyclesPC.length){
         var curCyc=cyclesPC[cyclesPC.length-1];
         var displayIdx=cyclesPC.length;
-        var barHTML=renderActiveCycleBar(curCyc,displayIdx,p,sorted,lat);
+        // A closed last cycle means the pile was just turned (between cycles): show the
+        // COMPLETED bar (green ✓ COMPLETE) rather than the active "TURN PILE" bar.
+        var barHTML=curCyc.turnEntry
+          ?renderCompletedCycleBar(curCyc.entries,curCyc.turnEntry,displayIdx)
+          :renderActiveCycleBar(curCyc,displayIdx,p,sorted,lat);
         // If stale, desaturate by wrapping in a grey-tint overlay.
         if(isStale){
           stageBadges='<div style="margin-top:0.3rem;position:relative;opacity:0.45;filter:grayscale(0.85)">'+barHTML+'</div>'+
@@ -2785,6 +2806,31 @@ function renderStatusCard(pile,sorted,lat,band){
     card.style.borderLeftColor="#222";
     heroEl.innerHTML='<div style="padding:1.25rem;text-align:center"><div class="mono" style="color:#555;font-size:0.85rem">NO DATA YET - LOG YOUR FIRST ENTRY</div></div>';
     detailEl.innerHTML="";return;
+  }
+  if(t&&t.betweenCycles){
+    // Pile was just turned; the last cycle is complete and no new reading has started the
+    // next cycle. Show a completion state instead of nagging TURN NOW.
+    card.style.borderLeftColor="#4ade80";
+    var doneStageLbl=t.completedStage?(" · "+t.completedStage+" SATISFIED"):"";
+    var nextCycleNum=(t.completedCycleNum||0)+1;
+    var cl=document.getElementById("status-cycle-label");
+    if(cl)cl.textContent="CYCLE "+(t.completedCycleNum||"")+" COMPLETE";
+    heroEl.innerHTML='<div style="padding:1rem 1.25rem;border-top:1px solid #111;border-bottom:1px solid #111">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+        '<div>'+
+          '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">AVG TEMP</div>'+
+          '<div class="mono" style="font-size:2.8rem;color:#4ade80;font-weight:bold;line-height:1">'+dispStr(avgCore(lat))+'</div>'+
+          '<div style="font-size:0.8rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">CYCLE '+(t.completedCycleNum||"")+' COMPLETE'+doneStageLbl+'</div>'+
+        '</div>'+
+        '<div style="text-align:right">'+
+          '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">ACTION</div>'+
+          '<div class="mono" style="font-size:1.4rem;color:#4ade80;font-weight:bold;line-height:1">✓ TURNED</div>'+
+          '<div style="font-size:0.72rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">LOG A READING TO START CYCLE '+nextCycleNum+'</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+    detailEl.innerHTML='<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>';
+    return;
   }
   if(!band){
     band={label:"COOLING",color:"#60a5fa",hours:0,min:0,max:130};

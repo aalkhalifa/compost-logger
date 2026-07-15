@@ -721,6 +721,13 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       </div>
     </div>
 
+    <!-- Saved Recipes -->
+    <div class="card" id="s-recipes-card">
+      <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.4rem">SAVED RECIPES</div>
+      <div style="font-size:0.65rem;color:#555;margin-bottom:0.4rem">Load a saved recipe into a new pile.</div>
+      <div id="s-recipes-list"></div>
+    </div>
+
     <!-- Data Management -->
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">DATA</div>
@@ -759,7 +766,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79k";
+var BUILD_VER="v3.79l";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -2513,6 +2520,29 @@ function loadRecipe(id){
   var r=recipes.find(function(x){return x.id===id;});if(!r)return;
   newMaterials=JSON.parse(JSON.stringify(r.materials));
   CATS.forEach(function(cat){renderCatItems(cat,"new");});updateTotalVol();
+}
+// Settings > Saved Recipes: same list as New Pile, but routes into the New Pile view
+// with the recipe applied. Settings only — no home button.
+function renderSettingsRecipes(){
+  var card=document.getElementById("s-recipes-card");
+  var list=document.getElementById("s-recipes-list");
+  if(!card||!list)return;
+  if(!recipes.length){
+    list.innerHTML='<div class="mono" style="font-size:0.7rem;color:#555;padding:0.5rem 0">No saved recipes yet. Save one from a pile\'s recipe panel.</div>';
+    return;
+  }
+  list.innerHTML=recipes.map(function(r){
+    return '<div onclick="loadRecipeFromSettings(\''+r.id+'\')" style="display:flex;justify-content:space-between;align-items:center;padding:0.65rem 0.4rem;border-top:1px solid #111;cursor:pointer;border-radius:2px" onmouseover="this.style.background=\'#111\'" onmouseout="this.style.background=\'transparent\'">'+
+      '<div><div style="font-size:0.85rem;color:#ccc">'+r.name+'</div>'+
+      '<div class="mono" style="font-size:0.62rem;color:#555">'+totVol(r.materials).toFixed(1)+' gal &middot; '+r.saved+'</div></div>'+
+      '<span class="mono" style="font-size:0.62rem;color:#555;flex-shrink:0">LOAD ›</span>'+
+    '</div>';
+  }).join("");
+}
+function loadRecipeFromSettings(id){
+  closeSettings();
+  showView("setup");   // renders a fresh New Pile form (+ recipes panel)
+  loadRecipe(id);      // overlay the chosen recipe's materials onto that form
 }
 
 function validatePileSetup(){
@@ -5670,6 +5700,7 @@ function openSettings(){
   if(sConn)sConn.style.display=(driveStatus==="disconnected"||driveStatus==="error"||driveStatus==="offline")?"inline-block":"none";
   var sDisc=document.getElementById("s-btn-disconnect");if(sDisc)sDisc.style.display=driveToken?"inline-block":"none";
   // Update version string in about section
+  renderSettingsRecipes();
   document.getElementById("settings-overlay").classList.remove("hidden");
 }
 function closeSettings(){

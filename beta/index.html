@@ -766,7 +766,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79m";
+var BUILD_VER="v3.79n";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -3151,10 +3151,11 @@ function renderChart(sorted){
     var wrapW=wrapEl?wrapEl.clientWidth:600;if(wrapW<100)wrapW=600;
     if(chartExpand==="expand"&&daySpan>7){
       // EXPANDED: fixed px-per-day so congested logs stay readable (horizontally
-      // scrollable). 24 days across in landscape, 12 in portrait.
-      var targetDays=isLandscapeW?24:12;
+      // scrollable). Landscape uses more days-across and a lower per-day floor so it is
+      // ~28% narrower than before (was too long); portrait stays denser.
+      var targetDays=isLandscapeW?32:12;
       var chartArea=Math.max(320,(window.innerWidth||700)-80);
-      var pxPerDay=Math.max(50,Math.floor(chartArea/targetDays));
+      var pxPerDay=Math.max(isLandscapeW?36:50,Math.floor(chartArea/targetDays));
       var totalW=Math.max(500,daySpan*pxPerDay);
       chartInner.style.width=totalW+"px";
       chartCanvas.style.width=totalW+"px";
@@ -3162,13 +3163,16 @@ function renderChart(sorted){
       chartCanvas.height=isLandscapeW?380:280;
       if(hintEl)hintEl.style.display=daySpan>targetDays?"block":"none";
     } else {
-      // FIT (default): the pile's ENTIRE lifespan fits the viewport width, no horizontal
-      // scroll. Landscape is naturally wider (wider wrap), giving more room.
-      chartInner.style.width=wrapW+"px";
-      chartCanvas.style.width=wrapW+"px";
-      chartCanvas.width=wrapW;
+      // FIT: landscape fits the whole lifespan into the viewport width. Portrait would be
+      // too cramped at viewport width, so it uses a LANDSCAPE-equivalent width (the device's
+      // larger dimension) — wider than the phone, so it scrolls to the latest period by
+      // default with earlier history reachable by scrolling back.
+      var fitW=isLandscapeW?wrapW:Math.max(wrapW,Math.max(window.innerWidth,window.innerHeight)-40);
+      chartInner.style.width=fitW+"px";
+      chartCanvas.style.width=fitW+"px";
+      chartCanvas.width=fitW;
       chartCanvas.height=isLandscapeW?380:280;
-      if(hintEl)hintEl.style.display="none";
+      if(hintEl)hintEl.style.display=(fitW>wrapW+4)?"block":"none";
     }
   }
   var cMin=tempUnit==="C"?Math.round(toC(80)):80;
@@ -3218,19 +3222,19 @@ function renderChart(sorted){
   if(sorted.length&&!sorted[0].turned){
     turnAnnotations["built"]={type:"line",xMin:xVal(sorted[0]),xMax:xVal(sorted[0]),borderColor:"#4ade80",borderWidth:2,borderDash:[4,3]};
   }
-  // Blue "watered" lines (distinct from orange turn lines), labeled with amount/qty.
-  // Stagger adjacent labels vertically (cycling y-offsets) so close-together waterings
-  // don't overprint into "WATER: WATER: Light".
+  // Blue "watered" lines. Two-line stacked label ("WATER" over the amount word) so each
+  // is narrow, cycled across 4 vertical levels so close-together waterings never overprint.
   var waterSeq=0;
   sorted.forEach(function(e,i){
     if(e.watered){
       var wx=xVal(e);
       var amt=e.waterAmount?e.waterAmount.charAt(0).toUpperCase()+e.waterAmount.slice(1):"";
-      var qty=(e.waterQty!=null)?(amt?" "+e.waterQty:e.waterQty):"";
-      var lbl="WATER"+(amt||qty?": "+amt+qty:"");
-      var yAdj=(waterSeq%3)*15;waterSeq++;
+      var qty=(e.waterQty!=null)?(amt?" "+e.waterQty:String(e.waterQty)):"";
+      var line2=(amt+qty).trim();
+      var wlbl=line2?["WATER",line2]:["WATER"];
+      var yAdj=10+(waterSeq%4)*26;waterSeq++;
       turnAnnotations["water"+i]={type:"line",xMin:wx,xMax:wx,borderColor:"#3b82f6",borderWidth:2,borderDash:[2,2],
-        label:{display:true,content:lbl,position:"start",yAdjust:yAdj,backgroundColor:"rgba(59,130,246,0.15)",color:"#3b82f6",font:{size:8},padding:2}};
+        label:{display:true,content:wlbl,position:"start",yAdjust:yAdj,textAlign:"center",backgroundColor:"rgba(59,130,246,0.15)",color:"#3b82f6",font:{size:8},padding:2}};
     }
   });
   var dayAnnotations={};
@@ -3254,9 +3258,9 @@ function renderChart(sorted){
     if(bandRowsS.length){
       tempDatasets=[
         {label:"Probe max",data:bandRowsS.map(function(e){var v=[e.core1,e.core2,e.core3,e.core4].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.max.apply(null,v))};}),
-          borderColor:"rgba(255,255,255,0.85)",borderWidth:2,backgroundColor:"rgba(255,255,255,0.13)",pointRadius:0,fill:"+1",tension:0.3,yAxisID:"y",order:2},
+          borderColor:"rgba(239,68,68,0.9)",borderWidth:2,backgroundColor:"rgba(239,68,68,0.16)",pointRadius:0,fill:"+1",tension:0.3,yAxisID:"y",order:2},
         {label:"Probe min",data:bandRowsS.map(function(e){var v=[e.core1,e.core2,e.core3,e.core4].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.min.apply(null,v))};}),
-          borderColor:"rgba(255,255,255,0.85)",borderWidth:2,backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,yAxisID:"y",order:3}
+          borderColor:"rgba(239,68,68,0.9)",borderWidth:2,backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,yAxisID:"y",order:3}
       ];
     } else {
       tempDatasets=[
@@ -4560,13 +4564,15 @@ function exportPDF(){
                 ta["turn"+i]={type:"line",xMin:i,xMax:i,borderColor:"#f97316",borderWidth:1.5,label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#c2410c",font:{size:7},padding:1,rotation:90}};
               }
               if(e.watered){
-                // Include the amount word and stagger adjacent labels vertically so close
-                // waterings don't overprint.
+                // Two-line stacked label ("WATER" over the amount word), horizontal (no
+                // rotation), cycled across 4 vertical levels so close waterings don't
+                // overprint — same idea as the on-screen chart.
                 var wamt=e.waterAmount?e.waterAmount.charAt(0).toUpperCase()+e.waterAmount.slice(1):"";
-                var wq=(e.waterQty!=null)?(wamt?" "+e.waterQty:e.waterQty):"";
-                var wlbl="WATER"+(wamt||wq?": "+wamt+wq:"");
-                var wy=(waterSeqPdf%3)*18;waterSeqPdf++;
-                ta["water"+i]={type:"line",xMin:i,xMax:i,borderColor:"#3b82f6",borderWidth:1.2,borderDash:[2,2],label:{display:true,content:wlbl,position:"start",yAdjust:wy,backgroundColor:"rgba(59,130,246,0.15)",color:"#2563eb",font:{size:7},padding:1,rotation:90}};
+                var wq=(e.waterQty!=null)?(wamt?" "+e.waterQty:String(e.waterQty)):"";
+                var wl2=(wamt+wq).trim();
+                var wlbl=wl2?["WATER",wl2]:["WATER"];
+                var wy=6+(waterSeqPdf%4)*15;waterSeqPdf++;
+                ta["water"+i]={type:"line",xMin:i,xMax:i,borderColor:"#3b82f6",borderWidth:1.2,borderDash:[2,2],label:{display:true,content:wlbl,position:"start",yAdjust:wy,textAlign:"center",backgroundColor:"rgba(59,130,246,0.15)",color:"#2563eb",font:{size:7},padding:1}};
               }
             });
             return ta;

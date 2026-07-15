@@ -217,6 +217,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMP + MOISTURE</div>
       <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
         <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
+        <button id="btn-toggle-expand" class="btn-sm" onclick="toggleChartExpand()" style="font-size:0.65rem;color:#555">FIT</button>
         <button id="btn-toggle-shade" class="btn-sm" onclick="toggleShade()" style="font-size:0.65rem;color:#555">SHADE OFF</button>
         <button id="btn-toggle-rate" class="btn-sm" onclick="toggleRate()" style="font-size:0.65rem;color:#555">RATE OFF</button>
         <button id="btn-toggle-ambient" class="btn-sm" onclick="toggleAmbient()" style="font-size:0.65rem;color:#555">AMB OFF</button>
@@ -745,7 +746,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79i";
+var BUILD_VER="v3.79j";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -784,6 +785,9 @@ var entriesSortMode=localStorage.getItem("ca_entriesSort")||"newest";
 var piles=[],sites=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
 var homeCollapsedSites={};
 var activeId=null,tempMode="three",tempUnit="F",shadeProbes=false,showRate=false,__chartEntries=[];
+// Chart width mode: "fit" = whole lifespan in the viewport (default), "expand" = fixed
+// px-per-day (horizontally scrollable) for congested logs. Persisted.
+var chartExpand=localStorage.getItem("ca_chartExpand")||"fit";
 var volumeUnit="gal";
 // DISPLAY BASIS governs the numbers shown across the app (headline temp, stage bars,
 // cycle detection, maturity): "avg" = Compost Academy style (average of probes),
@@ -3072,6 +3076,8 @@ function renderChart(sorted){
   var section=document.getElementById("chart-section");
   if(!sorted.length){section.classList.add("hidden");return;}
   section.classList.remove("hidden");
+  var expBtn=document.getElementById("btn-toggle-expand");
+  if(expBtn){expBtn.textContent=chartExpand==="expand"?"EXPAND":"FIT";expBtn.style.color=chartExpand==="expand"?"#38bdf8":"#555";}
   var monthNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   var lastDate="";
   // (labels array removed — chart now uses time-based x values)
@@ -3097,9 +3103,11 @@ function renderChart(sorted){
     var n=sorted.length;
     var daySpan=Math.ceil(xMaxVal)+1;
     var isLandscapeW=window.innerWidth>window.innerHeight;
-    if(daySpan>7){
-      // Fit a target number of days to the visible width: 12 in landscape, 6 in portrait
-      // (built around the 3-day stage rhythm). Each day's pixel width = chart area / target.
+    var wrapEl=document.getElementById("chart-scroll-wrap");
+    var wrapW=wrapEl?wrapEl.clientWidth:600;if(wrapW<100)wrapW=600;
+    if(chartExpand==="expand"&&daySpan>7){
+      // EXPANDED: fixed px-per-day so congested logs stay readable (horizontally
+      // scrollable). 24 days across in landscape, 12 in portrait.
       var targetDays=isLandscapeW?24:12;
       var chartArea=Math.max(320,(window.innerWidth||700)-80);
       var pxPerDay=Math.max(50,Math.floor(chartArea/targetDays));
@@ -3110,14 +3118,12 @@ function renderChart(sorted){
       chartCanvas.height=isLandscapeW?380:280;
       if(hintEl)hintEl.style.display=daySpan>targetDays?"block":"none";
     } else {
-      var wrap=document.getElementById("chart-scroll-wrap");
-      var w=wrap?wrap.clientWidth:600;
-      if(w<100)w=600;
-      chartInner.style.width=w+"px";
-      chartCanvas.style.width=w+"px";
-      chartCanvas.width=w;
-      var isLandscape2=window.innerWidth>window.innerHeight;
-      chartCanvas.height=isLandscape2?380:280;
+      // FIT (default): the pile's ENTIRE lifespan fits the viewport width, no horizontal
+      // scroll. Landscape is naturally wider (wider wrap), giving more room.
+      chartInner.style.width=wrapW+"px";
+      chartCanvas.style.width=wrapW+"px";
+      chartCanvas.width=wrapW;
+      chartCanvas.height=isLandscapeW?380:280;
       if(hintEl)hintEl.style.display="none";
     }
   }
@@ -3140,6 +3146,17 @@ function renderChart(sorted){
     if(dayNum<1)dayNum=1;
     dayTicks.push({x:tx,label:"Day "+dayNum});
   });
+  // In FIT mode a long lifespan overprints daily "Day N" labels, so thin them to roughly
+  // one label per ~55px of chart width. EXPAND mode keeps every day labeled.
+  var axisTicks=dayTicks;
+  if(chartExpand!=="expand"&&dayTicks.length>1){
+    var wpx2=(function(){var w=document.getElementById("chart-scroll-wrap");var v=w?w.clientWidth:600;return v<100?600:v;})();
+    var maxLabels=Math.max(4,Math.floor(wpx2/55));
+    if(dayTicks.length>maxLabels){
+      var stride=Math.ceil(dayTicks.length/maxLabels);
+      axisTicks=dayTicks.filter(function(_,i){return i%stride===0||i===dayTicks.length-1;});
+    }
+  }
   var turnAnnotations={};
   var firstId=sorted.length?sorted[0].id:null;
   turnDays.forEach(function(idx,i){
@@ -3321,10 +3338,10 @@ function renderChart(sorted){
       },
       scales:{
         x:{type:"linear",min:0,max:xMaxVal,
-          afterBuildTicks:function(axis){axis.ticks=dayTicks.map(function(dt){return{value:dt.x};});return;},
+          afterBuildTicks:function(axis){axis.ticks=axisTicks.map(function(dt){return{value:dt.x};});return;},
           ticks:{color:"#555",font:{size:11},autoSkip:false,
             callback:function(v){
-              for(var i=0;i<dayTicks.length;i++){if(Math.abs(dayTicks[i].x-v)<0.05)return dayTicks[i].label;}
+              for(var i=0;i<axisTicks.length;i++){if(Math.abs(axisTicks[i].x-v)<0.05)return axisTicks[i].label;}
               return "";
             }},
           grid:{display:false}},
@@ -3494,6 +3511,14 @@ function toggleShade(){
 function toggleChart(){
   tempMode=tempMode==="three"?"average":"three";
   document.getElementById("btn-toggle-chart").textContent=tempMode==="three"?"SHOW AVG":"SHOW 3 LINES";
+  var pile=getActivePile();if(!pile)return;
+  renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+}
+function toggleChartExpand(){
+  chartExpand=chartExpand==="expand"?"fit":"expand";
+  localStorage.setItem("ca_chartExpand",chartExpand);
+  var btn=document.getElementById("btn-toggle-expand");
+  if(btn){btn.textContent=chartExpand==="expand"?"EXPAND":"FIT";btn.style.color=chartExpand==="expand"?"#38bdf8":"#555";}
   var pile=getActivePile();if(!pile)return;
   renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
 }

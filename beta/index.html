@@ -745,7 +745,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79e";
+var BUILD_VER="v3.79f";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -3625,6 +3625,7 @@ function renderLogTable(sorted,pile){
   var showC4=sorted.some(function(e){return e.core4!=null;});
   var headers=["DAY","DATE","TIME","AMB"];
   if(showApi)headers.push("AMB API");
+  headers.push("AVG");   // core average, placed right after the ambient columns
   headers.push("C1","C2","C3");
   if(showC4)headers.push("C4");
   headers.push("MOIST","TURN","");
@@ -3639,12 +3640,19 @@ function renderLogTable(sorted,pile){
     var dayNum=Math.floor((entryDayOnly-earliestDay)/86400000)+1;
     var apiCell=showApi?'<td class="mono" style="padding:0.3rem 0.4rem;color:#fbbf24;font-size:0.8rem">'+(en.ambientApi!=null?dispStr(en.ambientApi):"-")+'</td>':"";
     var c4Cell=showC4?'<td class="mono" style="padding:0.3rem 0.4rem;color:#22d3ee;font-size:0.8rem">'+(en.core4!=null?dispStr(en.core4):"-")+'</td>':"";
+    // AVG column = mean of the present probes (avgCore), colored by its band. Placed
+    // after the ambient columns, before the individual cores.
+    var avgV=avgCore(en);
+    var avgB=getBand(avgV);
+    var avgColor=avgB?avgB.color:(avgV!=null?"#60a5fa":"#555");
+    var avgCell='<td class="mono" style="padding:0.3rem 0.4rem;color:'+avgColor+';font-weight:bold;font-size:0.8rem">'+(avgV!=null?dispStr(avgV):"-")+'</td>';
     return '<tr style="border-bottom:1px solid #080808">'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+dayNum+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+en.date+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+(en.time||"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#f59e0b;font-size:0.8rem">'+(en.ambient!=null?dispStr(en.ambient):"-")+'</td>'+
       apiCell+
+      avgCell+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.8rem">'+(en.core1!=null?dispStr(en.core1):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.8rem">'+(en.core2!=null?dispStr(en.core2):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.8rem">'+(en.core3!=null?dispStr(en.core3):"-")+'</td>'+

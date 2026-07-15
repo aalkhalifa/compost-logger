@@ -745,7 +745,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79c";
+var BUILD_VER="v3.79d";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -1130,10 +1130,16 @@ function computeSatisfiedStages(cycleEntries){
 }
 
 // Shared cap for active-cycle extrapolation. The last entry's interval extends to
-// now so times accumulate in real time, but only up to 8h past that entry. If the
-// last reading is older than 8h, the bar freezes at lastEntry + 8h instead of
+// now so times accumulate in real time, but only up to 24h past that entry. If the
+// last reading is older than 24h, the bar freezes at lastEntry + 24h instead of
 // running away to hundreds of hours when logging is overdue.
-function cappedNow(lastTs){var cap=new Date(new Date(lastTs).getTime()+8*3600000);var now=new Date();return now<cap?now:cap;}
+// SIDE EFFECT of the 24h (was 8h) cap: when the last reading is >=131F and logging
+// then stops, the active cycle credits the WHOLE gap (up to 24h) as thermophilic/
+// READY at that temperature — so a stale-but-hot pile now accrues up to 24h of stage
+// progress (3x the old 8h) and can cross a stage threshold purely from this extension.
+// Consumers: computeIndependentStages, classifyCycleTime, buildChronologicalSegments,
+// renderActiveCycleBar (all read the last entry's extrapolated end via this helper).
+function cappedNow(lastTs){var cap=new Date(new Date(lastTs).getTime()+24*3600000);var now=new Date();return now<cap?now:cap;}
 
 // INDEPENDENT STAGES: tracks each stage's streak based on its own min temp floor.
 // Active cycle: the last entry extrapolates to now, capped at 8h past that entry

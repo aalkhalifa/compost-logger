@@ -766,7 +766,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79n";
+var BUILD_VER="v3.79o";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -3153,9 +3153,9 @@ function renderChart(sorted){
       // EXPANDED: fixed px-per-day so congested logs stay readable (horizontally
       // scrollable). Landscape uses more days-across and a lower per-day floor so it is
       // ~28% narrower than before (was too long); portrait stays denser.
-      var targetDays=isLandscapeW?32:12;
+      var targetDays=isLandscapeW?32:17;
       var chartArea=Math.max(320,(window.innerWidth||700)-80);
-      var pxPerDay=Math.max(isLandscapeW?36:50,Math.floor(chartArea/targetDays));
+      var pxPerDay=Math.max(isLandscapeW?36:35,Math.floor(chartArea/targetDays));
       var totalW=Math.max(500,daySpan*pxPerDay);
       chartInner.style.width=totalW+"px";
       chartCanvas.style.width=totalW+"px";
@@ -3222,8 +3222,9 @@ function renderChart(sorted){
   if(sorted.length&&!sorted[0].turned){
     turnAnnotations["built"]={type:"line",xMin:xVal(sorted[0]),xMax:xVal(sorted[0]),borderColor:"#4ade80",borderWidth:2,borderDash:[4,3]};
   }
-  // Blue "watered" lines. Two-line stacked label ("WATER" over the amount word) so each
-  // is narrow, cycled across 4 vertical levels so close-together waterings never overprint.
+  // Blue "watered" lines, labeled VERTICALLY along the line as "W Light/Medium/Heavy"
+  // (compact so vertical text barely takes horizontal room); a 2-level y-stagger keeps
+  // immediate neighbours from touching.
   var waterSeq=0;
   sorted.forEach(function(e,i){
     if(e.watered){
@@ -3231,24 +3232,27 @@ function renderChart(sorted){
       var amt=e.waterAmount?e.waterAmount.charAt(0).toUpperCase()+e.waterAmount.slice(1):"";
       var qty=(e.waterQty!=null)?(amt?" "+e.waterQty:String(e.waterQty)):"";
       var line2=(amt+qty).trim();
-      var wlbl=line2?["WATER",line2]:["WATER"];
-      var yAdj=10+(waterSeq%4)*26;waterSeq++;
+      var wshort=line2?("W "+line2):"W";
+      var yAdj=(waterSeq%2)*46;waterSeq++;
       turnAnnotations["water"+i]={type:"line",xMin:wx,xMax:wx,borderColor:"#3b82f6",borderWidth:2,borderDash:[2,2],
-        label:{display:true,content:wlbl,position:"start",yAdjust:yAdj,textAlign:"center",backgroundColor:"rgba(59,130,246,0.15)",color:"#3b82f6",font:{size:8},padding:2}};
+        label:{display:true,content:wshort,position:"start",rotation:90,yAdjust:yAdj,backgroundColor:"rgba(59,130,246,0.15)",color:"#3b82f6",font:{size:8},padding:2}};
     }
   });
+  // A dotted vertical gridline at EVERY calendar day across the pile's lifespan (not just
+  // days that happen to have a reading), so spacing is even with no missing lines. Step by
+  // calendar date (not fixed ms) to stay on local midnights across DST.
   var dayAnnotations={};
-  var seenDay={};
-  sorted.forEach(function(e,i){
-    var d=new Date(e.ts);
-    var dayKey=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();
-    if(seenDay[dayKey])return;
-    seenDay[dayKey]=true;
-    var midnight=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,0,0,0).getTime();
-    var dx=xValTs(midnight);
-    if(dx<0)return;
-    dayAnnotations["day"+dayKey]={type:"line",xMin:dx,xMax:dx,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
-  });
+  if(sorted.length){
+    var fdD=new Date(sorted[0].ts);
+    var ldD=new Date(sorted[sorted.length-1].ts);
+    var curD=new Date(fdD.getFullYear(),fdD.getMonth(),fdD.getDate(),0,0,0,0);
+    var endD=new Date(ldD.getFullYear(),ldD.getMonth(),ldD.getDate(),0,0,0,0).getTime();
+    while(curD.getTime()<=endD){
+      var dx=xValTs(curD.getTime());
+      if(dx>=0)dayAnnotations["day"+curD.getTime()]={type:"line",xMin:dx,xMax:dx,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
+      curD.setDate(curD.getDate()+1);
+    }
+  }
   var tempDatasets;
   if(tempMode==="three"&&shadeProbes){
     // SHADED PROBE MODE: a filled band between the coldest and hottest probe, with
@@ -4564,15 +4568,14 @@ function exportPDF(){
                 ta["turn"+i]={type:"line",xMin:i,xMax:i,borderColor:"#f97316",borderWidth:1.5,label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#c2410c",font:{size:7},padding:1,rotation:90}};
               }
               if(e.watered){
-                // Two-line stacked label ("WATER" over the amount word), horizontal (no
-                // rotation), cycled across 4 vertical levels so close waterings don't
-                // overprint — same idea as the on-screen chart.
+                // Vertical "W Light/Medium/Heavy" label along the line, 2-level y-stagger
+                // so close waterings don't overprint — same idea as the on-screen chart.
                 var wamt=e.waterAmount?e.waterAmount.charAt(0).toUpperCase()+e.waterAmount.slice(1):"";
                 var wq=(e.waterQty!=null)?(wamt?" "+e.waterQty:String(e.waterQty)):"";
                 var wl2=(wamt+wq).trim();
-                var wlbl=wl2?["WATER",wl2]:["WATER"];
-                var wy=6+(waterSeqPdf%4)*15;waterSeqPdf++;
-                ta["water"+i]={type:"line",xMin:i,xMax:i,borderColor:"#3b82f6",borderWidth:1.2,borderDash:[2,2],label:{display:true,content:wlbl,position:"start",yAdjust:wy,textAlign:"center",backgroundColor:"rgba(59,130,246,0.15)",color:"#2563eb",font:{size:7},padding:1}};
+                var wshort=wl2?("W "+wl2):"W";
+                var wy=(waterSeqPdf%2)*32;waterSeqPdf++;
+                ta["water"+i]={type:"line",xMin:i,xMax:i,borderColor:"#3b82f6",borderWidth:1.2,borderDash:[2,2],label:{display:true,content:wshort,position:"start",rotation:90,yAdjust:wy,backgroundColor:"rgba(59,130,246,0.15)",color:"#2563eb",font:{size:7},padding:1}};
               }
             });
             return ta;

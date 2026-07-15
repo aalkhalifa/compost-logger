@@ -745,7 +745,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79h";
+var BUILD_VER="v3.79i";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -3158,14 +3158,18 @@ function renderChart(sorted){
     turnAnnotations["built"]={type:"line",xMin:xVal(sorted[0]),xMax:xVal(sorted[0]),borderColor:"#4ade80",borderWidth:2,borderDash:[4,3]};
   }
   // Blue "watered" lines (distinct from orange turn lines), labeled with amount/qty.
+  // Stagger adjacent labels vertically (cycling y-offsets) so close-together waterings
+  // don't overprint into "WATER: WATER: Light".
+  var waterSeq=0;
   sorted.forEach(function(e,i){
     if(e.watered){
       var wx=xVal(e);
       var amt=e.waterAmount?e.waterAmount.charAt(0).toUpperCase()+e.waterAmount.slice(1):"";
       var qty=(e.waterQty!=null)?(amt?" "+e.waterQty:e.waterQty):"";
       var lbl="WATER"+(amt||qty?": "+amt+qty:"");
+      var yAdj=(waterSeq%3)*15;waterSeq++;
       turnAnnotations["water"+i]={type:"line",xMin:wx,xMax:wx,borderColor:"#3b82f6",borderWidth:2,borderDash:[2,2],
-        label:{display:true,content:lbl,position:"start",backgroundColor:"rgba(59,130,246,0.15)",color:"#3b82f6",font:{size:8},padding:2}};
+        label:{display:true,content:lbl,position:"start",yAdjust:yAdj,backgroundColor:"rgba(59,130,246,0.15)",color:"#3b82f6",font:{size:8},padding:2}};
     }
   });
   var dayAnnotations={};
@@ -4440,6 +4444,7 @@ function exportPDF(){
           },(function(){
             var ta={};
             var pdfFirstId=sortedEntries.length?sortedEntries[0].id:null;
+            var waterSeqPdf=0;
             sortedEntries.forEach(function(e,i){
               if(e.id===pdfFirstId){
                 ta["built"]={type:"line",xMin:i,xMax:i,borderColor:"#16a34a",borderWidth:1.5,borderDash:[4,3]};
@@ -4447,7 +4452,13 @@ function exportPDF(){
                 ta["turn"+i]={type:"line",xMin:i,xMax:i,borderColor:"#f97316",borderWidth:1.5,label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#c2410c",font:{size:7},padding:1,rotation:90}};
               }
               if(e.watered){
-                ta["water"+i]={type:"line",xMin:i,xMax:i,borderColor:"#3b82f6",borderWidth:1.2,borderDash:[2,2],label:{display:true,content:"WATER",position:"start",backgroundColor:"rgba(59,130,246,0.15)",color:"#2563eb",font:{size:7},padding:1,rotation:90}};
+                // Include the amount word and stagger adjacent labels vertically so close
+                // waterings don't overprint.
+                var wamt=e.waterAmount?e.waterAmount.charAt(0).toUpperCase()+e.waterAmount.slice(1):"";
+                var wq=(e.waterQty!=null)?(wamt?" "+e.waterQty:e.waterQty):"";
+                var wlbl="WATER"+(wamt||wq?": "+wamt+wq:"");
+                var wy=(waterSeqPdf%3)*18;waterSeqPdf++;
+                ta["water"+i]={type:"line",xMin:i,xMax:i,borderColor:"#3b82f6",borderWidth:1.2,borderDash:[2,2],label:{display:true,content:wlbl,position:"start",yAdjust:wy,backgroundColor:"rgba(59,130,246,0.15)",color:"#2563eb",font:{size:7},padding:1,rotation:90}};
               }
             });
             return ta;

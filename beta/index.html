@@ -745,7 +745,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79g";
+var BUILD_VER="v3.79h";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -1672,7 +1672,8 @@ function buildTurnHistory(entries){
     var turnedHot=(displayTemp(turn)!=null&&displayTemp(turn)>=131);
     result.push({num:i+1,date:turn.date,time:turn.time,ts:turn.ts,sinceMs:sinceMs,
       satisfiedStages:satisfiedStages,highestSatisfied:highestSatisfied,core1:turn.core1,avgTemp:displayTemp(turn),
-      turnedHot:turnedHot,isWarning:false,activeBand:activeBandAtTurn});
+      turnedHot:turnedHot,isWarning:false,activeBand:activeBandAtTurn,
+      watered:turn.watered,waterAmount:turn.waterAmount,waterQty:turn.waterQty});
   }
   return result;
 }
@@ -4252,6 +4253,10 @@ function exportPDF(){
       doc.text("Date: "+t.date+" "+t.time+(t.core1?" | Core at turn: "+t.core1+"F":"")+peakStr+(t.activeBand?" | "+t.activeBand.label:"")+coolingStr,M+4,y);y+=4;
       if(t.sinceMs!=null){doc.text("Since previous turn: "+fmtHours(t.sinceMs),M+4,y);y+=4;}
       if(t.highestSatisfied){doc.text("Stage satisfied: "+t.highestSatisfied,M+4,y);y+=4;}
+      if(t.watered){
+        var twa=t.waterAmount?t.waterAmount.charAt(0).toUpperCase()+t.waterAmount.slice(1):"Yes";
+        doc.text("Watered: "+twa+(t.waterQty!=null?" ("+t.waterQty+")":""),M+4,y);y+=4;
+      }
       // Thermophilic-started line for this cycle (which reading the 72h counts from).
       if(pkCycle&&pkCycle.entries.length){
         var pkIndep=computeIndependentStages(pkCycle.entries);
@@ -4283,14 +4288,16 @@ function exportPDF(){
     var hasCore4=sortedEntries.some(function(e){return e.core4!=null;});
     var hasAmbM=sortedEntries.some(function(e){return e.ambient!=null;});
     var hasAmbApi=sortedEntries.some(function(e){return e.ambientApi!=null;});
-    // Build columns dynamically so optional ones (ambient manual/API, C4) only appear
-    // when there's data. Widths are weights; x-offsets computed to fit CW.
+    var hasWater=sortedEntries.some(function(e){return e.watered;});
+    // Build columns dynamically so optional ones (ambient manual/API, C4, Water) only
+    // appear when there's data. Widths are weights; x-offsets computed to fit CW.
     var colDefs=[["#",0.7],["Date",2.6],["Time",1.7]];
     if(hasAmbM)colDefs.push(["AmbM",1.4]);
     if(hasAmbApi)colDefs.push(["AmbA",1.4]);
     colDefs.push(["C1",1.3]);colDefs.push(["C2",1.3]);colDefs.push(["C3",1.3]);
     if(hasCore4)colDefs.push(["C4",1.3]);
     colDefs.push([basisLabel,1.6]);colDefs.push(["Moist",1.6]);colDefs.push(["Turn",1.3]);
+    if(hasWater)colDefs.push(["Water",1.9]);
     var totalWeight=colDefs.reduce(function(s,c){return s+c[1];},0);
     var cols=[];var xAcc=0;
     colDefs.forEach(function(c){cols.push([c[0],Math.round(xAcc*100)/100]);xAcc+=(c[1]/totalWeight)*CW;});
@@ -4324,6 +4331,14 @@ function exportPDF(){
       doc.setTextColor(55,55,55);
       doc.text(e.moisture!=null?e.moisture+"%":"-",colX("Moist"),yLocal);
       if(e.turned){var tc=colColor("#f97316");doc.setTextColor(tc[0],tc[1],tc[2]);doc.text((sortedEntries.length&&e.id===sortedEntries[0].id)?"BUILT":"YES",colX("Turn"),yLocal);doc.setTextColor(55,55,55);}
+      if(hasWater){
+        var wtxt="-";
+        if(e.watered){
+          var wa=e.waterAmount?e.waterAmount.charAt(0).toUpperCase()+e.waterAmount.slice(1):"Yes";
+          wtxt=wa+(e.waterQty!=null?" "+e.waterQty:"");
+        }
+        var wc=colColor("#3b82f6");doc.setTextColor(wc[0],wc[1],wc[2]);doc.text(wtxt,colX("Water"),yLocal);doc.setTextColor(55,55,55);
+      }
       yLocal+=rowH;
       if(hasNote){
         doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(110,110,110);

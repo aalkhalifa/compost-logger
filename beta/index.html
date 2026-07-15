@@ -242,6 +242,19 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div id="legend-delta" style="display:none;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#06b6d4;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#06b6d4">DELTA</span></div>
       <div id="legend-rate" style="display:none;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#22d3ee;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#22d3ee">RATE</span></div>
     </div>
+    <!-- Collapsible mini charts: probe spread + heating rate (lazy-rendered on expand) -->
+    <div style="margin-top:0.75rem;border-top:1px solid #111;padding-top:0.6rem">
+      <div onclick="toggleMiniCharts()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:0.2rem 0">
+        <span class="mono" style="font-size:0.7rem;color:#666;letter-spacing:0.08em"><span id="minicharts-caret">&#9656;</span> PROBE SPREAD &amp; HEATING RATE</span>
+        <span id="minicharts-toggle" class="mono" style="font-size:0.55rem;color:#444">show</span>
+      </div>
+      <div id="minicharts-body" style="display:none;margin-top:0.5rem">
+        <div class="mono" style="font-size:0.6rem;color:#555;margin-bottom:0.2rem">PROBE SPREAD (hottest &minus; coldest)</div>
+        <div style="position:relative;height:150px"><canvas id="spread-chart"></canvas></div>
+        <div class="mono" style="font-size:0.6rem;color:#555;margin:0.7rem 0 0.2rem">HEATING RATE</div>
+        <div style="position:relative;height:150px"><canvas id="rate-chart"></canvas></div>
+      </div>
+    </div>
 
 <div class="card" id="status-card" style="border-left:3px solid #222;padding:0">
   <div style="padding:0.75rem 1rem 0.5rem;display:flex;justify-content:space-between;align-items:center">
@@ -746,7 +759,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79j";
+var BUILD_VER="v3.79k";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -788,6 +801,7 @@ var activeId=null,tempMode="three",tempUnit="F",shadeProbes=false,showRate=false
 // Chart width mode: "fit" = whole lifespan in the viewport (default), "expand" = fixed
 // px-per-day (horizontally scrollable) for congested logs. Persisted.
 var chartExpand=localStorage.getItem("ca_chartExpand")||"fit";
+var spreadChart=null,rateChart=null,miniChartsOpen=false;  // lazy mini charts under main chart
 var volumeUnit="gal";
 // DISPLAY BASIS governs the numbers shown across the app (headline temp, stage bars,
 // cycle detection, maturity): "avg" = Compost Academy style (average of probes),
@@ -3360,6 +3374,7 @@ function renderChart(sorted){
     var wrap=document.getElementById("chart-scroll-wrap");
     if(wrap)wrap.scrollLeft=wrap.scrollWidth;
   },50);
+  if(miniChartsOpen)renderMiniCharts(sorted);   // keep mini charts in sync when open
 }
 function getPileAssessment(pile,sorted){
   if(!sorted||sorted.length<2)return null;
@@ -3521,6 +3536,44 @@ function toggleChartExpand(){
   if(btn){btn.textContent=chartExpand==="expand"?"EXPAND":"FIT";btn.style.color=chartExpand==="expand"?"#38bdf8":"#555";}
   var pile=getActivePile();if(!pile)return;
   renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+}
+function toggleMiniCharts(){
+  miniChartsOpen=!miniChartsOpen;
+  var body=document.getElementById("minicharts-body");
+  var caret=document.getElementById("minicharts-caret");
+  var lbl=document.getElementById("minicharts-toggle");
+  if(body)body.style.display=miniChartsOpen?"block":"none";
+  if(caret)caret.innerHTML=miniChartsOpen?"▾":"▸";
+  if(lbl)lbl.textContent=miniChartsOpen?"hide":"show";
+  if(miniChartsOpen){
+    var pile=getActivePile();
+    if(pile)renderMiniCharts(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+  }
+}
+// Lazy-render the two mini charts (probe spread + heating rate). Only builds when the
+// section is expanded; destroys prior instances so switching piles doesn't leak canvases.
+function renderMiniCharts(sorted){
+  if(!miniChartsOpen||typeof Chart==="undefined")return;
+  var firstTs=sorted.length?new Date(sorted[0].ts).getTime():Date.now();
+  function xv(e){return (new Date(e.ts).getTime()-firstTs)/86400000;}
+  var spreadPts=[];
+  sorted.forEach(function(e){var s=coreSpread(e);if(s!=null){if(tempUnit==="C")s=Math.round(s*5/9*10)/10;spreadPts.push({x:xv(e),y:s});}});
+  var rs=heatingRateSeries(sorted);var ratePts=[];
+  sorted.forEach(function(e,i){if(rs[i]!=null)ratePts.push({x:xv(e),y:rs[i]});});
+  if(spreadChart){spreadChart.destroy();spreadChart=null;}
+  var sc=document.getElementById("spread-chart");
+  if(sc)spreadChart=new Chart(sc,{type:"line",
+    data:{datasets:[{label:"Spread",data:spreadPts,borderColor:"#e879f9",backgroundColor:"rgba(232,121,249,0.10)",fill:true,tension:0.3,pointRadius:2,pointBackgroundColor:"#e879f9",spanGaps:true}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},
+      scales:{x:{type:"linear",ticks:{color:"#555",font:{size:9}},grid:{color:"#111"}},
+        y:{beginAtZero:true,ticks:{color:"#888",font:{size:9},callback:function(v){return v+"°";}},grid:{color:"#111"},title:{display:true,text:"Spread °"+tempUnit,color:"#555",font:{size:9}}}}}});
+  if(rateChart){rateChart.destroy();rateChart=null;}
+  var rc=document.getElementById("rate-chart");
+  if(rc)rateChart=new Chart(rc,{type:"line",
+    data:{datasets:[{label:"Rate",data:ratePts,borderColor:"#22d3ee",backgroundColor:"transparent",tension:0.3,pointRadius:2,pointBackgroundColor:"#22d3ee",spanGaps:true}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},
+      scales:{x:{type:"linear",ticks:{color:"#555",font:{size:9}},grid:{color:"#111"}},
+        y:{suggestedMin:-6,suggestedMax:8,ticks:{color:"#22d3ee",font:{size:9},callback:function(v){return v+"°/h";}},grid:{color:"#111"},title:{display:true,text:"°"+tempUnit+"/h",color:"#555",font:{size:9}}}}}});
 }
 
 function renderRecipeSummary(pile){

@@ -766,7 +766,7 @@ var PB_BASE_URL="http://localhost:8090";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79l";
+var BUILD_VER="v3.79m";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -5429,6 +5429,9 @@ function handleXLSXImport(event){
           logHeaderRow=ri3;
           for(var ci5=0;ci5<row3.length;ci5++){
             var h3=row3[ci5]?String(row3[ci5]).toLowerCase().trim():"";
+            // Never bind the sheet's "Avg Temp" column: it holds #DIV/0! on empty rows and
+            // the app computes the average itself via avgCore(). Skip any avg/average header.
+            if(h3.indexOf("avg")>-1||h3.indexOf("average")>-1)continue;
             if(h3==="date")logDateCol=ci5;
             else if(h3==="time")logTimeCol=ci5;
             else if(h3==="temp 1"||h3==="temp1"||h3==="core temp"||h3==="core")logTemp1Col=ci5;

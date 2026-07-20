@@ -138,6 +138,44 @@ an `http://` endpoint (mixed content). So you cannot point the deployed beta at 
 Either way, when the real domain lands you change **one constant** (`PB_BASE_URL`) and
 re-issue TLS — no app-code changes.
 
+---
+
+## Deployed state (July 20 2026) — executed on the DO box
+
+Group A is **live** on the existing DigitalOcean droplet (`fra1`, `64.226.83.129`):
+
+- PocketBase **0.22.21** (version-pinned) at `/opt/pocketbase`, data in `/opt/pocketbase/pb_data`,
+  owned by the unprivileged `pocketbase` system user, bound to `127.0.0.1:8090`.
+- `pocketbase.service` installed + `enabled --now` (survives reboot).
+- Superuser created (`aalkhalifa@gmail.com`); password stored at `/root/.pb_admin_password` (mode 600).
+- `vaults` collection imported from `vaults.collection.json` — all 3 fields, the unique index
+  on `user`, and all 5 API rules verified present.
+- **Caddy/TLS skipped.** HTTPS is provided instead by a Cloudflare **quick tunnel**
+  (`cloudflared-pocketbase.service`, also `enabled --now`, `Restart=always`), which fronts
+  `127.0.0.1:8090`. No Cloudflare account or domain required.
+
+Verified end-to-end through the public HTTPS URL: `/api/health` 200, CORS preflight from
+`https://aalkhalifa.github.io` allowed, signup -> login -> vault create -> per-user scoped
+list (unauthenticated list returns 0 items), duplicate vault rejected by the unique index
+(400), and cascade-delete of the user removed its vault. Test user was deleted afterwards.
+
+### Caveat: the quick-tunnel hostname is ephemeral
+
+A Cloudflare *quick* tunnel gets a **new random `*.trycloudflare.com` hostname every time
+`cloudflared` restarts** (reboot, crash, `systemctl restart`). The systemd unit keeps the
+tunnel *up* and reconnecting, but it cannot keep the *hostname* stable. When it rotates,
+`PB_BASE_URL` in `beta/index.html` is stale and must be repointed:
+
+```bash
+systemctl status cloudflared-pocketbase          # is it up?
+journalctl -u cloudflared-pocketbase | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1
+```
+
+This is fine for beta testing, not for anything durable. The stable fixes, in order of
+preference: buy the domain and do the Caddy/TLS step above, or create a **named** Cloudflare
+tunnel (needs a Cloudflare account + a domain on it), which keeps a fixed hostname across
+restarts.
+
 ## Handoff to Group B
 
 Group B (app code) needs exactly one value from this runbook: the reachable base URL,

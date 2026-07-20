@@ -26,10 +26,25 @@ it entirely**. Cache key = `compost-logger-v3.79w` (bump on every deploy; sw.js 
 
 ## Current Version
 
-**Live beta:** v3.79w (as of July 20 2026) — PocketBase migration line, Groups A-F done
+**Production:** **v3.80** (promoted July 20 2026, tag `v3.80`) — first production build
+with PocketBase accounts. Drive still present and working (removal is Group G).
+**Live beta:** v3.81 (next line, opened July 20 2026) — identical to production until
+work lands on it.
 **Backend:** `https://api.compostlogger.com` (Caddy + Let's Encrypt on the DO box)
 **Domain:** compostlogger.com, registered on Cloudflare (July 20 2026)
-**Production:** v3.78b (promoted from beta on July 11 2026, tag v3.78b)
+
+### Version convention (changed July 20 2026)
+
+**Production releases get clean numbers: `v3.80`, `v3.81`, `v3.82`.**
+**Letter suffixes are for beta iterations only: `v3.81a`, `v3.81b`, …**
+
+So a line opens as `v3.81`, iterates through `v3.81a…z` in beta, and is promoted as the
+next clean number. The old scheme (promoting a lettered build like `v3.78b` straight to
+production) is retired — a version on someone's phone should say at a glance whether it is
+a release or a beta iteration.
+
+`sw.js` is shared by prod and beta, so its cache key always tracks the **newest deploy**
+of either.
 
 ### Deployment structure
 ```
@@ -90,29 +105,44 @@ it is pushed, and a force-push would destroy commits.
 
 | Tag | Build | What it is |
 |---|---|---|
-| `v3.78b` | production | **The Drive-based fallback.** No PocketBase code at all. |
+| `v3.78b` | ex-production | **The Drive-only fallback.** No PocketBase code at all. |
 | `v3.79r` | beta | Group C — shared `mergeCloudData` + `pbLoad`/`pbSaveNow`. No UI. |
 | `v3.79s` | beta | Group D — first-login migration decision. No UI. |
 | `v3.79t` | beta | Groups E+F — consent + account UI. First user-reachable build. |
+| `v3.79u` | beta | `sw.js` API-caching fix + `pbLoad` self-heal. |
+| `v3.79v` | beta | Demo-pile duplicate fix. Verified on iPad Safari. |
+| `v3.79w` | beta | Backend on `api.compostlogger.com`, CORS locked. Verified on iPad Safari. |
+| **`v3.80`** | **production** | **Current production.** PocketBase accounts + Drive, both live. |
 
 Group A (`85ade7f`) carried no version bump — it was server infra plus the `PB_BASE_URL`
 value — so there is no `v3.79` tag between `q` and `r`.
 
-### Roll beta back to a tagged version
+> **Changed July 20 2026:** production is **no longer** the untouched Drive-only build.
+> `v3.80` ships PocketBase. The pure-Drive safety net is now the **`v3.78b` tag**, not the
+> live production file — see "Emergency" below.
+
+### Roll a build back to a tagged version
+
+Works for either channel — the only difference is which file you restore.
 
 ```bash
 cd /root/compost-logger
 git checkout main && git pull
 
-# pick one: v3.79r | v3.79s | v3.79t
-git checkout v3.79s -- beta/index.html
+# beta:       git checkout v3.79w -- beta/index.html
+# production: git checkout v3.79w -- index.html
+git checkout v3.79w -- index.html
 
 # REQUIRED: bump the SW cache key to something NEW (see the trap below)
-#   edit sw.js -> const CACHE = 'compost-logger-v3.79s-rollback';
+#   edit sw.js -> const CACHE = 'compost-logger-v3.80-rollback';
 
-git commit -am "Roll beta back to v3.79s"
+git commit -am "Roll production back to v3.79w"
 git push origin main
 ```
+
+Note `v3.79w` and `v3.80` are the **same code** — v3.80 is the promotion of v3.79w under
+the new numbering — so rolling production back one step means going to `v3.79v` or
+earlier, not to `v3.79w`.
 
 **The service-worker trap:** `sw.js` is network-first but falls back to cache. Restoring
 an *older* cache key means clients that already cached the newer build may keep serving
@@ -122,17 +152,25 @@ that is expected and correct.
 
 ### Emergency: fall back to Drive entirely
 
-Production `index.html` is **v3.78b, untouched by the whole migration** — verified
-byte-identical to the `v3.78b` tag, with zero PocketBase code and the Google Drive sync
-path fully intact. It is the real safety net: nothing in Groups A–F has touched it, and
-GitHub Pages serves it at the production URL independently of `/beta/`.
-
-To point beta at it too:
+**As of v3.80 this is a deliberate action, not the status quo.** Production now ships
+PocketBase. The pure-Drive build survives only as the **`v3.78b` tag** — zero PocketBase
+code, Drive sync fully intact.
 
 ```bash
-git checkout v3.78b -- beta/index.html   # beta becomes the Drive build
-# bump sw.js cache key to a new value, then commit + push
+git checkout v3.78b -- index.html        # production becomes the Drive-only build
+git checkout v3.78b -- beta/index.html   # and beta too, if needed
+# bump sw.js cache key to a NEW value, then commit + push
 ```
+
+**Before doing this, understand what it costs.** Any user who has already signed in has
+their piles in a PocketBase vault. `v3.78b` has no PocketBase code, so it cannot read that
+vault — it falls back to whatever `ca_v5` is in that device's localStorage, which is
+current for anyone who used the app on that device but **stale or empty on a device where
+they only ever pulled from the account**. Their vault is not deleted (the server is
+untouched), but it becomes unreachable until a PocketBase build is restored.
+
+A less destructive first step is rolling back one beta build (`v3.79v`, or `v3.79u` to
+also undo the domain move) — those still speak PocketBase.
 
 ### What a rollback does and does not undo
 
@@ -154,6 +192,33 @@ Verify any rollback the same way as a build: extract the inline script and run
 ---
 
 ## Session Log
+
+### July 20 2026 (Claude Code) — v3.80 PROMOTED TO PRODUCTION
+
+**PocketBase accounts are live for all users.** Production went **v3.78b → v3.80**, a
+jump of the entire migration in one release.
+
+Device verification (iPad Safari) confirmed **v3.79v and v3.79w** end-to-end — signup,
+import, save reaching `ACCOUNT SYNCED`, going offline showing `OFFLINE (local only)`,
+reconnect syncing cleanly, and the same again after the backend moved to
+`api.compostlogger.com`. That covers the v3.79u `sw.js` fix transitively, since versions
+are cumulative. With that, Group H was unblocked and promoted.
+
+- **New version convention** (see *Current Version*): production releases get clean
+  numbers, letters are beta-only. So this shipped as **`v3.80`**, not `v3.79w`.
+- Promotion was a plain `cp beta/index.html index.html` — `APP_VERSION` derives the
+  " BETA" suffix from `location.pathname` at runtime, so the two files stay byte-identical
+  and no per-file edits are needed.
+- `sw.js` cache key → `compost-logger-v3.80`.
+- **Drive deliberately NOT removed** (that is Group G, deferred ~July 27). Production now
+  carries both backends: PocketBase wins when signed in, Drive keeps working for everyone
+  who has not migrated.
+- **Next beta line opened at v3.81.**
+
+> **This changes the rollback story.** Production is no longer the untouched Drive-only
+> build — the pure-Drive fallback is now the **`v3.78b` tag** only. The ROLLBACK section
+> above has been updated, including what falling back to it would cost a user who has
+> already moved their piles into an account.
 
 ### July 20 2026 (Claude Code) — SESSION SUMMARY
 
@@ -189,10 +254,11 @@ wrong.
 10. `sw.js` cache key had drifted at v3.78b through v3.79b–q (v3.79r)
 11. "1 entries" grammar in Group D's destructive confirm (v3.79s)
 
-**State at session end:** backend live and stable at `https://api.compostlogger.com`;
-beta v3.79w pushed and tagged. **Group G (Drive removal) deferred one week (~July 27);
-Group H (promote to production) is next — but blocked on the iPhone re-test, because none
-of the v3.79u/v/w fixes has yet been confirmed on a real device.**
+**State at session end:** backend live and stable at `https://api.compostlogger.com`.
+v3.79v and v3.79w were **verified on iPad Safari** (signup, import, `ACCOUNT SYNCED`,
+`OFFLINE (local only)`, reconnect sync — and again after the domain move), which
+unblocked Group H. **Promoted to production as v3.80.** Group G (Drive removal) remains
+deferred ~July 27; next beta line opened at **v3.81**.
 
 ---
 
@@ -739,6 +805,11 @@ Commit both files alongside any code changes.
 ### Before any code is written
 List all proposed changes → wait for explicit approval → then build.
 
-### Version numbering
-`v3.XX` — bump on every meaningful change. Sub-revision: `v3.77n` (letter suffix).
-Service worker cache key must match: `compost-logger-v3.XX`
+### Version numbering (convention changed July 20 2026)
+- **Production releases: clean numbers** — `v3.80`, `v3.81`, `v3.82`.
+- **Beta iterations: letter suffixes** — `v3.81a`, `v3.81b`, … Bump on every meaningful
+  change while the line is in beta.
+- A line opens at the clean number, iterates through letters, and is promoted as the next
+  clean number. Promoting a lettered build (as `v3.77q` and `v3.78b` were) is retired.
+- `sw.js` cache key must match the newest deploy of either channel:
+  `compost-logger-v3.XX`. The file is shared by prod and beta.

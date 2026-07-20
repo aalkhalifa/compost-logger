@@ -23,7 +23,7 @@ html,body{background:#000;color:#fff;font-family:Inter,sans-serif;min-height:100
 .mono{font-family:"Share Tech Mono",monospace}
 .card{background:#0a0a0a;border:1px solid #1e1e1e;border-radius:4px;padding:1rem;margin-bottom:1rem}
 .lbl{display:block;font-size:0.72rem;letter-spacing:0.1em;color:#666;font-weight:600;margin-bottom:0.3rem}
-input[type=text],input[type=number],input[type=date],input[type=time],textarea{
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=email],input[type=password],textarea{
   background:#050505;border:1px solid #222;border-radius:3px;color:#fff;
   padding:0.6rem 0.75rem;font-size:0.9rem;font-family:Inter,sans-serif;width:100%;box-sizing:border-box}
 input:focus,textarea:focus{border-color:#555;outline:none}
@@ -119,7 +119,8 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       </div>
       <div style="display:flex;gap:0.5rem">
         <button id="btn-sync-now" class="btn-sm" onclick="forceSyncNow()" style="display:none">SYNC NOW</button>
-        <button id="btn-connect-home" class="btn-sm" onclick="connectDrive()">CONNECT DRIVE</button>
+        <button id="btn-connect-home" class="btn-sm" onclick="connectDrive()" style="display:none">CONNECT DRIVE</button>
+        <button id="btn-account" class="btn-sm" onclick="openAuth()">SIGN IN</button>
         <button onclick="openSettings()" class="btn-sm" style="font-size:0.85rem;padding:0.3rem 0.6rem" title="Settings">&#9881;</button>
       </div>
     </div>
@@ -217,6 +218,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div class="hd" style="font-size:0.8rem;color:#555;letter-spacing:0.15em">TEMP + MOISTURE</div>
       <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
         <button id="btn-toggle-chart" class="btn-sm" onclick="toggleChart()">SHOW AVG</button>
+        <button id="btn-toggle-expand" class="btn-sm" onclick="toggleChartExpand()" style="font-size:0.65rem;color:#555">FIT</button>
         <button id="btn-toggle-shade" class="btn-sm" onclick="toggleShade()" style="font-size:0.65rem;color:#555">SHADE OFF</button>
         <button id="btn-toggle-rate" class="btn-sm" onclick="toggleRate()" style="font-size:0.65rem;color:#555">RATE OFF</button>
         <button id="btn-toggle-ambient" class="btn-sm" onclick="toggleAmbient()" style="font-size:0.65rem;color:#555">AMB OFF</button>
@@ -240,6 +242,19 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div id="legend-ambient-api" style="display:flex;align-items:center;gap:0.4rem;display:none"><div style="width:16px;height:3px;background:#fbbf24;border-radius:1px;border-top:1px dotted #fbbf24"></div><span class="mono" style="font-size:0.65rem;color:#fbbf24">AMBIENT API</span></div>
       <div id="legend-delta" style="display:none;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#06b6d4;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#06b6d4">DELTA</span></div>
       <div id="legend-rate" style="display:none;align-items:center;gap:0.4rem"><div style="width:16px;height:3px;background:#22d3ee;border-radius:1px"></div><span class="mono" style="font-size:0.65rem;color:#22d3ee">RATE</span></div>
+    </div>
+    <!-- Collapsible mini charts: probe spread + heating rate (lazy-rendered on expand) -->
+    <div style="margin-top:0.75rem;border-top:1px solid #111;padding-top:0.6rem">
+      <div onclick="toggleMiniCharts()" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:0.2rem 0">
+        <span class="mono" style="font-size:0.7rem;color:#666;letter-spacing:0.08em"><span id="minicharts-caret">&#9656;</span> PROBE SPREAD &amp; HEATING RATE</span>
+        <span id="minicharts-toggle" class="mono" style="font-size:0.55rem;color:#444">show</span>
+      </div>
+      <div id="minicharts-body" style="display:none;margin-top:0.5rem">
+        <div class="mono" style="font-size:0.6rem;color:#555;margin-bottom:0.2rem">PROBE SPREAD (hottest &minus; coldest)</div>
+        <div style="position:relative;height:150px"><canvas id="spread-chart"></canvas></div>
+        <div class="mono" style="font-size:0.6rem;color:#555;margin:0.7rem 0 0.2rem">HEATING RATE</div>
+        <div style="position:relative;height:150px"><canvas id="rate-chart"></canvas></div>
+      </div>
     </div>
 
 <div class="card" id="status-card" style="border-left:3px solid #222;padding:0">
@@ -688,6 +703,22 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       </div>
     </div>
 
+    <!-- Account (Group F). Placed above Drive: this is the forward path -->
+    <div class="card">
+      <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">ACCOUNT</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0">
+        <div>
+          <div class="mono" style="font-size:0.85rem;color:#ccc">CLOUD SYNC</div>
+          <div id="s-pb-status" style="font-size:0.65rem;color:#555;margin-top:0.15rem">Not signed in</div>
+          <div id="s-pb-email" class="mono" style="font-size:0.65rem;color:#4ade80;margin-top:0.15rem;display:none"></div>
+        </div>
+        <div style="display:flex;gap:0.4rem">
+          <button id="s-btn-signin" onclick="closeSettings();openAuth();" class="btn-sm" style="font-size:0.7rem">SIGN IN</button>
+          <button id="s-btn-signout" onclick="pbSignOutConfirm()" class="btn-sm" style="font-size:0.7rem;color:#ef4444;border-color:#3a1a1a;display:none">SIGN OUT</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Google Drive -->
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">GOOGLE DRIVE SYNC</div>
@@ -707,6 +738,13 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       </div>
     </div>
 
+    <!-- Saved Recipes -->
+    <div class="card" id="s-recipes-card">
+      <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.4rem">SAVED RECIPES</div>
+      <div style="font-size:0.65rem;color:#555;margin-bottom:0.4rem">Load a saved recipe into a new pile.</div>
+      <div id="s-recipes-list"></div>
+    </div>
+
     <!-- Data Management -->
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">DATA</div>
@@ -717,6 +755,17 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
         </div>
         <button onclick="exportAllJSON()" class="btn-sm" style="font-size:0.7rem">EXPORT</button>
       </div>
+      <!-- Analytics consent (Group E). Opt-in: OFF by default. No pipeline exists yet -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-top:1px solid #111">
+        <div>
+          <div class="mono" style="font-size:0.85rem;color:#ccc">ANONYMOUS USAGE DATA</div>
+          <div style="font-size:0.65rem;color:#555;margin-top:0.15rem">Not collected yet. If we ever build it, this is your answer. Never includes pile data or your email.</div>
+        </div>
+        <div style="display:flex;gap:0.4rem">
+          <button id="s-analytics-on" onclick="pbSetAnalyticsOptIn(true)" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">ON</button>
+          <button id="s-analytics-off" onclick="pbSetAnalyticsOptIn(false)" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">OFF</button>
+        </div>
+      </div>
     </div>
 
     <!-- App Info -->
@@ -725,19 +774,61 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
         <div id="app-version-settings">COMPOST LOGGER &middot; FIELD LOGGER v3.76</div>
         <div>COMPOST LOGGER</div>
-        <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
+        <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Sign in to sync it to your account.</div>
       </div>
     </div>
 
   </div>
 </div>
 
+<!-- Account sign in / sign up (Group F).
+     MUST stay after #settings-overlay: all overlays share z-index 500, so stacking is
+     decided by DOM order, and SIGN IN is reachable from inside Settings. -->
+<div id="auth-overlay" class="overlay hidden">
+  <div style="max-width:500px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <span id="auth-title" class="hd" style="font-size:1.2rem;color:#fff">SIGN IN</span>
+      <button onclick="closeAuth()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
+    </div>
+    <div class="card">
+      <div id="auth-intro" style="font-size:0.68rem;color:#666;line-height:1.5;margin-bottom:0.9rem">Sync your piles across devices. Your data stays on this device too.</div>
+      <label class="lbl">EMAIL</label>
+      <input type="email" id="auth-email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@example.com" style="margin-bottom:0.75rem" onkeydown="authKeydown(event)"/>
+      <label class="lbl">PASSWORD</label>
+      <input type="password" id="auth-password" autocomplete="current-password" placeholder="at least 8 characters" style="margin-bottom:0.75rem" onkeydown="authKeydown(event)"/>
+      <div id="auth-consent-row" style="display:none;margin-bottom:0.9rem;padding-top:0.25rem">
+        <label style="display:flex;align-items:flex-start;gap:0.5rem;cursor:pointer">
+          <input type="checkbox" id="auth-analytics" style="flex-shrink:0;margin-top:0.1rem"/>
+          <span style="font-size:0.7rem;color:#ccc;line-height:1.45">Share anonymous usage data to help improve the app.
+            <span style="display:block;color:#555;font-size:0.62rem;margin-top:0.2rem">Nothing is collected today &mdash; this records your answer for if we ever build it. It would never include your pile data or your email. You can change this any time in Settings.</span>
+          </span>
+        </label>
+      </div>
+      <div id="auth-error" class="error-msg hidden"></div>
+      <button id="auth-submit" onclick="authSubmit()" class="btn" style="width:100%;margin-bottom:0.5rem;margin-top:0.5rem">SIGN IN</button>
+      <button id="auth-switch" onclick="authToggleMode()" class="btn-sm" style="width:100%;margin-bottom:0.5rem">NEED AN ACCOUNT? SIGN UP</button>
+      <button onclick="closeAuth()" style="width:100%;padding:0.6rem;background:none;border:1px solid #222;color:#555;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.85rem">CANCEL</button>
+    </div>
+  </div>
+</div>
+
 <script>
 var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercontent.com";
+// PocketBase backend base URL (migration). Single source of truth for every PB call.
+// Production backend: compostlogger.com on the DigitalOcean box, TLS by Caddy with a
+// Let's Encrypt cert that auto-renews. Stable hostname - unlike the Cloudflare quick
+// tunnel this replaced, which minted a new name on every restart.
+// The Cloudflare tunnel is still running as a fallback; if this host ever goes down,
+// swap this one constant to the tunnel URL (find it with:
+//   journalctl -u cloudflared-pocketbase | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1
+// ). CORS on the backend is locked to https://aalkhalifa.github.io, so requests from any
+// other page origin - including a local file:// or localhost build - are blocked by the
+// browser. See deploy/pocketbase/README.md.
+var PB_BASE_URL="https://api.compostlogger.com";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.78b";
+var BUILD_VER="v3.80";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -776,6 +867,10 @@ var entriesSortMode=localStorage.getItem("ca_entriesSort")||"newest";
 var piles=[],sites=[],recipes=[],ingHist=JSON.parse(JSON.stringify(DEF_HIST));
 var homeCollapsedSites={};
 var activeId=null,tempMode="three",tempUnit="F",shadeProbes=false,showRate=false,__chartEntries=[];
+// Chart width mode: "fit" = whole lifespan in the viewport (default), "expand" = fixed
+// px-per-day (horizontally scrollable) for congested logs. Persisted.
+var chartExpand=localStorage.getItem("ca_chartExpand")||"fit";
+var spreadChart=null,rateChart=null,miniChartsOpen=false;  // lazy mini charts under main chart
 var volumeUnit="gal";
 // DISPLAY BASIS governs the numbers shown across the app (headline temp, stage bars,
 // cycle detection, maturity): "avg" = Compost Academy style (average of probes),
@@ -798,6 +893,22 @@ var containerUnit={name:"5 gal",size:5};
 var tempChart=null;
 var driveToken=null,driveFileId=null,driveStatus="disconnected";
 var tokenClient=null,timerInterval=null;
+// PocketBase auth state (migration). Coexists with Drive during the beta transition
+// (Drive/GSI is removed in Group G). Auth persists in the "pb_auth" localStorage key.
+var pbToken=null,pbUserId=null,pbEmail=null,pbStatus="signedout";
+// Analytics consent (Group E). The vault's analyticsOptIn column is authoritative;
+// PB_ANALYTICS_KEY is a display-only local cache so the Settings row renders correctly
+// before pbLoad resolves. pbLoad overwrites it from the vault on every login.
+var pbAnalyticsOptIn=(function(){try{return localStorage.getItem("pb_analytics_optin")==="1";}catch(e){return false;}})();
+var PB_ANALYTICS_KEY="pb_analytics_optin";
+// PocketBase vault/sync state (Group C). pbVaultUpdated holds the "updated" stamp from
+// the last successful read and is the optimistic-concurrency baseline for pbSaveNow.
+// The pending/in-progress flags are deliberately SEPARATE from the Drive ones below:
+// both backends are live through the beta, and sharing them would let a Drive sync in
+// flight suppress a PocketBase sync (and vice versa).
+var pbVaultId=null,pbVaultUpdated=null;
+var pbPendingSave=false;
+var pbSyncInProgress=false;
 var newMaterials={},editMaterials={};
 var editingEntryId=null;
 var expandedCats=new Set();
@@ -1056,15 +1167,24 @@ function buildCycles(entries){
   // at-or-above each band's floor. Higher temps clear the bar faster, so any one of
   // these completing means the cycle did its pathogen-reduction work.
   // A turn before any stage is satisfied stays part of the same cycle (e.g. a mixing turn).
-  function anyStageSatisfied(cycleEntries){
+  //
+  // The turn reading that is CLOSING the cycle must not let its OWN temperature decide
+  // closure: a turn logged while the governing temp sits at/just below the band floor
+  // (e.g. core dips during the turn, or a turn-only entry with no probes) must still
+  // close a cycle whose EARLIER readings already satisfied a stage. So the closing turn
+  // extends an already-running hot streak (by its timestamp) but never breaks one and
+  // never starts one on its own; every other reading gates the streak by its temperature.
+  function anyStageSatisfied(cycleEntries,closingTurn){
     var rel=cycleEntries.filter(function(e){return complianceTemp(e)!=null;});
     var stageBands=BANDS.filter(function(b){return b.hours>0;});
     for(var bi=0;bi<stageBands.length;bi++){
       var band=stageBands[bi];
       var streakStart=null;
       for(var i=0;i<rel.length;i++){
-        // "at or above this band's floor" — being hotter still counts toward the floor
-        var atFloor=complianceTemp(rel[i])>=band.min;
+        var isClosingTurn=closingTurn&&rel[i]===closingTurn;
+        // "at or above this band's floor" — being hotter still counts toward the floor.
+        // The closing turn only extends an active streak; it can't gate it.
+        var atFloor=isClosingTurn?(streakStart!==null):(complianceTemp(rel[i])>=band.min);
         if(atFloor){
           if(streakStart===null)streakStart=new Date(rel[i].ts);
           var end=i<rel.length-1?new Date(rel[i+1].ts):new Date(rel[i].ts);
@@ -1075,10 +1195,11 @@ function buildCycles(entries){
     return false;
   }
   var cycles=[];var current=[];
+  var firstId=sorted.length?sorted[0].id:null;   // the initial BUILD entry never closes a cycle
   for(var i=0;i<sorted.length;i++){
     var e=sorted[i];
     current.push(e);
-    if(e.turned&&anyStageSatisfied(current)){
+    if(e.turned&&e.id!==firstId&&anyStageSatisfied(current,e)){
       cycles.push({entries:current.slice(),turnEntry:e});current=[];
     }
   }
@@ -1108,10 +1229,16 @@ function computeSatisfiedStages(cycleEntries){
 }
 
 // Shared cap for active-cycle extrapolation. The last entry's interval extends to
-// now so times accumulate in real time, but only up to 8h past that entry. If the
-// last reading is older than 8h, the bar freezes at lastEntry + 8h instead of
+// now so times accumulate in real time, but only up to 24h past that entry. If the
+// last reading is older than 24h, the bar freezes at lastEntry + 24h instead of
 // running away to hundreds of hours when logging is overdue.
-function cappedNow(lastTs){var cap=new Date(new Date(lastTs).getTime()+8*3600000);var now=new Date();return now<cap?now:cap;}
+// SIDE EFFECT of the 24h (was 8h) cap: when the last reading is >=131F and logging
+// then stops, the active cycle credits the WHOLE gap (up to 24h) as thermophilic/
+// READY at that temperature — so a stale-but-hot pile now accrues up to 24h of stage
+// progress (3x the old 8h) and can cross a stage threshold purely from this extension.
+// Consumers: computeIndependentStages, classifyCycleTime, buildChronologicalSegments,
+// renderActiveCycleBar (all read the last entry's extrapolated end via this helper).
+function cappedNow(lastTs){var cap=new Date(new Date(lastTs).getTime()+24*3600000);var now=new Date();return now<cap?now:cap;}
 
 // INDEPENDENT STAGES: tracks each stage's streak based on its own min temp floor.
 // Active cycle: the last entry extrapolates to now, capped at 8h past that entry
@@ -1250,20 +1377,22 @@ function classifyCycleTime(cycleEntries){
 
 // Render one multicolor segmented stage bar for the ACTIVE cycle
 // Build chronological color segments for a cycle bar.
-// Each interval is colored by the actual temperature band at that moment.
+// Each interval is colored by the DISPLAY temperature band at that moment
+// (displayTemp honors the AVG/MIN setting), so the segmented bar matches the
+// headline temp and status basis instead of the raw core1 probe.
 // Satisfaction (green) begins once cumulative time at the target band floor reaches requirement.
 function buildChronologicalSegments(cycleEntries,isCompleted){
   var STAGE_COLORS={"Stage 1":"#eab308","Stage 2":"#f97316","Stage 3":"#dc2626","Stage 4":"#991b1b"};
-  var rel=cycleEntries.filter(function(e){return e.core1!=null;})
+  var rel=cycleEntries.filter(function(e){return displayTemp(e)!=null;})
     .sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
   if(!rel.length)return{segments:[],totalMs:0,refMs:72*3600000,satisfied:false};
   var now=new Date();
   var lastEntry=rel[rel.length-1];
   var isCompletedCycle=isCompleted||(lastEntry&&lastEntry.turned);
-  // Determine target band = highest band reached in this cycle
+  // Determine target band = highest band reached in this cycle (by display temp)
   var targetBand=null;
   for(var ri=0;ri<rel.length;ri++){
-    var b=getBand(rel[ri].core1);
+    var b=getBand(displayTemp(rel[ri]));
     if(b&&b.hours>0){
       if(!targetBand||BANDS.indexOf(b)>BANDS.indexOf(targetBand))targetBand=b;
     }
@@ -1277,7 +1406,7 @@ function buildChronologicalSegments(cycleEntries,isCompleted){
     var endTs=i<rel.length-1?new Date(rel[i+1].ts):(isCompletedCycle?startTs:cappedNow(rel[i].ts));
     var intervalMs=endTs-startTs;
     if(intervalMs<=0)continue;
-    var temp=rel[i].core1;
+    var temp=displayTemp(rel[i]);
     var band=getBand(temp);
     if(!band){
       segments.push({color:"#3b82f6",ms:intervalMs,label:"MESO"});
@@ -1531,6 +1660,21 @@ function calcSmartTimer(entries){
   }
   var cycles=buildCycles(sorted);
   var currentCycle=cycles[cycles.length-1];
+  // If the most recent cycle is already CLOSED by a turn (the turn is the last entry),
+  // the pile has just been turned and no reading has started the next cycle yet — it is
+  // BETWEEN cycles, not awaiting a turn. Return a distinct state so cards stop nagging
+  // TURN NOW / CLEAR TO TURN for a cycle the user already turned.
+  if(currentCycle.turnEntry){
+    var doneStages=computeSatisfiedStages(currentCycle.entries);
+    return{
+      band:null,betweenCycles:true,turnNow:false,complete:false,stageDone:false,
+      deadline:null,remaining:null,elapsed:0,progress:0,
+      completedCycleNum:cycles.length,
+      completedStage:getHighestSatisfied(doneStages),
+      turnedAt:currentCycle.turnEntry.ts,
+      satisfiedStages:{},independentStages:{},thermophilicStart:null
+    };
+  }
   var status=cycleHighestStageStatus(currentCycle.entries);
   var independentStages=status.independentStages;
   var satisfiedStages={};
@@ -1627,7 +1771,8 @@ function buildTurnHistory(entries){
     var turnedHot=(displayTemp(turn)!=null&&displayTemp(turn)>=131);
     result.push({num:i+1,date:turn.date,time:turn.time,ts:turn.ts,sinceMs:sinceMs,
       satisfiedStages:satisfiedStages,highestSatisfied:highestSatisfied,core1:turn.core1,avgTemp:displayTemp(turn),
-      turnedHot:turnedHot,isWarning:false,activeBand:activeBandAtTurn});
+      turnedHot:turnedHot,isWarning:false,activeBand:activeBandAtTurn,
+      watered:turn.watered,waterAmount:turn.waterAmount,waterQty:turn.waterQty});
   }
   return result;
 }
@@ -1697,7 +1842,12 @@ function save(){
   // Stamp lastModified on any pile that just changed
   if(activeId){var ap=piles.find(function(p){return p.id===activeId;});if(ap)ap.lastModified=Date.now();}
   localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
-  if(driveToken&&driveFileId)driveSaveNow();
+  // Cloud push is fire-and-forget - localStorage above is the source of truth, so this
+  // stays offline-first. PocketBase wins when signed in: a migrated user must not also
+  // write to Drive, or the two backends become competing merge authorities. Users who
+  // have not migrated are untouched and keep syncing to Drive (removed in Group G).
+  if(pbToken&&pbUserId)pbSaveNow();
+  else if(driveToken&&driveFileId)driveSaveNow();
 }
 
 var SAMPLE_CSV="[PILE]\nName,Demo Pile — 30 Days\nCreated,2026-04-01\n\n[RECIPE]\nCategory,Ingredient,Volume,Notes\nHIGH NITROGEN,Chicken manure,8,Coop cleanout aged 1 week\nHIGH NITROGEN,Horse manure,7,Local stable fresh\nGREENS,Alfalfa,15,Bagged from feed store\nGREENS,Grass clippings,15,Lawn cuttings first mow\nBROWNS,Wood chips,45,Arborist drop mixed hardwoods\nBROWNS,Dry leaves,10,Last fall collection\n\n[ENTRIES]\nDate,Time,Core,Top,Bottom,Moisture,Turned,Notes\n2026-04-01,08:10,92,89,89,49,NO,\n2026-04-01,14:20,115,111,110,44,NO,\n2026-04-01,19:30,128,125,126,49,NO,\n2026-04-02,08:15,158,155,155,55,NO,\n2026-04-02,19:35,161,156,156,42,NO,\n2026-04-03,08:20,162,159,159,50,NO,\n2026-04-03,09:45,158,152,155,44,YES,Turn 1 - Stage 3 satisfied\n2026-04-03,13:30,118,114,115,50,NO,\n2026-04-03,19:40,128,123,125,54,NO,\n2026-04-04,08:15,152,148,148,53,NO,\n2026-04-04,19:30,154,149,152,49,NO,\n2026-04-05,08:20,153,147,149,45,NO,\n2026-04-05,19:35,152,148,147,47,NO,\n2026-04-06,08:18,151,147,148,44,NO,\n2026-04-06,09:30,150,147,146,47,YES,Turn 2 - Stage 2 satisfied\n2026-04-06,13:45,120,116,115,49,NO,\n2026-04-06,19:40,128,123,124,49,NO,\n2026-04-07,08:15,138,133,135,44,NO,\n2026-04-07,19:30,141,135,136,52,NO,\n2026-04-08,08:20,142,137,137,56,NO,\n2026-04-08,19:35,141,137,136,50,NO,\n2026-04-09,08:18,140,136,136,53,NO,\n2026-04-09,19:40,139,133,135,44,NO,\n2026-04-10,08:22,138,133,136,47,NO,\n2026-04-10,09:50,137,133,135,54,YES,Turn 3 - Stage 1 satisfied\n2026-04-10,13:30,120,116,117,42,NO,\n2026-04-10,19:40,128,125,124,50,NO,\n2026-04-11,08:15,138,134,135,47,NO,\n2026-04-11,19:30,140,134,135,50,NO,\n2026-04-12,08:20,139,134,136,45,NO,\n2026-04-12,19:35,138,134,134,48,NO,\n2026-04-13,08:18,137,131,133,58,NO,\n2026-04-13,19:40,136,132,133,45,NO,\n2026-04-14,08:20,135,130,131,51,NO,\n2026-04-14,09:30,134,130,130,44,YES,Turn 4 - Stage 1 satisfied\n2026-04-14,13:45,119,114,116,46,NO,\n2026-04-14,19:30,128,123,124,50,NO,\n2026-04-15,08:15,136,131,131,48,NO,\n2026-04-15,19:30,135,131,131,53,NO,\n2026-04-16,08:20,134,129,132,49,NO,\n2026-04-16,19:35,133,130,129,49,NO,\n2026-04-17,08:18,132,126,129,44,NO,\n2026-04-17,19:40,132,127,130,49,NO,\n2026-04-18,08:22,132,127,128,57,NO,\n2026-04-18,10:15,131,126,128,45,YES,Turn 5 - Stage 1 satisfied\n2026-04-18,14:00,119,114,115,56,NO,\n2026-04-18,19:40,128,125,124,45,NO,\n2026-04-19,08:18,126,120,121,45,NO,\n2026-04-19,19:30,125,121,121,55,NO,\n2026-04-20,08:18,124,119,119,44,NO,\n2026-04-20,19:30,123,117,119,43,NO,\n2026-04-21,08:18,122,118,120,44,NO,\n2026-04-21,19:30,121,116,119,57,NO,\n2026-04-22,08:18,120,114,115,47,NO,\n2026-04-22,19:30,119,113,116,56,NO,\n2026-04-23,08:18,118,113,114,57,NO,\n2026-04-23,19:30,117,113,112,43,NO,\n2026-04-24,08:18,116,113,112,58,NO,\n2026-04-24,19:30,115,111,113,58,NO,\n2026-04-25,08:18,114,110,110,49,NO,\n2026-04-25,19:30,113,107,109,43,NO,\n2026-04-26,08:18,112,108,108,58,NO,\n2026-04-26,19:30,111,107,107,52,NO,\n2026-04-27,08:18,110,106,106,51,NO,\n2026-04-27,19:30,109,103,104,42,NO,\n2026-04-28,08:18,108,102,103,44,NO,\n2026-04-28,19:30,107,103,105,53,NO,\n2026-04-29,08:18,106,101,103,47,NO,\n2026-04-29,19:30,105,100,102,58,NO,\n2026-04-30,08:18,104,98,101,45,NO,\n2026-04-30,19:30,103,100,101,45,NO,\n\n# 30-DAY PILE - REALISTIC BIOLOGY\n# Turns happen 1-2h after stage satisfaction\n# Each turn entry shows PRE-turn (hot) temp\n# Post-turn drops below 131F then quickly rebuilds in next cycle";
@@ -1713,6 +1863,9 @@ function loadSamplePileIfFirstRun(){
       name:parsed.pile.name,
       created:parsed.pile.created?new Date(parsed.pile.created).toISOString():new Date().toISOString(),
       status:"active",
+      // Group D: marks onboarding demo data so it is never uploaded to a real account.
+      // Users who ran an earlier build have no flag, hence the name fallback in isSamplePile.
+      isSample:true,
       materials:parsed.materials||{highN:[],greens:[],browns:[]},
       entries:parsed.entries||[]
     };
@@ -2012,6 +2165,8 @@ function renderPileCard(p){
     var timerHtml="";
     if(isTurnNow){
       timerHtml='<div class="mono" style="margin-top:0.5rem;color:#ff0000;font-size:0.85rem">&#9888; TURN NOW</div>';
+    } else if(t&&t.betweenCycles){
+      timerHtml='<div class="mono" style="margin-top:0.5rem;color:#4ade80;font-size:0.78rem">&#10003; TURNED · CYCLE '+(t.completedCycleNum||"")+' COMPLETE</div>';
     } else if(t&&(t.complete||t.stageDone)){
       timerHtml='<div class="mono" style="margin-top:0.5rem;color:#4ade80;font-size:0.78rem">&#10003; CLEAR TO TURN</div>';
     } else if(t&&!t.turnNow){
@@ -2035,7 +2190,11 @@ function renderPileCard(p){
       if(cyclesPC&&cyclesPC.length){
         var curCyc=cyclesPC[cyclesPC.length-1];
         var displayIdx=cyclesPC.length;
-        var barHTML=renderActiveCycleBar(curCyc,displayIdx,p,sorted,lat);
+        // A closed last cycle means the pile was just turned (between cycles): show the
+        // COMPLETED bar (green ✓ COMPLETE) rather than the active "TURN PILE" bar.
+        var barHTML=curCyc.turnEntry
+          ?renderCompletedCycleBar(curCyc.entries,curCyc.turnEntry,displayIdx)
+          :renderActiveCycleBar(curCyc,displayIdx,p,sorted,lat);
         // If stale, desaturate by wrapping in a grey-tint overlay.
         if(isStale){
           stageBadges='<div style="margin-top:0.3rem;position:relative;opacity:0.45;filter:grayscale(0.85)">'+barHTML+'</div>'+
@@ -2138,6 +2297,10 @@ function renamePile(id){
   newName=newName.trim();
   if(!newName){alert("Pile name cannot be empty");return;}
   p.name=newName;
+  // A rename is a real edit, but this path has no activeId so save() would not stamp it.
+  // Without the stamp a merge could revert the rename to an older remote copy, and a
+  // renamed demo pile would still look like sample data to isSamplePile.
+  p.lastModified=Date.now();
   save();
   renderHome();
   if(activeId===id){
@@ -2157,9 +2320,13 @@ function showToast(msg,undoFn,duration){
   var toast=document.createElement("div");
   toast.className="toast";
   toast.id="active-toast";
-  toast.innerHTML='<span class="toast-msg">'+msg+'</span><button class="toast-btn" id="toast-undo-btn">UNDO</button>';
+  // The UNDO button is only rendered when there is something to undo. Before this it was
+  // hardcoded, so any informational toast (e.g. Group D's import confirmation) showed a
+  // dead UNDO that did nothing.
+  toast.innerHTML='<span class="toast-msg">'+msg+'</span>'+(undoFn?'<button class="toast-btn" id="toast-undo-btn">UNDO</button>':'');
   container.appendChild(toast);
-  document.getElementById("toast-undo-btn").onclick=function(){
+  var undoBtn=document.getElementById("toast-undo-btn");
+  if(undoBtn)undoBtn.onclick=function(){
     if(undoFn)undoFn();
     hideToast();
   };
@@ -2443,6 +2610,29 @@ function loadRecipe(id){
   var r=recipes.find(function(x){return x.id===id;});if(!r)return;
   newMaterials=JSON.parse(JSON.stringify(r.materials));
   CATS.forEach(function(cat){renderCatItems(cat,"new");});updateTotalVol();
+}
+// Settings > Saved Recipes: same list as New Pile, but routes into the New Pile view
+// with the recipe applied. Settings only — no home button.
+function renderSettingsRecipes(){
+  var card=document.getElementById("s-recipes-card");
+  var list=document.getElementById("s-recipes-list");
+  if(!card||!list)return;
+  if(!recipes.length){
+    list.innerHTML='<div class="mono" style="font-size:0.7rem;color:#555;padding:0.5rem 0">No saved recipes yet. Save one from a pile\'s recipe panel.</div>';
+    return;
+  }
+  list.innerHTML=recipes.map(function(r){
+    return '<div onclick="loadRecipeFromSettings(\''+r.id+'\')" style="display:flex;justify-content:space-between;align-items:center;padding:0.65rem 0.4rem;border-top:1px solid #111;cursor:pointer;border-radius:2px" onmouseover="this.style.background=\'#111\'" onmouseout="this.style.background=\'transparent\'">'+
+      '<div><div style="font-size:0.85rem;color:#ccc">'+r.name+'</div>'+
+      '<div class="mono" style="font-size:0.62rem;color:#555">'+totVol(r.materials).toFixed(1)+' gal &middot; '+r.saved+'</div></div>'+
+      '<span class="mono" style="font-size:0.62rem;color:#555;flex-shrink:0">LOAD ›</span>'+
+    '</div>';
+  }).join("");
+}
+function loadRecipeFromSettings(id){
+  closeSettings();
+  showView("setup");   // renders a fresh New Pile form (+ recipes panel)
+  loadRecipe(id);      // overlay the chosen recipe's materials onto that form
 }
 
 function validatePileSetup(){
@@ -2756,6 +2946,31 @@ function renderStatusCard(pile,sorted,lat,band){
     heroEl.innerHTML='<div style="padding:1.25rem;text-align:center"><div class="mono" style="color:#555;font-size:0.85rem">NO DATA YET - LOG YOUR FIRST ENTRY</div></div>';
     detailEl.innerHTML="";return;
   }
+  if(t&&t.betweenCycles){
+    // Pile was just turned; the last cycle is complete and no new reading has started the
+    // next cycle. Show a completion state instead of nagging TURN NOW.
+    card.style.borderLeftColor="#4ade80";
+    var doneStageLbl=t.completedStage?(" · "+t.completedStage+" SATISFIED"):"";
+    var nextCycleNum=(t.completedCycleNum||0)+1;
+    var cl=document.getElementById("status-cycle-label");
+    if(cl)cl.textContent="CYCLE "+(t.completedCycleNum||"")+" COMPLETE";
+    heroEl.innerHTML='<div style="padding:1rem 1.25rem;border-top:1px solid #111;border-bottom:1px solid #111">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+        '<div>'+
+          '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">AVG TEMP</div>'+
+          '<div class="mono" style="font-size:2.8rem;color:#4ade80;font-weight:bold;line-height:1">'+dispStr(avgCore(lat))+'</div>'+
+          '<div style="font-size:0.8rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">CYCLE '+(t.completedCycleNum||"")+' COMPLETE'+doneStageLbl+'</div>'+
+        '</div>'+
+        '<div style="text-align:right">'+
+          '<div style="font-size:0.62rem;color:#555;font-family:Share Tech Mono,monospace;letter-spacing:0.1em;margin-bottom:0.2rem">ACTION</div>'+
+          '<div class="mono" style="font-size:1.4rem;color:#4ade80;font-weight:bold;line-height:1">✓ TURNED</div>'+
+          '<div style="font-size:0.72rem;color:#555;margin-top:0.25rem;font-family:Share Tech Mono,monospace">LOG A READING TO START CYCLE '+nextCycleNum+'</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+    detailEl.innerHTML='<div class="status-detail"><span class="status-key">SINCE LAST TURN</span><span class="status-val">'+sinceStr+'</span></div>';
+    return;
+  }
   if(!band){
     band={label:"COOLING",color:"#60a5fa",hours:0,min:0,max:130};
   }
@@ -2995,6 +3210,8 @@ function renderChart(sorted){
   var section=document.getElementById("chart-section");
   if(!sorted.length){section.classList.add("hidden");return;}
   section.classList.remove("hidden");
+  var expBtn=document.getElementById("btn-toggle-expand");
+  if(expBtn){expBtn.textContent=chartExpand==="expand"?"EXPAND":"FIT";expBtn.style.color=chartExpand==="expand"?"#38bdf8":"#555";}
   var monthNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   var lastDate="";
   // (labels array removed — chart now uses time-based x values)
@@ -3020,12 +3237,15 @@ function renderChart(sorted){
     var n=sorted.length;
     var daySpan=Math.ceil(xMaxVal)+1;
     var isLandscapeW=window.innerWidth>window.innerHeight;
-    if(daySpan>7){
-      // Fit a target number of days to the visible width: 12 in landscape, 6 in portrait
-      // (built around the 3-day stage rhythm). Each day's pixel width = chart area / target.
-      var targetDays=isLandscapeW?24:12;
+    var wrapEl=document.getElementById("chart-scroll-wrap");
+    var wrapW=wrapEl?wrapEl.clientWidth:600;if(wrapW<100)wrapW=600;
+    if(chartExpand==="expand"&&daySpan>7){
+      // EXPANDED: fixed px-per-day so congested logs stay readable (horizontally
+      // scrollable). Landscape uses more days-across and a lower per-day floor so it is
+      // ~28% narrower than before (was too long); portrait stays denser.
+      var targetDays=isLandscapeW?32:17;
       var chartArea=Math.max(320,(window.innerWidth||700)-80);
-      var pxPerDay=Math.max(50,Math.floor(chartArea/targetDays));
+      var pxPerDay=Math.max(isLandscapeW?36:35,Math.floor(chartArea/targetDays));
       var totalW=Math.max(500,daySpan*pxPerDay);
       chartInner.style.width=totalW+"px";
       chartCanvas.style.width=totalW+"px";
@@ -3033,15 +3253,16 @@ function renderChart(sorted){
       chartCanvas.height=isLandscapeW?380:280;
       if(hintEl)hintEl.style.display=daySpan>targetDays?"block":"none";
     } else {
-      var wrap=document.getElementById("chart-scroll-wrap");
-      var w=wrap?wrap.clientWidth:600;
-      if(w<100)w=600;
-      chartInner.style.width=w+"px";
-      chartCanvas.style.width=w+"px";
-      chartCanvas.width=w;
-      var isLandscape2=window.innerWidth>window.innerHeight;
-      chartCanvas.height=isLandscape2?380:280;
-      if(hintEl)hintEl.style.display="none";
+      // FIT: landscape fits the whole lifespan into the viewport width. Portrait would be
+      // too cramped at viewport width, so it uses a LANDSCAPE-equivalent width (the device's
+      // larger dimension) — wider than the phone, so it scrolls to the latest period by
+      // default with earlier history reachable by scrolling back.
+      var fitW=isLandscapeW?wrapW:Math.max(wrapW,Math.max(window.innerWidth,window.innerHeight)-40);
+      chartInner.style.width=fitW+"px";
+      chartCanvas.style.width=fitW+"px";
+      chartCanvas.width=fitW;
+      chartCanvas.height=isLandscapeW?380:280;
+      if(hintEl)hintEl.style.display=(fitW>wrapW+4)?"block":"none";
     }
   }
   var cMin=tempUnit==="C"?Math.round(toC(80)):80;
@@ -3063,6 +3284,17 @@ function renderChart(sorted){
     if(dayNum<1)dayNum=1;
     dayTicks.push({x:tx,label:"Day "+dayNum});
   });
+  // In FIT mode a long lifespan overprints daily "Day N" labels, so thin them to roughly
+  // one label per ~55px of chart width. EXPAND mode keeps every day labeled.
+  var axisTicks=dayTicks;
+  if(chartExpand!=="expand"&&dayTicks.length>1){
+    var wpx2=(function(){var w=document.getElementById("chart-scroll-wrap");var v=w?w.clientWidth:600;return v<100?600:v;})();
+    var maxLabels=Math.max(4,Math.floor(wpx2/55));
+    if(dayTicks.length>maxLabels){
+      var stride=Math.ceil(dayTicks.length/maxLabels);
+      axisTicks=dayTicks.filter(function(_,i){return i%stride===0||i===dayTicks.length-1;});
+    }
+  }
   var turnAnnotations={};
   var firstId=sorted.length?sorted[0].id:null;
   turnDays.forEach(function(idx,i){
@@ -3080,29 +3312,39 @@ function renderChart(sorted){
   if(sorted.length&&!sorted[0].turned){
     turnAnnotations["built"]={type:"line",xMin:xVal(sorted[0]),xMax:xVal(sorted[0]),borderColor:"#4ade80",borderWidth:2,borderDash:[4,3]};
   }
-  // Blue "watered" lines (distinct from orange turn lines), labeled with amount/qty.
+  // Blue "watered" lines, labeled VERTICALLY along the line as "W Light/Medium/Heavy"
+  // (compact so vertical text barely takes horizontal room); a 2-level y-stagger keeps
+  // immediate neighbours from touching.
+  var waterSeq=0;
   sorted.forEach(function(e,i){
     if(e.watered){
       var wx=xVal(e);
       var amt=e.waterAmount?e.waterAmount.charAt(0).toUpperCase()+e.waterAmount.slice(1):"";
-      var qty=(e.waterQty!=null)?(amt?" "+e.waterQty:e.waterQty):"";
-      var lbl="WATER"+(amt||qty?": "+amt+qty:"");
+      var qty=(e.waterQty!=null)?(amt?" "+e.waterQty:String(e.waterQty)):"";
+      var line2=(amt+qty).trim();
+      var wshort=line2?("W "+line2):"W";
+      // Sit in the empty BOTTOM zone (anchor at bottom, lifted up so it isn't clipped) with
+      // a SOLID background so the dotted line is hidden behind the label and stays readable.
+      var yAdj=-60-(waterSeq%2)*55;waterSeq++;
       turnAnnotations["water"+i]={type:"line",xMin:wx,xMax:wx,borderColor:"#3b82f6",borderWidth:2,borderDash:[2,2],
-        label:{display:true,content:lbl,position:"start",backgroundColor:"rgba(59,130,246,0.15)",color:"#3b82f6",font:{size:8},padding:2}};
+        label:{display:true,content:wshort,position:"start",rotation:90,yAdjust:yAdj,backgroundColor:"#0e1c38",borderColor:"#3b82f6",borderWidth:1,color:"#93c5fd",font:{size:8},padding:2}};
     }
   });
+  // A dotted vertical gridline at EVERY calendar day across the pile's lifespan (not just
+  // days that happen to have a reading), so spacing is even with no missing lines. Step by
+  // calendar date (not fixed ms) to stay on local midnights across DST.
   var dayAnnotations={};
-  var seenDay={};
-  sorted.forEach(function(e,i){
-    var d=new Date(e.ts);
-    var dayKey=d.getFullYear()+"-"+d.getMonth()+"-"+d.getDate();
-    if(seenDay[dayKey])return;
-    seenDay[dayKey]=true;
-    var midnight=new Date(d.getFullYear(),d.getMonth(),d.getDate(),0,0,0,0).getTime();
-    var dx=xValTs(midnight);
-    if(dx<0)return;
-    dayAnnotations["day"+dayKey]={type:"line",xMin:dx,xMax:dx,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
-  });
+  if(sorted.length){
+    var fdD=new Date(sorted[0].ts);
+    var ldD=new Date(sorted[sorted.length-1].ts);
+    var curD=new Date(fdD.getFullYear(),fdD.getMonth(),fdD.getDate(),0,0,0,0);
+    var endD=new Date(ldD.getFullYear(),ldD.getMonth(),ldD.getDate(),0,0,0,0).getTime();
+    while(curD.getTime()<=endD){
+      var dx=xValTs(curD.getTime());
+      if(dx>=0)dayAnnotations["day"+curD.getTime()]={type:"line",xMin:dx,xMax:dx,borderColor:"#555555",borderWidth:0.8,borderDash:[2,4]};
+      curD.setDate(curD.getDate()+1);
+    }
+  }
   var tempDatasets;
   if(tempMode==="three"&&shadeProbes){
     // SHADED PROBE MODE: a filled band between the coldest and hottest probe, with
@@ -3112,9 +3354,9 @@ function renderChart(sorted){
     if(bandRowsS.length){
       tempDatasets=[
         {label:"Probe max",data:bandRowsS.map(function(e){var v=[e.core1,e.core2,e.core3,e.core4].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.max.apply(null,v))};}),
-          borderColor:"rgba(255,255,255,0.85)",borderWidth:2,backgroundColor:"rgba(255,255,255,0.13)",pointRadius:0,fill:"+1",tension:0.3,yAxisID:"y",order:2},
+          borderColor:"rgba(239,68,68,0.9)",borderWidth:2,backgroundColor:"rgba(239,68,68,0.16)",pointRadius:0,fill:"+1",tension:0.3,yAxisID:"y",order:2},
         {label:"Probe min",data:bandRowsS.map(function(e){var v=[e.core1,e.core2,e.core3,e.core4].filter(function(x){return x!=null&&x>0;});return {x:xVal(e),y:disp(Math.min.apply(null,v))};}),
-          borderColor:"rgba(255,255,255,0.85)",borderWidth:2,backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,yAxisID:"y",order:3}
+          borderColor:"rgba(239,68,68,0.9)",borderWidth:2,backgroundColor:"transparent",pointRadius:0,fill:false,tension:0.3,yAxisID:"y",order:3}
       ];
     } else {
       tempDatasets=[
@@ -3153,7 +3395,23 @@ function renderChart(sorted){
   tempChart=new Chart(document.getElementById("temp-chart"),{
     type:"line",
     data:{datasets:tempDatasets.concat([
-      {label:"Moisture %",data:sorted.filter(function(e){return e.moisture!=null;}).map(function(e){return {x:xVal(e),y:e.moisture};}),borderColor:"#1e88e5",
+      {label:"Moisture %",data:(function(){
+        // Moisture dries out GRADUALLY (smooth curve) but rises INSTANTLY when watered.
+        // For any rise, insert a "hold" point at the previous level just before the new
+        // reading so the line holds flat then steps vertically up; drops stay curved.
+        var mp=[],prevX=null,prevY=null;
+        sorted.forEach(function(e){
+          if(e.moisture==null)return;
+          var x=xVal(e),y=e.moisture;
+          if(prevY!=null&&y>prevY){
+            var holdX=prevX!=null?x-Math.min(0.03,(x-prevX)*0.5):x;
+            mp.push({x:holdX,y:prevY});
+          }
+          mp.push({x:x,y:y});
+          prevX=x;prevY=y;
+        });
+        return mp;
+      })(),borderColor:"#1e88e5",
         backgroundColor:"rgba(30,136,229,0.12)",fill:true,tension:0.3,
         pointRadius:3,pointBackgroundColor:"#1e88e5",spanGaps:true,yAxisID:"y2",order:10}
     ].concat(showDelta&&sorted.some(function(e){return e.ambient!=null&&avgCore(e)!=null;})?[
@@ -3224,10 +3482,10 @@ function renderChart(sorted){
       },
       scales:{
         x:{type:"linear",min:0,max:xMaxVal,
-          afterBuildTicks:function(axis){axis.ticks=dayTicks.map(function(dt){return{value:dt.x};});return;},
+          afterBuildTicks:function(axis){axis.ticks=axisTicks.map(function(dt){return{value:dt.x};});return;},
           ticks:{color:"#555",font:{size:11},autoSkip:false,
             callback:function(v){
-              for(var i=0;i<dayTicks.length;i++){if(Math.abs(dayTicks[i].x-v)<0.05)return dayTicks[i].label;}
+              for(var i=0;i<axisTicks.length;i++){if(Math.abs(axisTicks[i].x-v)<0.05)return axisTicks[i].label;}
               return "";
             }},
           grid:{display:false}},
@@ -3246,6 +3504,7 @@ function renderChart(sorted){
     var wrap=document.getElementById("chart-scroll-wrap");
     if(wrap)wrap.scrollLeft=wrap.scrollWidth;
   },50);
+  if(miniChartsOpen)renderMiniCharts(sorted);   // keep mini charts in sync when open
 }
 function getPileAssessment(pile,sorted){
   if(!sorted||sorted.length<2)return null;
@@ -3400,6 +3659,52 @@ function toggleChart(){
   var pile=getActivePile();if(!pile)return;
   renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
 }
+function toggleChartExpand(){
+  chartExpand=chartExpand==="expand"?"fit":"expand";
+  localStorage.setItem("ca_chartExpand",chartExpand);
+  var btn=document.getElementById("btn-toggle-expand");
+  if(btn){btn.textContent=chartExpand==="expand"?"EXPAND":"FIT";btn.style.color=chartExpand==="expand"?"#38bdf8":"#555";}
+  var pile=getActivePile();if(!pile)return;
+  renderChart(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+}
+function toggleMiniCharts(){
+  miniChartsOpen=!miniChartsOpen;
+  var body=document.getElementById("minicharts-body");
+  var caret=document.getElementById("minicharts-caret");
+  var lbl=document.getElementById("minicharts-toggle");
+  if(body)body.style.display=miniChartsOpen?"block":"none";
+  if(caret)caret.innerHTML=miniChartsOpen?"▾":"▸";
+  if(lbl)lbl.textContent=miniChartsOpen?"hide":"show";
+  if(miniChartsOpen){
+    var pile=getActivePile();
+    if(pile)renderMiniCharts(pile.entries.slice().sort(function(a,b){return new Date(a.ts)-new Date(b.ts);}));
+  }
+}
+// Lazy-render the two mini charts (probe spread + heating rate). Only builds when the
+// section is expanded; destroys prior instances so switching piles doesn't leak canvases.
+function renderMiniCharts(sorted){
+  if(!miniChartsOpen||typeof Chart==="undefined")return;
+  var firstTs=sorted.length?new Date(sorted[0].ts).getTime():Date.now();
+  function xv(e){return (new Date(e.ts).getTime()-firstTs)/86400000;}
+  var spreadPts=[];
+  sorted.forEach(function(e){var s=coreSpread(e);if(s!=null){if(tempUnit==="C")s=Math.round(s*5/9*10)/10;spreadPts.push({x:xv(e),y:s});}});
+  var rs=heatingRateSeries(sorted);var ratePts=[];
+  sorted.forEach(function(e,i){if(rs[i]!=null)ratePts.push({x:xv(e),y:rs[i]});});
+  if(spreadChart){spreadChart.destroy();spreadChart=null;}
+  var sc=document.getElementById("spread-chart");
+  if(sc)spreadChart=new Chart(sc,{type:"line",
+    data:{datasets:[{label:"Spread",data:spreadPts,borderColor:"#e879f9",backgroundColor:"rgba(232,121,249,0.10)",fill:true,tension:0.3,pointRadius:2,pointBackgroundColor:"#e879f9",spanGaps:true}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},
+      scales:{x:{type:"linear",ticks:{color:"#555",font:{size:9}},grid:{color:"#111"}},
+        y:{beginAtZero:true,ticks:{color:"#888",font:{size:9},callback:function(v){return v+"°";}},grid:{color:"#111"},title:{display:true,text:"Spread °"+tempUnit,color:"#555",font:{size:9}}}}}});
+  if(rateChart){rateChart.destroy();rateChart=null;}
+  var rc=document.getElementById("rate-chart");
+  if(rc)rateChart=new Chart(rc,{type:"line",
+    data:{datasets:[{label:"Rate",data:ratePts,borderColor:"#22d3ee",backgroundColor:"transparent",tension:0.3,pointRadius:2,pointBackgroundColor:"#22d3ee",spanGaps:true}]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},
+      scales:{x:{type:"linear",ticks:{color:"#555",font:{size:9}},grid:{color:"#111"}},
+        y:{suggestedMin:-6,suggestedMax:8,ticks:{color:"#22d3ee",font:{size:9},callback:function(v){return v+"°/h";}},grid:{color:"#111"},title:{display:true,text:"°"+tempUnit+"/h",color:"#555",font:{size:9}}}}}});
+}
 
 function renderRecipeSummary(pile){
   var tot=totVol(pile.materials);
@@ -3549,6 +3854,7 @@ function renderLogTable(sorted,pile){
   var showC4=sorted.some(function(e){return e.core4!=null;});
   var headers=["DAY","DATE","TIME","AMB"];
   if(showApi)headers.push("AMB API");
+  headers.push("AVG");   // core average, placed right after the ambient columns
   headers.push("C1","C2","C3");
   if(showC4)headers.push("C4");
   headers.push("MOIST","TURN","");
@@ -3563,12 +3869,19 @@ function renderLogTable(sorted,pile){
     var dayNum=Math.floor((entryDayOnly-earliestDay)/86400000)+1;
     var apiCell=showApi?'<td class="mono" style="padding:0.3rem 0.4rem;color:#fbbf24;font-size:0.8rem">'+(en.ambientApi!=null?dispStr(en.ambientApi):"-")+'</td>':"";
     var c4Cell=showC4?'<td class="mono" style="padding:0.3rem 0.4rem;color:#22d3ee;font-size:0.8rem">'+(en.core4!=null?dispStr(en.core4):"-")+'</td>':"";
+    // AVG column = mean of the present probes (avgCore), colored by its band. Placed
+    // after the ambient columns, before the individual cores.
+    var avgV=avgCore(en);
+    var avgB=getBand(avgV);
+    var avgColor=avgB?avgB.color:(avgV!=null?"#60a5fa":"#555");
+    var avgCell='<td class="mono" style="padding:0.3rem 0.4rem;color:'+avgColor+';font-weight:bold;font-size:0.8rem">'+(avgV!=null?dispStr(avgV):"-")+'</td>';
     return '<tr style="border-bottom:1px solid #080808">'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+dayNum+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+en.date+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#555;font-size:0.8rem">'+(en.time||"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#f59e0b;font-size:0.8rem">'+(en.ambient!=null?dispStr(en.ambient):"-")+'</td>'+
       apiCell+
+      avgCell+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#ff4444;font-weight:bold;font-size:0.8rem">'+(en.core1!=null?dispStr(en.core1):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#4ade80;font-size:0.8rem">'+(en.core2!=null?dispStr(en.core2):"-")+'</td>'+
       '<td class="mono" style="padding:0.3rem 0.4rem;color:#a855f7;font-size:0.8rem">'+(en.core3!=null?dispStr(en.core3):"-")+'</td>'+
@@ -3608,27 +3921,37 @@ function validateEntry(){
   var top=fromInput(topEl.value);
   var bottom=fromInput(botEl.value);
   var core4=c4El?fromInput(c4El.value):null;
-  if(core==null&&top==null&&bottom==null&&core4==null){
+  // Turn/water/moisture-only entries are allowed. Keep an "at least one field present"
+  // guard, but count moisture (unless skipped), a turn, or a watering as a valid field —
+  // don't demand a temperature.
+  var hasTemp=core!=null||top!=null||bottom!=null||core4!=null;
+  var mSkipEl=document.getElementById("f-moisture-skip");
+  var hasMoisture=!(mSkipEl&&mSkipEl.checked);
+  var fTurnedEl=document.getElementById("f-turned");
+  var fWateredEl=document.getElementById("f-watered");
+  var hasTurned=fTurnedEl&&fTurnedEl.checked;
+  var hasWatered=fWateredEl&&fWateredEl.checked;
+  if(!hasTemp&&!hasMoisture&&!hasTurned&&!hasWatered){
     coreEl.classList.add("error");
-    errors.push("Enter at least one temperature");
-  } else {
-    var maxF=250,minF=0;
-    if(core!=null&&(core<minF||core>maxF)){
-      coreEl.classList.add("error");
-      errors.push("Core temperature out of range (0-250"+unitLbl()+")");
-    }
-    if(top!=null&&(top<minF||top>maxF)){
-      topEl.classList.add("error");
-      errors.push("Top temperature out of range (0-250"+unitLbl()+")");
-    }
-    if(bottom!=null&&(bottom<minF||bottom>maxF)){
-      botEl.classList.add("error");
-      errors.push("Bottom temperature out of range (0-250"+unitLbl()+")");
-    }
-    if(core4!=null&&(core4<minF||core4>maxF)){
-      if(c4El)c4El.classList.add("error");
-      errors.push("Core 4 temperature out of range (0-250"+unitLbl()+")");
-    }
+    errors.push("Enter a temperature, moisture, turn, or watering");
+  }
+  // Range-check any temperatures that ARE present (all optional now).
+  var maxF=250,minF=0;
+  if(core!=null&&(core<minF||core>maxF)){
+    coreEl.classList.add("error");
+    errors.push("Core temperature out of range (0-250"+unitLbl()+")");
+  }
+  if(top!=null&&(top<minF||top>maxF)){
+    topEl.classList.add("error");
+    errors.push("Top temperature out of range (0-250"+unitLbl()+")");
+  }
+  if(bottom!=null&&(bottom<minF||bottom>maxF)){
+    botEl.classList.add("error");
+    errors.push("Bottom temperature out of range (0-250"+unitLbl()+")");
+  }
+  if(core4!=null&&(core4<minF||core4>maxF)){
+    if(c4El)c4El.classList.add("error");
+    errors.push("Core 4 temperature out of range (0-250"+unitLbl()+")");
   }
   var errEl=document.getElementById("entry-error");
   if(errors.length){
@@ -4142,6 +4465,10 @@ function exportPDF(){
       doc.text("Date: "+t.date+" "+t.time+(t.core1?" | Core at turn: "+t.core1+"F":"")+peakStr+(t.activeBand?" | "+t.activeBand.label:"")+coolingStr,M+4,y);y+=4;
       if(t.sinceMs!=null){doc.text("Since previous turn: "+fmtHours(t.sinceMs),M+4,y);y+=4;}
       if(t.highestSatisfied){doc.text("Stage satisfied: "+t.highestSatisfied,M+4,y);y+=4;}
+      if(t.watered){
+        var twa=t.waterAmount?t.waterAmount.charAt(0).toUpperCase()+t.waterAmount.slice(1):"Yes";
+        doc.text("Watered: "+twa+(t.waterQty!=null?" ("+t.waterQty+")":""),M+4,y);y+=4;
+      }
       // Thermophilic-started line for this cycle (which reading the 72h counts from).
       if(pkCycle&&pkCycle.entries.length){
         var pkIndep=computeIndependentStages(pkCycle.entries);
@@ -4173,14 +4500,16 @@ function exportPDF(){
     var hasCore4=sortedEntries.some(function(e){return e.core4!=null;});
     var hasAmbM=sortedEntries.some(function(e){return e.ambient!=null;});
     var hasAmbApi=sortedEntries.some(function(e){return e.ambientApi!=null;});
-    // Build columns dynamically so optional ones (ambient manual/API, C4) only appear
-    // when there's data. Widths are weights; x-offsets computed to fit CW.
+    var hasWater=sortedEntries.some(function(e){return e.watered;});
+    // Build columns dynamically so optional ones (ambient manual/API, C4, Water) only
+    // appear when there's data. Widths are weights; x-offsets computed to fit CW.
     var colDefs=[["#",0.7],["Date",2.6],["Time",1.7]];
     if(hasAmbM)colDefs.push(["AmbM",1.4]);
     if(hasAmbApi)colDefs.push(["AmbA",1.4]);
     colDefs.push(["C1",1.3]);colDefs.push(["C2",1.3]);colDefs.push(["C3",1.3]);
     if(hasCore4)colDefs.push(["C4",1.3]);
     colDefs.push([basisLabel,1.6]);colDefs.push(["Moist",1.6]);colDefs.push(["Turn",1.3]);
+    if(hasWater)colDefs.push(["Water",1.9]);
     var totalWeight=colDefs.reduce(function(s,c){return s+c[1];},0);
     var cols=[];var xAcc=0;
     colDefs.forEach(function(c){cols.push([c[0],Math.round(xAcc*100)/100]);xAcc+=(c[1]/totalWeight)*CW;});
@@ -4214,6 +4543,14 @@ function exportPDF(){
       doc.setTextColor(55,55,55);
       doc.text(e.moisture!=null?e.moisture+"%":"-",colX("Moist"),yLocal);
       if(e.turned){var tc=colColor("#f97316");doc.setTextColor(tc[0],tc[1],tc[2]);doc.text((sortedEntries.length&&e.id===sortedEntries[0].id)?"BUILT":"YES",colX("Turn"),yLocal);doc.setTextColor(55,55,55);}
+      if(hasWater){
+        var wtxt="-";
+        if(e.watered){
+          var wa=e.waterAmount?e.waterAmount.charAt(0).toUpperCase()+e.waterAmount.slice(1):"Yes";
+          wtxt=wa+(e.waterQty!=null?" "+e.waterQty:"");
+        }
+        var wc=colColor("#3b82f6");doc.setTextColor(wc[0],wc[1],wc[2]);doc.text(wtxt,colX("Water"),yLocal);doc.setTextColor(55,55,55);
+      }
       yLocal+=rowH;
       if(hasNote){
         doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(110,110,110);
@@ -4315,6 +4652,7 @@ function exportPDF(){
           },(function(){
             var ta={};
             var pdfFirstId=sortedEntries.length?sortedEntries[0].id:null;
+            var waterSeqPdf=0;
             sortedEntries.forEach(function(e,i){
               if(e.id===pdfFirstId){
                 ta["built"]={type:"line",xMin:i,xMax:i,borderColor:"#16a34a",borderWidth:1.5,borderDash:[4,3]};
@@ -4322,7 +4660,14 @@ function exportPDF(){
                 ta["turn"+i]={type:"line",xMin:i,xMax:i,borderColor:"#f97316",borderWidth:1.5,label:{display:true,content:"TURN",position:"end",backgroundColor:"rgba(249,115,22,0.15)",color:"#c2410c",font:{size:7},padding:1,rotation:90}};
               }
               if(e.watered){
-                ta["water"+i]={type:"line",xMin:i,xMax:i,borderColor:"#3b82f6",borderWidth:1.2,borderDash:[2,2],label:{display:true,content:"WATER",position:"start",backgroundColor:"rgba(59,130,246,0.15)",color:"#2563eb",font:{size:7},padding:1,rotation:90}};
+                // Vertical "W Light/Medium/Heavy" label along the line, 2-level y-stagger
+                // so close waterings don't overprint — same idea as the on-screen chart.
+                var wamt=e.waterAmount?e.waterAmount.charAt(0).toUpperCase()+e.waterAmount.slice(1):"";
+                var wq=(e.waterQty!=null)?(wamt?" "+e.waterQty:String(e.waterQty)):"";
+                var wl2=(wamt+wq).trim();
+                var wshort=wl2?("W "+wl2):"W";
+                var wy=-34-(waterSeqPdf%2)*32;waterSeqPdf++;
+                ta["water"+i]={type:"line",xMin:i,xMax:i,borderColor:"#3b82f6",borderWidth:1.2,borderDash:[2,2],label:{display:true,content:wshort,position:"start",rotation:90,yAdjust:wy,backgroundColor:"#ffffff",borderColor:"#3b82f6",borderWidth:1,color:"#2563eb",font:{size:7},padding:1}};
               }
             });
             return ta;
@@ -4372,6 +4717,11 @@ function driveLabelShort(){
 }
 
 function updateDriveUI(){
+  // Group F: PocketBase owns the shared status line whenever a session exists. The
+  // complementary guard in updatePbUI (it yields back when !pbToken) means exactly one
+  // of the two ever renders - no recursion. Drive-only users hit none of this and see
+  // identical behavior to before, which matters because every existing user is one.
+  if(pbToken){updatePbUI();return;}
   var colors={
     disconnected:"#333",
     connecting:"#f59e0b",
@@ -4398,11 +4748,102 @@ function updateDriveUI(){
   var label=labels[driveStatus]||"LOCAL ONLY";
   if(dot)dot.style.background=color;
   if(lbl){lbl.style.color=color;lbl.textContent=label;}
-  if(btnConnect)btnConnect.style.display=(driveStatus==="disconnected"||driveStatus==="error"||driveStatus==="offline")?"inline-block":"none";
+  // Group F: Drive connect now lives only in Settings (the GOOGLE DRIVE SYNC card), so
+  // the header has room for the account button. The element and connectDrive() stay
+  // alive and callable; Group G deletes both wholesale.
+  if(btnConnect)btnConnect.style.display="none";
   if(btnSync)btnSync.style.display=driveToken?"inline-block":"none";
+  updateAccountButton();
+}
+
+// Header account button label. Shared by both status renderers so it is correct
+// regardless of which one is driving the bar.
+function updateAccountButton(){
+  var btnAcct=document.getElementById("btn-account");
+  if(btnAcct)btnAcct.textContent=(pbToken&&pbUserId)?"ACCOUNT":"SIGN IN";
 }
 
 function setStatus(s){driveStatus=s;updateDriveUI();}
+
+// PocketBase status setter (Group C). Deliberately does NOT touch driveStatus or call
+// updateDriveUI - those stay Drive-specific until Group G removes Drive. updatePbUI is
+// built in Group F, hence the typeof guard (same pattern as the Group B auth calls).
+function setPbStatus(s){pbStatus=s;if(typeof updatePbUI==="function")updatePbUI();}
+
+// Group F: the UI renderer every pb* function has been calling behind a typeof guard.
+// Covers all eight pbStatus values - "signedin" is transient (pbSetAuth sets it, then
+// pbLoad immediately moves to connecting/synced) but must be mapped or it falls through.
+function updatePbUI(){
+  updateAccountButton();
+  // Yield to Drive when there is no PocketBase session, so a Drive-only user still sees
+  // DRIVE SYNCED. Complementary to the pbToken guard at the top of updateDriveUI, so
+  // exactly one renderer runs and there is no mutual recursion.
+  if(!pbToken){
+    updateDriveUI();
+    updatePbSettingsCard();
+    return;
+  }
+  var colors={
+    signedout:"#333",
+    connecting:"#f59e0b",
+    signedin:"#f59e0b",
+    synced:"#4ade80",
+    saving:"#f59e0b",
+    saved:"#4ade80",
+    offline:"#ef4444",
+    error:"#ef4444"
+  };
+  var labels={
+    signedout:"NOT SIGNED IN",
+    connecting:"SIGNING IN...",
+    signedin:"SYNCING...",
+    synced:"ACCOUNT SYNCED",
+    saving:"SAVING...",
+    saved:"SAVED \u2713",
+    offline:"OFFLINE (local only)",
+    error:"SYNC ERROR"
+  };
+  var color=colors[pbStatus]||"#333";
+  var label=labels[pbStatus]||"NOT SIGNED IN";
+  var dot=document.getElementById("home-drive-dot");
+  var lbl=document.getElementById("home-drive-label");
+  var btnSync=document.getElementById("btn-sync-now");
+  var btnConnect=document.getElementById("btn-connect-home");
+  if(dot)dot.style.background=color;
+  if(lbl){lbl.style.color=color;lbl.textContent=label;}
+  if(btnSync)btnSync.style.display=(pbToken||driveToken)?"inline-block":"none";
+  if(btnConnect)btnConnect.style.display="none";
+  // Submit button doubles as the double-submit guard: pbLogin/pbSignup both set
+  // "connecting" and call through here before the network round-trip starts.
+  var submit=document.getElementById("auth-submit");
+  if(submit){
+    var busy=(pbStatus==="connecting");
+    submit.disabled=busy;
+    submit.style.opacity=busy?"0.5":"1";
+    submit.textContent=busy?"WORKING...":(authMode==="signup"?"CREATE ACCOUNT":"SIGN IN");
+  }
+  updatePbSettingsCard();
+}
+
+// Settings ACCOUNT card. Split out so both renderers can refresh it.
+function updatePbSettingsCard(){
+  var st=document.getElementById("s-pb-status");
+  var em=document.getElementById("s-pb-email");
+  var inBtn=document.getElementById("s-btn-signin");
+  var outBtn=document.getElementById("s-btn-signout");
+  var signedIn=!!(pbToken&&pbUserId);
+  if(st){
+    if(!signedIn){st.textContent="Not signed in";st.style.color="#555";}
+    else if(pbStatus==="error"){st.textContent="Sync error";st.style.color="#ef4444";}
+    else if(pbStatus==="offline"){st.textContent="Offline - saved on this device";st.style.color="#ef4444";}
+    else if(pbStatus==="saving"){st.textContent="Saving...";st.style.color="#f59e0b";}
+    else if(pbStatus==="connecting"){st.textContent="Connecting...";st.style.color="#f59e0b";}
+    else{st.textContent="Synced";st.style.color="#4ade80";}
+  }
+  if(em){em.textContent=signedIn&&pbEmail?pbEmail:"";em.style.display=signedIn&&pbEmail?"block":"none";}
+  if(inBtn)inBtn.style.display=signedIn?"none":"inline-block";
+  if(outBtn)outBtn.style.display=signedIn?"inline-block":"none";
+}
 
 async function driveGet(path){
   var r=await fetch("https://www.googleapis.com/drive/v3"+path,{headers:{Authorization:"Bearer "+driveToken}});
@@ -4440,6 +4881,126 @@ async function driveCreateFile(name,folderId,data){
   return r.json();
 }
 
+// ============================================================
+// SHARED CLOUD MERGE (Group C)
+// Single merge used by BOTH backends: Drive (initDriveStorage / driveSaveNow) and
+// PocketBase (pbLoad / pbSaveNow). Takes a remote object in the ca_v5 shape, merges it
+// into the live globals (piles, sites, recipes, ingHist, tempUnit, deletedPileIds), and
+// returns nothing.
+//
+// The two Drive call sites it replaced were NOT identical, so the differences are opts
+// flags rather than a silent unification - each Drive site passes the flags that
+// reproduce exactly what it did before, so Drive behavior is unchanged:
+//   mergeRecipes       - merge remote recipes by id/lastModified   (connect only)
+//   adoptRemoteSettings- take remote ingHist/tempUnit              (connect only)
+//   renameOnConflict   - same-name/different-id local pile becomes "Name - Local Copy"
+//                                                                  (connect only)
+//   strictSitesGuard   - only merge sites when remote actually carries a sites array,
+//                        so an old remote file without one cannot wipe local sites
+//                                                                  (connect only)
+//   dropSamplePiles    - discard untouched onboarding piles from the merged result
+//                        (PocketBase only). A vault written by an earlier build can
+//                        still contain the demo pile and its rename-on-conflict
+//                        duplicates; without this they would be pulled back down on
+//                        every load. Drive never passes this, so its behavior is
+//                        unchanged.
+// PocketBase passes the full (connect-style) set: its vault is always written by this
+// same app, so it always carries recipes, settings and sites.
+function mergeCloudData(remote,opts){
+  if(!remote||typeof remote!=="object")return;
+  opts=opts||{};
+  var remotePiles=remote.piles||[];
+  var remoteRecipes=remote.recipes||[];
+  var remoteDeletedIds=remote.deletedPileIds||[];
+  var remoteSites=remote.sites;   // may be undefined on old remote files
+  var localPiles=piles.slice();
+
+  // Combine tombstones from both sides
+  var allDeletedIds=remoteDeletedIds.slice();
+  deletedPileIds.forEach(function(id){if(allDeletedIds.indexOf(id)<0)allDeletedIds.push(id);});
+
+  // Merge piles: lastModified wins; tombstone removes
+  var mergedPiles=[];
+  remotePiles.forEach(function(rp){
+    if(allDeletedIds.indexOf(rp.id)>=0)return;
+    var lm=localPiles.find(function(lp){return lp.id===rp.id;});
+    if(lm){
+      // Same pile on both devices - merge entries by ID, keep all unique ones
+      var entryMap={};
+      var localNewer=(lm.lastModified||0)>(rp.lastModified||0);
+      (rp.entries||[]).forEach(function(e){entryMap[e.id]=e;});
+      (lm.entries||[]).forEach(function(e){
+        // New local entry, or local pile is newer (e.g. just edited) -> local wins
+        if(!entryMap[e.id]||localNewer){entryMap[e.id]=e;}
+      });
+      var mergedEntries=Object.values(entryMap).sort(function(a,b){
+        return new Date(a.ts)-new Date(b.ts);
+      });
+      // Use newer pile for metadata (name, recipe, materials etc)
+      var base=(rp.lastModified||0)>=(lm.lastModified||0)?rp:lm;
+      var merged=JSON.parse(JSON.stringify(base));
+      merged.entries=mergedEntries;
+      merged.lastModified=Date.now();
+      // If the base (e.g. an old remote copy) has no siteId but local does, keep local's.
+      if((merged.siteId===undefined||merged.siteId===null)&&lm.siteId!=null)merged.siteId=lm.siteId;
+      mergedPiles.push(merged);
+    } else {
+      mergedPiles.push(rp);
+    }
+  });
+  localPiles.forEach(function(lp){
+    if(allDeletedIds.indexOf(lp.id)>=0)return;
+    if(remotePiles.find(function(rp){return rp.id===lp.id;}))return;
+    if(opts.renameOnConflict){
+      var nm=remotePiles.find(function(rp){return rp.name.toLowerCase()===lp.name.toLowerCase();});
+      if(nm){var r=JSON.parse(JSON.stringify(lp));r.name=lp.name+" — Local Copy";r.id=uid();mergedPiles.push(r);}
+      else{mergedPiles.push(lp);}
+    } else {
+      mergedPiles.push(lp);
+    }
+  });
+
+  // Merge recipes: keep newer version by id
+  if(opts.mergeRecipes){
+    var mergedRecipes=remoteRecipes.slice();
+    (recipes||[]).forEach(function(lr){
+      var rr=remoteRecipes.find(function(r){return r.id===lr.id;});
+      if(!rr){mergedRecipes.push(lr);}
+      else if((lr.lastModified||0)>(rr.lastModified||0)){
+        mergedRecipes=mergedRecipes.filter(function(r){return r.id!==lr.id;});
+        mergedRecipes.push(lr);
+      }
+    });
+    recipes=mergedRecipes;
+  }
+
+  // PocketBase only: strip untouched onboarding piles from the merged result, so demo
+  // data a previous build pushed into a vault (and any "Local Copy" duplicates that
+  // rename-on-conflict produced from it) does not keep coming back down.
+  if(opts.dropSamplePiles){
+    mergedPiles=mergedPiles.filter(function(p){return !isSamplePile(p);});
+  }
+
+  piles=mergedPiles;
+  deletedPileIds=allDeletedIds;
+  if(opts.adoptRemoteSettings){
+    ingHist=remote.ingHist||DEF_HIST;
+    tempUnit=remote.tempUnit||tempUnit;
+  }
+
+  // Merge sites into local by id (local wins on conflict): remote is applied first, then
+  // local overwrites, so a local rename is never lost. Under strictSitesGuard a remote
+  // file with no sites array is skipped entirely rather than wiping local sites.
+  if(!opts.strictSitesGuard||Array.isArray(remoteSites)){
+    var siteMap={};
+    (remoteSites||[]).forEach(function(st){siteMap[st.id]=st;});
+    sites.forEach(function(st){siteMap[st.id]=st;});
+    sites=Object.values(siteMap);
+  }
+  // Re-run the inline-site migration so any newly-merged piles get linked.
+  migrateSites();
+}
+
 async function initDriveStorage(){
   var q1=encodeURIComponent("name='Compost Logger' and mimeType='application/vnd.google-apps.folder' and trashed=false");
   var fr=await driveGet("/files?q="+q1+"&fields=files(id)");
@@ -4460,75 +5021,10 @@ async function initDriveStorage(){
     if(r.ok){
       var d=await r.json();
       if(d&&typeof d==="object"){
-        var drivePiles=d.piles||[];
-        var driveRecipes=d.recipes||[];
-        var driveIngHist=d.ingHist||DEF_HIST;
-        var driveUnit=d.tempUnit||tempUnit;
-        var driveDeletedIds=d.deletedPileIds||[];
-        var driveSites=d.sites; // may be undefined on old Drive files; do NOT default to []
-        // Combine tombstones from both sides
-        var allDeletedIds=driveDeletedIds.slice();
-        deletedPileIds.forEach(function(id){if(allDeletedIds.indexOf(id)<0)allDeletedIds.push(id);});
-        // Merge piles: lastModified wins; tombstone removes
-        var localPiles=piles.slice();
-        var mergedPiles=[];
-        drivePiles.forEach(function(dp){
-          if(allDeletedIds.indexOf(dp.id)>=0)return;
-          var lm=localPiles.find(function(lp){return lp.id===dp.id;});
-          if(lm){
-            // Same pile on both devices — merge entries by ID, keep all unique ones
-            var entryMap={};
-            var localNewer=(lm.lastModified||0)>(dp.lastModified||0);
-            (dp.entries||[]).forEach(function(e){entryMap[e.id]=e;});
-            (lm.entries||[]).forEach(function(e){
-              // New local entry, or local pile is newer (e.g. just edited) → local wins
-              if(!entryMap[e.id]||localNewer){entryMap[e.id]=e;}
-            });
-            // Sort merged entries by timestamp
-            var mergedEntries=Object.values(entryMap).sort(function(a,b){
-              return new Date(a.ts)-new Date(b.ts);
-            });
-            // Use newer pile for metadata (name, recipe, materials etc)
-            var base=(dp.lastModified||0)>=(lm.lastModified||0)?dp:lm;
-            var merged=JSON.parse(JSON.stringify(base));
-            merged.entries=mergedEntries;
-            merged.lastModified=Date.now();
-            // If the base (e.g. an old Drive copy) has no siteId but local does, keep local's.
-            if((merged.siteId===undefined||merged.siteId===null)&&lm.siteId!=null)merged.siteId=lm.siteId;
-            mergedPiles.push(merged);
-          } else {
-            mergedPiles.push(dp);
-          }
-        });
-        localPiles.forEach(function(lp){
-          if(allDeletedIds.indexOf(lp.id)>=0)return;
-          if(drivePiles.find(function(dp){return dp.id===lp.id;}))return;
-          var nm=drivePiles.find(function(dp){return dp.name.toLowerCase()===lp.name.toLowerCase();});
-          if(nm){var r=JSON.parse(JSON.stringify(lp));r.name=lp.name+" — Local Copy";r.id=uid();mergedPiles.push(r);}
-          else{mergedPiles.push(lp);}
-        });
-        // Merge recipes: keep newer version by id
-        var mergedRecipes=driveRecipes.slice();
-        (recipes||[]).forEach(function(lr){
-          var dr2=driveRecipes.find(function(r){return r.id===lr.id;});
-          if(!dr2){mergedRecipes.push(lr);}
-          else if((lr.lastModified||0)>(dr2.lastModified||0)){
-            mergedRecipes=mergedRecipes.filter(function(r){return r.id!==lr.id;});
-            mergedRecipes.push(lr);
-          }
-        });
-        piles=mergedPiles;recipes=mergedRecipes;ingHist=driveIngHist;tempUnit=driveUnit;
-        deletedPileIds=allDeletedIds;
-        // Merge Drive sites into local by id (local wins on conflict). Only when the
-        // Drive file actually carries a sites array; an old file without one must not
-        // wipe local sites. Then re-link any newly merged piles to their sites.
-        if(Array.isArray(driveSites)){
-          var siteMap0={};
-          driveSites.forEach(function(st){siteMap0[st.id]=st;});
-          sites.forEach(function(st){siteMap0[st.id]=st;});
-          sites=Object.values(siteMap0);
-        }
-        migrateSites();
+        // Connect path: full merge - recipes, remote ingHist/tempUnit, rename-on-conflict,
+        // and the strict sites guard (an old Drive file with no sites array must not wipe
+        // local sites). See mergeCloudData for what each flag preserves.
+        mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:true,renameOnConflict:true,strictSitesGuard:true});
         localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
         await driveUpload(driveFileId,{piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
       }
@@ -4561,51 +5057,10 @@ async function driveSaveNow(){
     if(r.ok){
       var d=await r.json();
       if(d&&d.piles){
-        var drivePiles2=d.piles||[];
-        var driveDeletedIds2=d.deletedPileIds||[];
-        // Combine tombstones
-        var allDeleted2=driveDeletedIds2.slice();
-        deletedPileIds.forEach(function(id){if(allDeleted2.indexOf(id)<0)allDeleted2.push(id);});
-        // Merge piles entry-by-entry
-        var merged2=[];
-        drivePiles2.forEach(function(dp){
-          if(allDeleted2.indexOf(dp.id)>=0)return;
-          var lm=piles.find(function(lp){return lp.id===dp.id;});
-          if(lm){
-            var entryMap={};
-            var localNewer2=(lm.lastModified||0)>(dp.lastModified||0);
-            (dp.entries||[]).forEach(function(e){entryMap[e.id]=e;});
-            (lm.entries||[]).forEach(function(e){
-              if(!entryMap[e.id]||localNewer2){entryMap[e.id]=e;}
-            });
-            var mergedEntries=Object.values(entryMap).sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
-            var base=(dp.lastModified||0)>=(lm.lastModified||0)?dp:lm;
-            var mp=JSON.parse(JSON.stringify(base));
-            mp.entries=mergedEntries;
-            mp.lastModified=Date.now();
-            // If the base (e.g. an old Drive copy) has no siteId but local does, keep local's.
-            if((mp.siteId===undefined||mp.siteId===null)&&lm.siteId!=null)mp.siteId=lm.siteId;
-            merged2.push(mp);
-          } else {
-            merged2.push(dp);
-          }
-        });
-        piles.forEach(function(lp){
-          if(allDeleted2.indexOf(lp.id)>=0)return;
-          if(!drivePiles2.find(function(dp){return dp.id===lp.id;}))merged2.push(lp);
-        });
-        piles=merged2;
-        deletedPileIds=allDeleted2;
-        // Merge sites (union by id; local copy wins on conflict). Drive is applied
-        // first, then local overwrites, so a local rename is never lost. An old Drive
-        // file without a sites array leaves local sites untouched. Then re-run the
-        // inline-site migration so any newly-merged piles get linked.
-        var driveSites2=d.sites||[];
-        var siteMap2={};
-        driveSites2.forEach(function(st){siteMap2[st.id]=st;});
-        sites.forEach(function(st){siteMap2[st.id]=st;});
-        sites=Object.values(siteMap2);
-        migrateSites();
+        // Sync path: piles + tombstones + sites only. Deliberately does NOT merge recipes,
+        // adopt remote ingHist/tempUnit, or rename same-name piles - this reproduces
+        // exactly what this path did before the merge was extracted.
+        mergeCloudData(d,{mergeRecipes:false,adoptRemoteSettings:false,renameOnConflict:false,strictSitesGuard:false});
         localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
         renderHome();
       }
@@ -4631,7 +5086,8 @@ async function driveSaveNow(){
 }
 
 function forceSyncNow(){
-  driveSaveNow();
+  if(pbToken&&pbUserId)pbSaveNow();
+  else driveSaveNow();
 }
 
 async function onDriveToken(resp){
@@ -4707,20 +5163,655 @@ function initGoogleAuth(){
   },300);
 }
 
+// ============================================================
+// POCKETBASE AUTH (migration, Group B)
+// Email/password against PocketBase - no Google popup. Additive: coexists with the
+// Drive path through the beta; Drive/GSI is removed later (Group G). Auth token +
+// user id + email persist in the "pb_auth" localStorage key. Storage/sync
+// (pbLoad/pbSaveNow) is Group C; the login/signup UI is Group F. All UI refreshes go
+// through updatePbUI(), which does not exist yet - hence the typeof guards below.
+// ============================================================
+
+// Thin fetch wrapper. opts: {method, json, auth, headers}. Returns the parsed body,
+// or throws an Error with .status and .body on a non-2xx response.
+function pbApi(path,opts){
+  opts=opts||{};
+  var headers=opts.headers||{};
+  if(opts.json!==undefined)headers["Content-Type"]="application/json";
+  if(opts.auth&&pbToken)headers["Authorization"]=pbToken;
+  var cfg={method:opts.method||"GET",headers:headers};
+  if(opts.json!==undefined)cfg.body=JSON.stringify(opts.json);
+  return fetch(PB_BASE_URL+path,cfg).then(function(r){
+    return r.text().then(function(t){
+      var body=null;
+      if(t){try{body=JSON.parse(t);}catch(e){body=t;}}
+      if(!r.ok){
+        var msg="PocketBase error "+r.status;
+        if(body&&body.message)msg=body.message;
+        var err=new Error(msg);
+        err.status=r.status;err.body=body;
+        throw err;
+      }
+      return body;
+    });
+  });
+}
+
+function pbSaveAuth(){
+  try{
+    if(pbToken&&pbUserId)localStorage.setItem("pb_auth",JSON.stringify({token:pbToken,userId:pbUserId,email:pbEmail}));
+    else localStorage.removeItem("pb_auth");
+  }catch(e){}
+}
+
+function pbSetAuth(token,record){
+  pbToken=token||null;
+  pbUserId=(record&&record.id)?record.id:null;
+  pbEmail=(record&&record.email)?record.email:pbEmail;
+  pbStatus=pbToken?"signedin":"signedout";
+  pbSaveAuth();
+  if(typeof updatePbUI==="function")updatePbUI();
+  // Group C: pull the vault as soon as we are authenticated. Covers both entry points
+  // (pbLogin and pbRestoreAuth). Kept as its own call so Group D can interpose the
+  // "import your local data?" prompt ahead of the first vault write.
+  if(pbToken&&pbUserId&&typeof pbLoad==="function")pbLoad();
+}
+
+// Create an account, then immediately authenticate to obtain a token. analyticsOptIn
+// is stashed for the vault write in Group E (needs the vault, which does not exist yet).
+function pbSignup(email,password,analyticsOptIn){
+  pbAnalyticsOptIn=!!analyticsOptIn;
+  pbStatus="connecting";
+  if(typeof updatePbUI==="function")updatePbUI();
+  return pbApi("/api/collections/users/records",{
+    method:"POST",
+    json:{email:email,password:password,passwordConfirm:password}
+  }).catch(function(err){
+    // Group F: tag which leg failed. The account does NOT exist yet at this point.
+    if(err)err.pbLeg="create";
+    throw err;
+  }).then(function(){
+    return pbLogin(email,password).catch(function(err){
+      // The account DOES exist now, but we could not authenticate (email verification
+      // required, or the connection dropped between the two calls). The UI needs to
+      // know, or the user retries signup and is told the email is already taken.
+      if(err)err.pbLeg="login";
+      throw err;
+    });
+  }).catch(function(err){
+    pbStatus="signedout";
+    if(typeof updatePbUI==="function")updatePbUI();
+    throw err;
+  });
+}
+
+function pbLogin(email,password){
+  pbStatus="connecting";
+  if(typeof updatePbUI==="function")updatePbUI();
+  return pbApi("/api/collections/users/auth-with-password",{
+    method:"POST",
+    json:{identity:email,password:password}
+  }).then(function(res){
+    pbSetAuth(res&&res.token,res&&res.record);
+    return res;
+  }).catch(function(err){
+    pbStatus="signedout";
+    if(typeof updatePbUI==="function")updatePbUI();
+    throw err;
+  });
+}
+
+function pbLogout(){
+  pbToken=null;pbUserId=null;pbEmail=null;pbStatus="signedout";
+  // Group C: drop vault state too, or a later sign-in would PATCH the previous
+  // account's record with this account's data.
+  pbVaultId=null;pbVaultUpdated=null;pbPendingSave=false;pbSyncInProgress=false;
+  // Group E: consent is per-account. Without this, signing up a second account in the
+  // same page session would create its vault carrying the previous account's opt-in -
+  // consent the new user never gave.
+  pbAnalyticsOptIn=false;
+  try{localStorage.removeItem("pb_auth");localStorage.removeItem(PB_ANALYTICS_KEY);}catch(e){}
+  if(typeof updatePbUI==="function")updatePbUI();
+}
+
+// Display only - recolors the two buttons to match current state. Safe to call on every
+// Settings open; makes no network call and changes no state.
+function pbSyncAnalyticsButtons(){
+  var on=pbAnalyticsOptIn;
+  var onB=document.getElementById("s-analytics-on");
+  var offB=document.getElementById("s-analytics-off");
+  if(onB){onB.style.color=on?"#4ade80":"#555";onB.style.borderColor=on?"#4ade80":"#222";}
+  if(offB){offB.style.color=!on?"#fff":"#555";offB.style.borderColor=!on?"#fff":"#222";}
+}
+
+// Set analytics consent. Local-only until a vault exists; once it does, this fires a
+// dedicated single-field PATCH rather than riding along with pbSaveNow - pbSaveNow can
+// run from save() before pbLoad has read the vault's value back, which would push the
+// local default over a cloud "true". A single-field PATCH also cannot clobber "data"
+// or race pbSaveNow's optimistic-concurrency read.
+function pbSetAnalyticsOptIn(on){
+  pbAnalyticsOptIn=!!on;
+  try{localStorage.setItem(PB_ANALYTICS_KEY,on?"1":"0");}catch(e){}
+  pbSyncAnalyticsButtons();
+  if(pbToken&&pbUserId&&pbVaultId){
+    // Deliberately no setPbStatus here: a consent toggle failing must not paint the
+    // header red or disturb the sync status machine.
+    pbApi("/api/collections/vaults/records/"+pbVaultId,{
+      method:"PATCH",auth:true,json:{analyticsOptIn:!!on}
+    }).catch(function(err){console.error("Analytics consent save failed",err);});
+  }
+}
+
+// ============================================================
+// ACCOUNT UI (Group F)
+// The login/signup overlay - the first part of the PocketBase migration a human can
+// actually reach. Everything in Groups B-E runs behind this.
+// ============================================================
+
+var authMode="login";   // "login" | "signup"
+
+// Turn a pbApi rejection into something a person can act on. Never surfaces the raw
+// server message. PocketBase deliberately returns an opaque body for bad credentials so
+// an attacker cannot enumerate accounts - that opacity is preserved here on purpose.
+function pbAuthErrorMessage(err,mode){
+  if(!err)return "Something went wrong. Try again.";
+  if(!err.status)return "Can't reach the server. Check your connection and try again.";
+  var d=(err.body&&err.body.data)?err.body.data:null;
+  if(err.status===400){
+    if(d&&d.email){
+      var ec=d.email.code||"";
+      if(ec==="validation_invalid_email")return "That email is already registered. Try signing in instead.";
+      if(ec==="validation_is_email")return "Enter a valid email address.";
+      return "Check your email address.";
+    }
+    if(d&&d.password)return "Password must be 8 to 72 characters.";
+    if(d&&d.passwordConfirm)return "Passwords do not match.";
+    if(mode==="signup")return "Could not create your account. Check your details and try again.";
+    return "Wrong email or password.";
+  }
+  if(err.status===403)return "This account needs to be verified before you can sign in. Check your email.";
+  if(err.status===404)return "Account service unavailable. Try again later.";
+  if(err.status===429)return "Too many attempts. Wait a minute and try again.";
+  if(err.status>=500)return "The server is having trouble. Try again in a minute.";
+  return "Something went wrong. Try again.";
+}
+
+function authShowError(msg){
+  var el=document.getElementById("auth-error");
+  if(!el)return;
+  el.textContent=msg;              // textContent, not innerHTML - keeps it inert
+  el.classList.remove("hidden");
+}
+function authClearError(){
+  var el=document.getElementById("auth-error");
+  if(el)el.classList.add("hidden");
+}
+
+// Render the overlay for the current mode. Also swaps the password autocomplete hint so
+// iOS Keychain offers "save new password" on signup and autofill on login.
+function authRenderMode(){
+  var isSignup=(authMode==="signup");
+  var title=document.getElementById("auth-title");
+  var intro=document.getElementById("auth-intro");
+  var consent=document.getElementById("auth-consent-row");
+  var submit=document.getElementById("auth-submit");
+  var sw=document.getElementById("auth-switch");
+  var pw=document.getElementById("auth-password");
+  if(title)title.textContent=isSignup?"CREATE ACCOUNT":"SIGN IN";
+  if(intro)intro.textContent=isSignup?"Sync your piles across devices. Your data stays on this device too.":"Welcome back. Sign in to sync your piles.";
+  if(consent)consent.style.display=isSignup?"block":"none";
+  if(submit)submit.textContent=isSignup?"CREATE ACCOUNT":"SIGN IN";
+  if(sw)sw.textContent=isSignup?"ALREADY HAVE AN ACCOUNT? SIGN IN":"NEED AN ACCOUNT? SIGN UP";
+  if(pw){
+    pw.setAttribute("autocomplete",isSignup?"new-password":"current-password");
+    pw.setAttribute("placeholder",isSignup?"at least 8 characters":"your password");
+  }
+}
+
+function authToggleMode(){
+  authMode=(authMode==="signup")?"login":"signup";
+  authClearError();
+  authRenderMode();
+}
+
+function openAuth(){
+  // Signed in already? The account button is a shortcut to Settings, not a second login.
+  if(pbToken&&pbUserId){openSettings();return;}
+  authMode="login";
+  authClearError();
+  var em=document.getElementById("auth-email");
+  var pw=document.getElementById("auth-password");
+  if(em)em.value="";
+  if(pw)pw.value="";
+  var cb=document.getElementById("auth-analytics");
+  if(cb)cb.checked=false;          // opt-in: never pre-checked
+  authRenderMode();
+  document.getElementById("auth-overlay").classList.remove("hidden");
+  if(em)em.focus();
+}
+
+function closeAuth(){
+  document.getElementById("auth-overlay").classList.add("hidden");
+  authClearError();
+}
+
+// No <form> element anywhere in this app - an accidental GET navigation would wipe app
+// state - so Enter is wired by hand. Mobile keyboards show "Go" and would otherwise no-op.
+function authKeydown(e){
+  if(e&&e.key==="Enter"){
+    if(e.preventDefault)e.preventDefault();
+    authSubmit();
+  }
+}
+
+function authSubmit(){
+  var emEl=document.getElementById("auth-email");
+  var pwEl=document.getElementById("auth-password");
+  var cbEl=document.getElementById("auth-analytics");
+  var email=emEl?String(emEl.value||"").trim():"";
+  var pw=pwEl?String(pwEl.value||""):"";
+  var isSignup=(authMode==="signup");
+  authClearError();
+  if(!email){authShowError("Enter your email address.");return;}
+  if(!pw){authShowError("Enter your password.");return;}
+  // Length is a SIGNUP rule only. Enforcing it on login would lock out any account that
+  // predates a server-side rule change.
+  if(isSignup&&(pw.length<8||pw.length>72)){authShowError("Password must be 8 to 72 characters.");return;}
+  if(pbStatus==="connecting")return;   // belt-and-braces double-submit guard
+
+  if(isSignup){
+    var wantsAnalytics=!!(cbEl&&cbEl.checked);
+    pbSignup(email,pw,wantsAnalytics).then(function(){
+      authOnSuccess();
+    }).catch(function(err){
+      // If the ACCOUNT was created but the follow-on login failed (email verification
+      // on, or the connection dropped between the two calls), retrying signup would say
+      // "already registered" - a dead end. Send them to the login form instead.
+      if(err&&err.pbLeg==="login"){
+        authMode="login";
+        authRenderMode();
+        authShowError("Account created. Sign in to continue.");
+        return;
+      }
+      authShowError(pbAuthErrorMessage(err,"signup"));
+    });
+  } else {
+    pbLogin(email,pw).then(function(){
+      authOnSuccess();
+    }).catch(function(err){
+      authShowError(pbAuthErrorMessage(err,"login"));
+    });
+  }
+}
+
+// Close immediately and do NOT await pbLoad. pbSetAuth already started it, and its
+// Group D confirm() lives inside a pending network round-trip - which cannot resolve in
+// the microtask before this runs. So the overlay is always gone before any migration
+// prompt appears, and that prompt lands on the plain app view, which is the context its
+// wording assumes. Chaining pbLoad here would double-prompt.
+function authOnSuccess(){
+  closeAuth();
+  showToast("Signed in as "+(pbEmail||"your account"));
+  updatePbUI();
+}
+
+function pbSignOutConfirm(){
+  if(!confirm("Sign out? Your piles stay on this device."))return;
+  pbLogout();
+  closeSettings();
+  showToast("Signed out. Your piles are still on this device.");
+}
+
+// Restore a persisted session on load and validate it via auth-refresh. Returns true
+// if a stored token was found (validation happens asynchronously). No stored token =>
+// no network call, so existing (non-migrated) users hit the backend zero times.
+function pbRestoreAuth(){
+  var stored=null;
+  try{stored=JSON.parse(localStorage.getItem("pb_auth")||"null");}catch(e){stored=null;}
+  if(!stored||!stored.token){pbStatus="signedout";return false;}
+  pbToken=stored.token;pbUserId=stored.userId||null;pbEmail=stored.email||null;
+  pbStatus="connecting";
+  if(typeof updatePbUI==="function")updatePbUI();
+  pbApi("/api/collections/users/auth-refresh",{method:"POST",auth:true}).then(function(res){
+    pbSetAuth(res&&res.token,res&&res.record);
+  }).catch(function(err){
+    // Group F: an offline boot fails this refresh too, and signing the user out there
+    // would be wrong - their session is fine, the network is not. Keep the session and
+    // let the offline status say so.
+    if(!navigator.onLine||(err&&!err.status)){
+      setPbStatus("offline");
+      return;
+    }
+    // A genuinely rejected token used to log the user out silently: the header just read
+    // NOT SIGNED IN and their edits quietly stopped syncing. Say what happened.
+    pbLogout();
+    if(typeof showToast==="function")showToast("Your session expired. Sign in again.");
+  });
+  return true;
+}
+
+// ============================================================
+// POCKETBASE STORAGE / SYNC (Group C)
+// Blob-per-user: one "vaults" record holds the whole ca_v5 shape plus the settings that
+// live in their own localStorage keys. Same PULL-merge-PUSH shape as driveSaveNow, and
+// it shares the merge via mergeCloudData.
+// ============================================================
+
+// The payload written to the vault: full ca_v5 shape + the separate-key settings, so a
+// restore on a new device brings back preferences too. Mirrors exportAllJSON's shape.
+function pbBuildPayload(){
+  // Untouched onboarding data never goes into a real account. This is the boundary that
+  // keeps it out: every vault write replaces "data" wholesale, so filtering here also
+  // purges demo piles a previous build already uploaded, on the next successful save.
+  // isSamplePile treats any edited pile as real, so nothing a user worked in is dropped.
+  return {
+    piles:(piles||[]).filter(function(p){return !isSamplePile(p);}),
+    sites:sites,recipes:recipes,ingHist:ingHist,
+    tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,
+    deletedPileIds:deletedPileIds,
+    displayBasis:displayBasis,showPFRP:showPFRP,
+    pilesSortMode:pilesSortMode,entriesSortMode:entriesSortMode
+  };
+}
+
+// Apply the separate-key settings carried in a vault payload. Piles/sites/recipes are
+// handled by mergeCloudData; these four live outside ca_v5 in their own keys.
+function pbApplySettings(d){
+  if(!d)return;
+  try{
+    if(d.displayBasis==="avg"||d.displayBasis==="min"){displayBasis=d.displayBasis;localStorage.setItem("ca_displayBasis",d.displayBasis);}
+    if(typeof d.showPFRP==="boolean"){showPFRP=d.showPFRP;localStorage.setItem("ca_showPFRP",d.showPFRP?"on":"off");}
+    if(d.pilesSortMode){pilesSortMode=d.pilesSortMode;localStorage.setItem("ca_pilesSort",d.pilesSortMode);}
+    if(d.entriesSortMode){entriesSortMode=d.entriesSortMode;localStorage.setItem("ca_entriesSort",d.entriesSortMode);}
+  }catch(e){}
+}
+
+function pbPersistLocal(){
+  localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
+}
+
+// ============================================================
+// FIRST-LOGIN MIGRATION (Group D)
+// Puts a decision in front of the first vault write. Before this, pbLoad silently
+// uploaded whatever was in localStorage - including the onboarding demo pile - the
+// moment a user signed in.
+// ============================================================
+
+// Onboarding demo data. New sample piles carry isSample; anyone who ran an earlier
+// build has an unflagged one, hence the name fallback. "Demo Pile" is an ASCII prefix
+// of the real name, so no non-ASCII literal is needed here.
+function isSamplePile(p){
+  if(!p)return false;
+  // A pile the user has actually worked in is NEVER sample data, whatever it is called
+  // or flagged. save() and renamePile stamp lastModified on any edit, so this is the
+  // guard that stops us discarding a demo pile someone adopted as a real one.
+  if(p.lastModified)return false;
+  if(p.isSample===true)return true;
+  return String(p.name||"").indexOf("Demo Pile")===0;
+}
+
+// Classify what this device is actually holding: "empty", "sample-only" (nothing but
+// onboarding data) or "real". Counts are for the prompt text. No side effects.
+function pbLocalDataState(){
+  var real=(piles||[]).filter(function(p){return !isSamplePile(p);});
+  var entryCount=0;
+  real.forEach(function(p){entryCount+=((p.entries||[]).length);});
+  var state="real";
+  if(!piles||!piles.length)state="empty";
+  else if(!real.length)state="sample-only";
+  return {state:state,pileCount:real.length,entryCount:entryCount};
+}
+
+// Drop onboarding piles so they are never pushed into a real account.
+function pbDropSamplePiles(){
+  var before=(piles||[]).length;
+  piles=(piles||[]).filter(function(p){return !isSamplePile(p);});
+  if(piles.length!==before)pbPersistLocal();
+}
+
+// The import decision is remembered per (device, account): the question is what should
+// happen to THIS device's data for THIS account, so a second device asks again. Kept
+// across logout so re-login does not re-prompt.
+function pbImportKey(){return "pb_import_"+(pbUserId||"");}
+function pbGetImportDecision(){
+  if(!pbUserId)return null;
+  try{return localStorage.getItem(pbImportKey());}catch(e){return null;}
+}
+function pbSetImportDecision(v){
+  if(!pbUserId)return;
+  try{localStorage.setItem(pbImportKey(),v);}catch(e){}
+}
+
+// DESTRUCTIVE: discard this device's data and take the vault's version wholesale.
+// Only reached after the two confirms in pbFirstRunDecision. A null/empty vault means
+// local is cleared - that is the honest meaning of "use the cloud version" on a brand
+// new account, and the confirm says so.
+function pbAdoptCloudOnly(d){
+  d=d||{};
+  piles=d.piles||[];
+  sites=d.sites||[];
+  recipes=d.recipes||[];
+  ingHist=d.ingHist||DEF_HIST;
+  if(d.tempUnit)tempUnit=d.tempUnit;
+  if(d.volumeUnit)volumeUnit=d.volumeUnit;
+  if(d.containerUnit)containerUnit=d.containerUnit;
+  deletedPileIds=d.deletedPileIds||[];
+  pbApplySettings(d);
+  migrateSites();
+  pbPersistLocal();
+  if(typeof renderHome==="function")renderHome();
+}
+
+// Decide what happens to local data on first login for this account. Returns "import"
+// (merge local into the vault, the default and only non-destructive answer) or "cloud"
+// (discard local, take the vault). Never prompts when there is nothing real to lose.
+function pbFirstRunDecision(hasVault){
+  var prior=pbGetImportDecision();
+  if(prior==="import"||prior==="cloud")return prior;
+
+  var st=pbLocalDataState();
+  if(st.state==="empty"){pbSetImportDecision("import");return "import";}
+  if(st.state==="sample-only"){
+    // Nothing worth keeping, and the demo pile must not reach a real account.
+    pbDropSamplePiles();
+    pbSetImportDecision("import");
+    return "import";
+  }
+
+  var noun=st.pileCount===1?"pile":"piles";
+  var enoun=st.entryCount===1?"entry":"entries";
+  var msg;
+  if(hasVault){
+    msg="This device has "+st.pileCount+" "+noun+" ("+st.entryCount+" "+enoun+") that are not in your account yet.\n\n"+
+        "OK = import and merge them into your account.\n"+
+        "Cancel = use only the version already in your account.";
+  } else {
+    msg="This device has "+st.pileCount+" "+noun+" ("+st.entryCount+" "+enoun+").\n\n"+
+        "OK = import them into your new account.\n"+
+        "Cancel = start the account empty.";
+  }
+  if(confirm(msg)){pbSetImportDecision("import");return "import";}
+
+  // Declining is destructive: local data is replaced by the vault's (which may be
+  // empty). Name the exact count and point at the export before doing it. Declining
+  // THIS confirm falls back to import - the safe direction when the user is unsure.
+  var warn="Discard "+st.pileCount+" "+noun+" ("+st.entryCount+" "+enoun+") from this device?\n\n"+
+           "This cannot be undone. If you want a backup first, tap Cancel and use "+
+           "\"Download My Data\" in Settings, then sign in again.\n\n"+
+           "OK = permanently discard these "+st.pileCount+" "+noun+".\n"+
+           "Cancel = keep them and import instead.";
+  if(confirm(warn)){pbSetImportDecision("cloud");return "cloud";}
+  pbSetImportDecision("import");
+  return "import";
+}
+
+// Fetch this user's vault and merge it in. The collection's list rule scopes results to
+// the caller server-side, so an unfiltered list returns at most this user's own record.
+// Take an existing vault record as this session's vault: adopt its id/updated stamp and
+// consent, then run the Group D decision and merge. Shared by pbLoad's normal path and
+// its unique-violation self-heal, so both behave identically.
+function pbAdoptVaultRecord(rec){
+  pbVaultId=rec.id;
+  pbVaultUpdated=rec.updated||null;
+  // Group E: the vault is authoritative for consent. Guarded on the type so a
+  // malformed or field-less response cannot silently revoke an opt-in.
+  if(typeof rec.analyticsOptIn==="boolean"){
+    pbAnalyticsOptIn=rec.analyticsOptIn;
+    try{localStorage.setItem(PB_ANALYTICS_KEY,rec.analyticsOptIn?"1":"0");}catch(e){}
+  }
+  // PocketBase returns the JSON field already parsed; tolerate a string just in case.
+  var d=rec.data;
+  if(typeof d==="string"){try{d=JSON.parse(d);}catch(e){d=null;}}
+  var hadRemote=!!(d&&typeof d==="object");
+  // Captured BEFORE the decision, which may drop sample piles.
+  var preState=pbLocalDataState();
+  var decision=pbFirstRunDecision(hadRemote);
+  if(decision==="cloud"){
+    // Destructive path, already double-confirmed: take the vault verbatim and do NOT
+    // merge local in. No push follows, so the vault is left exactly as it was.
+    pbAdoptCloudOnly(hadRemote?d:null);
+    setPbStatus("synced");
+    return true;
+  }
+  if(hadRemote){
+    mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:true,renameOnConflict:true,strictSitesGuard:true,dropSamplePiles:true});
+    pbApplySettings(d);
+    pbPersistLocal();
+    if(typeof renderHome==="function")renderHome();
+  }
+  setPbStatus("synced");
+  // A real import must reach the vault, not sit locally until the next edit. Only
+  // when this device actually contributed something. pbVaultId is set above, so this
+  // cannot recurse back into pbLoad.
+  if(preState.state==="real"&&preState.pileCount){
+    return pbSaveNow().then(function(){
+      if(typeof showToast==="function"){
+        showToast("Imported "+preState.pileCount+" pile"+(preState.pileCount===1?"":"s")+" into your account");
+      }
+      return true;
+    });
+  }
+  return true;
+}
+
+// No vault yet => create one, seeded per the Group D decision.
+function pbLoad(){
+  if(!pbToken||!pbUserId)return Promise.resolve(false);
+  setPbStatus("connecting");
+  return pbApi("/api/collections/vaults/records?perPage=1",{auth:true}).then(function(res){
+    var rec=(res&&res.items&&res.items.length)?res.items[0]:null;
+    if(!rec){
+      // No vault yet. Ask before seeding it - the pre-Group-D code uploaded local
+      // data (demo pile included) unconditionally at this point.
+      var decisionNew=pbFirstRunDecision(false);
+      if(decisionNew==="cloud")pbAdoptCloudOnly(null);
+      var importedCount=(piles||[]).length;
+      return pbApi("/api/collections/vaults/records",{
+        method:"POST",auth:true,
+        json:{user:pbUserId,data:pbBuildPayload(),analyticsOptIn:!!pbAnalyticsOptIn}
+      }).then(function(created){
+        pbVaultId=created&&created.id?created.id:null;
+        pbVaultUpdated=created&&created.updated?created.updated:null;
+        setPbStatus("synced");
+        if(decisionNew==="import"&&importedCount&&typeof showToast==="function"){
+          showToast("Imported "+importedCount+" pile"+(importedCount===1?"":"s")+" into your account");
+        }
+        return true;
+      }).catch(function(err){
+        // Self-heal: the unique index says this user already HAS a vault, so the list
+        // above lied to us - it returns 200 with an empty items array for anything the
+        // list rule filters out, so "no vault" and "could not see your vault" are
+        // indistinguishable. Without this the failure is permanent: pbVaultId stays null,
+        // so every later save calls pbLoad, retries the create, and 400s again.
+        var dup=err&&err.status===400&&err.body&&err.body.data&&err.body.data.user;
+        if(!dup)throw err;
+        // The re-query MUST use a different URL than the list above. A stale cached
+        // response is the likeliest reason we got an empty list in the first place, and
+        // reusing the same URL would just hit the same cache entry - the heal would be
+        // defeated by the very bug it exists to recover from. The unique cache-buster
+        // guarantees a fresh round-trip.
+        return pbApi("/api/collections/vaults/records?perPage=1&_cb="+Date.now(),{auth:true}).then(function(res2){
+          var rec2=(res2&&res2.items&&res2.items.length)?res2.items[0]:null;
+          if(!rec2)throw err;
+          return pbAdoptVaultRecord(rec2);
+        });
+      });
+    }
+    return pbAdoptVaultRecord(rec);
+  }).catch(function(err){
+    setPbStatus(navigator.onLine?"error":"offline");
+    console.error("PocketBase load error",err);
+    return false;
+  });
+}
+
+// PULL-merge-PUSH, mirroring driveSaveNow. pbVaultUpdated is the optimistic-concurrency
+// baseline: if the record's "updated" moved since our last read, someone else wrote in
+// between, so we merge their version before pushing. NOTE this is read-merge-write, not
+// atomic - PocketBase has no If-Match - so a write landing between our GET and PATCH can
+// still be missed. The merge is union-by-id, so the realistic loss is an edit to an
+// existing pile, never a whole pile.
+function pbSaveNow(){
+  if(!pbToken||!pbUserId){pbPendingSave=true;return Promise.resolve(false);}
+  if(!pbVaultId){
+    // Signed in but the vault has not been resolved yet - load creates it, then push.
+    pbPendingSave=true;
+    return pbLoad().then(function(ok){return ok?pbSaveNow():false;});
+  }
+  if(pbSyncInProgress){pbPendingSave=true;return Promise.resolve(false);}
+  pbSyncInProgress=true;
+  pbPendingSave=true;
+  setPbStatus("saving");
+  return pbApi("/api/collections/vaults/records/"+pbVaultId,{auth:true}).then(function(rec){
+    if(rec&&rec.updated&&rec.updated!==pbVaultUpdated){
+      var d=rec.data;
+      if(typeof d==="string"){try{d=JSON.parse(d);}catch(e){d=null;}}
+      if(d&&typeof d==="object"){
+        mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:false,renameOnConflict:false,strictSitesGuard:true,dropSamplePiles:true});
+        pbPersistLocal();
+        if(typeof renderHome==="function")renderHome();
+      }
+    }
+    return pbApi("/api/collections/vaults/records/"+pbVaultId,{
+      method:"PATCH",auth:true,json:{data:pbBuildPayload()}
+    });
+  }).then(function(saved){
+    pbVaultUpdated=(saved&&saved.updated)?saved.updated:pbVaultUpdated;
+    pbPendingSave=false;
+    pbSyncInProgress=false;
+    setPbStatus("saved");
+    setTimeout(function(){
+      if(pbStatus==="saved"&&!pbPendingSave)setPbStatus("synced");
+    },2000);
+    return true;
+  }).catch(function(err){
+    pbSyncInProgress=false;
+    console.error("PocketBase save error",err);
+    setPbStatus(navigator.onLine?"error":"offline");
+    return false;
+  });
+}
+
 window.addEventListener("online",function(){
   if(driveStatus==="offline"&&driveToken){
     if(pendingSave)driveSaveNow();
     else setStatus("connected");
   }
+  if(pbStatus==="offline"&&pbToken){
+    if(pbPendingSave)pbSaveNow();
+    else setPbStatus("synced");
+  }
 });
 window.addEventListener("offline",function(){
   if(driveToken)setStatus("offline");
+  if(pbToken)setPbStatus("offline");
 });
 
 window.addEventListener("beforeunload",function(e){
-  if(pendingSave&&driveToken){
+  // Backend-neutral wording: a migrated user has no Drive and no "SYNC NOW" button.
+  if((pendingSave&&driveToken)||(pbPendingSave&&pbToken)){
     e.preventDefault();
-    e.returnValue="You have unsaved changes that haven't synced to Drive yet. Tap SYNC NOW first.";
+    e.returnValue="You have unsaved changes that haven't synced to the cloud yet. Sync before leaving.";
     return e.returnValue;
   }
 });
@@ -5077,6 +6168,9 @@ function handleXLSXImport(event){
           logHeaderRow=ri3;
           for(var ci5=0;ci5<row3.length;ci5++){
             var h3=row3[ci5]?String(row3[ci5]).toLowerCase().trim():"";
+            // Never bind the sheet's "Avg Temp" column: it holds #DIV/0! on empty rows and
+            // the app computes the average itself via avgCore(). Skip any avg/average header.
+            if(h3.indexOf("avg")>-1||h3.indexOf("average")>-1)continue;
             if(h3==="date")logDateCol=ci5;
             else if(h3==="time")logTimeCol=ci5;
             else if(h3==="temp 1"||h3==="temp1"||h3==="core temp"||h3==="core")logTemp1Col=ci5;
@@ -5347,7 +6441,12 @@ function openSettings(){
   if(sSync)sSync.style.display=driveToken?"inline-block":"none";
   if(sConn)sConn.style.display=(driveStatus==="disconnected"||driveStatus==="error"||driveStatus==="offline")?"inline-block":"none";
   var sDisc=document.getElementById("s-btn-disconnect");if(sDisc)sDisc.style.display=driveToken?"inline-block":"none";
+  // Group E: reflect current consent state on the analytics row (display only)
+  pbSyncAnalyticsButtons();
+  // Group F: account card reflects the current PocketBase session
+  updatePbUI();
   // Update version string in about section
+  renderSettingsRecipes();
   document.getElementById("settings-overlay").classList.remove("hidden");
 }
 function closeSettings(){
@@ -5620,6 +6719,7 @@ load();
 renderHome();
 showView("home");
 initGoogleAuth();
+pbRestoreAuth();  // migration: restore a persisted PocketBase session (no-op if none)
 
 var __resizeTimer=null;
 window.addEventListener("resize",function(){

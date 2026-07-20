@@ -2,34 +2,31 @@
 
 > One source of truth for what's next.
 > Updated: July 20 2026
-> Current version: beta v3.79w (PocketBase line) / production v3.78b
+> **Production: v3.80** (promoted July 20 2026) — PocketBase accounts live, Drive retained
+> **Beta: v3.81** (next line, opened July 20 2026)
 > Backend: https://api.compostlogger.com (stable, TLS, CORS locked)
+> Versioning: production = clean numbers, beta = letter suffixes (`v3.81a`, …)
 
 ---
 
-## 🔴 NOW — Active beta work (v3.79w)
+## 🔴 NOW — v3.80 is in production
 
-PocketBase migration **Groups A–F are done and the backend is on a real domain**. A user
-can sign up, sign in, sync, migrate a device's data into an account, and set analytics
-consent. **Group G is deferred one week (~July 27 2026); Group H (promote to production)
-is next.**
+The PocketBase migration is **live for all users**. Groups A–F shipped; v3.79v and v3.79w
+were verified on **iPad Safari** (signup, import, `ACCOUNT SYNCED`, `OFFLINE (local only)`,
+reconnect sync — and again after the domain move), which unblocked Group H. Production went
+v3.78b → v3.80. **Drive is retained and still works.**
 
-- [ ] **Re-test on the iPhone — this gates everything else.** Three fixes are waiting and
-  **none has been confirmed on a real device**: the SYNC ERROR fix (`sw.js` was caching API
-  responses — the tunnel was fine), the demo-pile duplicate fix, and the move to
-  `api.compostlogger.com`. **Hard-refresh or reinstall the PWA** so the new service worker
-  activates; the old one is still installed there and will keep serving the stale cached
-  list until it does. Check specifically:
-  - saves reach SAVED and the header no longer sticks on SYNC ERROR
-  - the vault self-cleans: it still holds `Demo Pile — 30 Days` plus five `— Local Copy`
-    duplicates. No manual cleanup — sign in, make any edit, and the next save purges them,
-    because every vault write replaces `data` wholesale and demo piles are now filtered out
-    of the payload. Confirm afterwards that the six demo entries are gone **and the real
-    piles are intact**.
-- [ ] **Do not promote to production (Group H) until that re-test passes.** Production is
-  still v3.78b, pure Drive, untouched. Promoting would put device-unverified sync code in
-  front of every user, and the last real-device test found a bug every headless test
-  missed.
+- [ ] **Watch production for a few days.** Every existing user is a Drive user who now sees
+  an account UI for the first time. Things worth checking early: nobody is stuck on SYNC
+  ERROR, Drive-only users see an unchanged header, and no unexpected `— Local Copy`
+  duplicates appear in vaults.
+- [ ] **Confirm the vault self-cleans on the real account.** It holds `Demo Pile — 30 Days`
+  plus five `— Local Copy` duplicates from before the v3.79v fix. No manual cleanup — sign
+  in, make any edit, and the next save purges them. Verify the six demo entries are gone
+  **and the real piles are intact**.
+- [ ] **Group G — Drive/GSI removal, deferred to ~July 27 2026.** Now that production runs
+  on PocketBase, Drive is the fallback for anyone who has not migrated. Let it sit a week
+  before deleting it.
 
 ### Before pointing compostlogger.com at the app
 
@@ -147,18 +144,20 @@ is next.**
       migration prompts and the destructive decline path.
   - **G. Drive removal:** keep a one-time "import from Drive" during beta, then delete
     all Drive/GSI code once migrated.
-    - **DEFERRED one week (~July 27 2026).** Drive is the last exit if anything in A–F is
-      wrong, and A–F have not yet been confirmed working on a real device. Deleting it
-      before then removes the fallback while the replacement is unproven. Also note
+    - **DEFERRED one week (~July 27 2026).** A–F are now verified on iPad Safari and live
+      in production as v3.80, so the original reason (unproven on a device) is satisfied.
+      It stays deferred because Drive is still the working backend for every user who has
+      not signed up yet, and because production has only just started running on
+      PocketBase — worth a week before deleting the fallback. Also note
       `mergeCloudData`'s Drive-only flags (`mergeRecipes`, `adoptRemoteSettings`,
       `renameOnConflict`, `strictSitesGuard`) and the two `updateDriveUI`/`updatePbUI`
       yield guards all become dead weight once Drive goes — G is the cleanup that
       simplifies them.
-  - **H. Release: NEXT.** bump BUILD_VER (v3.79 line) + sw.js cache key; ship to /beta/
-    first, beta-test, then promote. Offline-first `save()` (localStorage first) is
-    unchanged. **Blocked on the iPhone re-test** — see NOW. Promoting device-unverified
-    sync code would put it in front of every user, and production is currently a clean
-    Drive-based fallback worth protecting.
+  - **H. Release — DONE July 20 2026.** Promoted as **v3.80** under the new convention
+    (production = clean numbers, letters = beta only), tag `v3.80`. Plain
+    `cp beta/index.html index.html`; `sw.js` key → `compost-logger-v3.80`. Unblocked by
+    iPad Safari verification of v3.79v/w. Drive deliberately retained. Next beta line
+    opened at v3.81.
   - **Deploy prerequisite — SATISFIED July 20 2026.** compostlogger.com registered on
     Cloudflare; `PB_BASE_URL` is the stable `https://api.compostlogger.com`.
   - **Out of scope (stays backlog):** relational per-pile records, instructor/share

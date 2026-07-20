@@ -7,6 +7,36 @@ This project uses date-stamped `v3.XX` releases with letter sub-revisions
 (e.g. `v3.77q`). Beta builds ship from `/beta/`; production is promoted by copying
 `beta/index.html` to the repo-root `index.html`. `sw.js` is shared by both.
 
+## [3.80] - 2026-07-20 — PRODUCTION
+
+**The PocketBase migration is live for all users.** Production went v3.78b → v3.80,
+promoting the whole of Groups A–F in one release (`cp beta/index.html index.html`, a plain
+copy — `APP_VERSION` derives the " BETA" suffix from the path at runtime). Tag `v3.80`.
+
+Unblocked by device verification on **iPad Safari** of v3.79v and v3.79w: signup, import,
+save reaching `ACCOUNT SYNCED`, `OFFLINE (local only)` when disconnected, reconnect
+syncing, and the same again after the backend moved to `api.compostlogger.com`.
+
+- Accounts (email/password), cloud sync, first-login data migration, analytics consent.
+- Backend: `https://api.compostlogger.com` (Caddy + Let's Encrypt, CORS locked).
+- **Google Drive is retained and still works** — removal is Group G, deferred ~2026-07-27.
+  PocketBase takes precedence when signed in; unmigrated users keep syncing to Drive.
+- `sw.js` cache key → `compost-logger-v3.80`.
+
+> **Version convention changed here.** Production releases now get **clean numbers**
+> (`v3.80`, `v3.81`); **letter suffixes are beta-only** (`v3.81a`, `v3.81b`). That is why
+> this is v3.80 rather than v3.79w. Promoting a lettered build — as `v3.77q` and `v3.78b`
+> were — is retired.
+
+> **Rollback note:** production is no longer the untouched Drive-only build. The pure-Drive
+> fallback is now the `v3.78b` **tag** only. See ROLLBACK in PROJECT.md, including what
+> falling back would cost a user whose piles already live in an account.
+
+## [3.81] - unreleased [beta]
+
+Next beta line, opened 2026-07-20. Identical to v3.80 until work lands. Group G
+(Drive/GSI removal) is the first item, deferred to ~2026-07-27.
+
 ## [3.79] - 2026-07-11 [beta]
 
 PocketBase migration line (replacing Google Drive sync). Ships from `/beta/`; additive
@@ -18,9 +48,9 @@ each step (`v3.79r` … `v3.79w`) — see the ROLLBACK section of PROJECT.md for
 procedure. Backend is live at `https://api.compostlogger.com`. Production remains
 **v3.78b, untouched and still Drive-based**, as the fallback.
 
-**Status:** Group G (Drive/GSI removal) is **deferred one week (~2026-07-27)** — Drive is
-the last exit if anything in A–F proves wrong, and A–F are not yet confirmed on a real
-device. Group H (promote to production) is **next**, blocked on that re-test.
+**Status:** v3.79v and v3.79w were verified on iPad Safari, and the line was **promoted to
+production as v3.80** — see above. Group G (Drive/GSI removal) is **deferred one week
+(~2026-07-27)**; Drive remains the fallback until it has run in production for a while.
 
 ### Added
 - **v3.79t — Group F (account UI).** The PocketBase migration is now reachable by a user.

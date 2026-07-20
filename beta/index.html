@@ -825,7 +825,7 @@ var PB_BASE_URL="https://democrats-rocky-dining-highs.trycloudflare.com";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79u";
+var BUILD_VER="v3.79v";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -2294,6 +2294,10 @@ function renamePile(id){
   newName=newName.trim();
   if(!newName){alert("Pile name cannot be empty");return;}
   p.name=newName;
+  // A rename is a real edit, but this path has no activeId so save() would not stamp it.
+  // Without the stamp a merge could revert the rename to an older remote copy, and a
+  // renamed demo pile would still look like sample data to isSamplePile.
+  p.lastModified=Date.now();
   save();
   renderHome();
   if(activeId===id){
@@ -4891,6 +4895,12 @@ async function driveCreateFile(name,folderId,data){
 //   strictSitesGuard   - only merge sites when remote actually carries a sites array,
 //                        so an old remote file without one cannot wipe local sites
 //                                                                  (connect only)
+//   dropSamplePiles    - discard untouched onboarding piles from the merged result
+//                        (PocketBase only). A vault written by an earlier build can
+//                        still contain the demo pile and its rename-on-conflict
+//                        duplicates; without this they would be pulled back down on
+//                        every load. Drive never passes this, so its behavior is
+//                        unchanged.
 // PocketBase passes the full (connect-style) set: its vault is always written by this
 // same app, so it always carries recipes, settings and sites.
 function mergeCloudData(remote,opts){
@@ -4959,6 +4969,13 @@ function mergeCloudData(remote,opts){
       }
     });
     recipes=mergedRecipes;
+  }
+
+  // PocketBase only: strip untouched onboarding piles from the merged result, so demo
+  // data a previous build pushed into a vault (and any "Local Copy" duplicates that
+  // rename-on-conflict produced from it) does not keep coming back down.
+  if(opts.dropSamplePiles){
+    mergedPiles=mergedPiles.filter(function(p){return !isSamplePile(p);});
   }
 
   piles=mergedPiles;
@@ -5480,8 +5497,13 @@ function pbRestoreAuth(){
 // The payload written to the vault: full ca_v5 shape + the separate-key settings, so a
 // restore on a new device brings back preferences too. Mirrors exportAllJSON's shape.
 function pbBuildPayload(){
+  // Untouched onboarding data never goes into a real account. This is the boundary that
+  // keeps it out: every vault write replaces "data" wholesale, so filtering here also
+  // purges demo piles a previous build already uploaded, on the next successful save.
+  // isSamplePile treats any edited pile as real, so nothing a user worked in is dropped.
   return {
-    piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,
+    piles:(piles||[]).filter(function(p){return !isSamplePile(p);}),
+    sites:sites,recipes:recipes,ingHist:ingHist,
     tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,
     deletedPileIds:deletedPileIds,
     displayBasis:displayBasis,showPFRP:showPFRP,
@@ -5517,6 +5539,10 @@ function pbPersistLocal(){
 // of the real name, so no non-ASCII literal is needed here.
 function isSamplePile(p){
   if(!p)return false;
+  // A pile the user has actually worked in is NEVER sample data, whatever it is called
+  // or flagged. save() and renamePile stamp lastModified on any edit, so this is the
+  // guard that stops us discarding a demo pile someone adopted as a real one.
+  if(p.lastModified)return false;
   if(p.isSample===true)return true;
   return String(p.name||"").indexOf("Demo Pile")===0;
 }
@@ -5645,7 +5671,7 @@ function pbAdoptVaultRecord(rec){
     return true;
   }
   if(hadRemote){
-    mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:true,renameOnConflict:true,strictSitesGuard:true});
+    mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:true,renameOnConflict:true,strictSitesGuard:true,dropSamplePiles:true});
     pbApplySettings(d);
     pbPersistLocal();
     if(typeof renderHome==="function")renderHome();
@@ -5738,7 +5764,7 @@ function pbSaveNow(){
       var d=rec.data;
       if(typeof d==="string"){try{d=JSON.parse(d);}catch(e){d=null;}}
       if(d&&typeof d==="object"){
-        mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:false,renameOnConflict:false,strictSitesGuard:true});
+        mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:false,renameOnConflict:false,strictSitesGuard:true,dropSamplePiles:true});
         pbPersistLocal();
         if(typeof renderHome==="function")renderHome();
       }

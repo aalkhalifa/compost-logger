@@ -2,25 +2,22 @@
 
 > One source of truth for what's next.
 > Updated: July 20 2026
-> Current version: beta v3.79u (PocketBase line) / production v3.78b
+> Current version: beta v3.79v (PocketBase line) / production v3.78b
 
 ---
 
-## 🔴 NOW — Active beta work (v3.79u)
+## 🔴 NOW — Active beta work (v3.79v)
 
-- [ ] **Re-test sync on the iPhone after v3.79u deploys.** The SYNC ERROR was `sw.js`
-  caching API responses, not the tunnel. Fixed in v3.79u. **Hard-refresh or reinstall the
-  PWA** so the new service worker activates — the old one is still installed on that
-  device and will keep serving the stale cached list until it does.
-- [ ] **Clean up the demo-pile duplicates in the vault.** It currently holds
-  `Demo Pile — 30 Days` plus five `— Local Copy` duplicates. Deleting them in the app and
-  letting it sync is enough. Root causes, both still open:
-  - Group D only drops the sample pile when it is the *only* thing on the device. A device
-    with real piles *and* the sample uploads the sample too. Arguably it should never be
-    uploaded at all.
-  - `rename-on-conflict` fires on every `pbLoad` when local and remote hold same-named
-    piles with different ids (a fresh install regenerates the demo pile with a new id), so
-    duplicates accumulate one per sign-in rather than converging.
+- [ ] **Re-test sync on the iPhone after v3.79v deploys.** Two fixes are waiting:
+  the SYNC ERROR (`sw.js` was caching API responses — not the tunnel, which was fine),
+  and the demo-pile duplicates. **Hard-refresh or reinstall the PWA** so the new service
+  worker activates — the old one is still installed on that device and will keep serving
+  the stale cached list until it does.
+- [ ] **Confirm the vault self-cleans.** It currently holds `Demo Pile — 30 Days` plus
+  five `— Local Copy` duplicates. No manual cleanup needed: sign in on v3.79v and make any
+  edit, and the next save purges them, because every vault write replaces `data` wholesale
+  and the demo piles are now filtered out of the payload. Verify afterwards that the six
+  demo entries are gone and the real piles are intact.
 
 - PocketBase migration **Groups A–F are done**. The migration is now **reachable by a
   real user**: sign up, sign in, sync, migrate a device's existing data into an account,

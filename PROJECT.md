@@ -19,14 +19,14 @@
 **License:** Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia. See LICENSE.
 **Service worker:** sw.js — network-first, falls back to cache offline, and (since v3.79u)
 **only handles same-origin requests plus a static-CDN allowlist; all API traffic bypasses
-it entirely**. Cache key = `compost-logger-v3.79u` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
+it entirely**. Cache key = `compost-logger-v3.79v` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
 **SW registration (fixed v3.78a):** registration derives the repo root from `location.pathname` (strip the page filename, then a trailing `beta/`) and registers that root `sw.js`. Works from both `/<repo>/` and `/<repo>/beta/`, no hardcoded repo path. The root sw.js's default scope covers `/beta/`. Because the path is computed at runtime, promoting via `cp beta/index.html -> root index.html` stays a plain copy with no edits.
 
 ---
 
 ## Current Version
 
-**Live beta:** v3.79u (as of July 20 2026) — PocketBase migration line, Groups A-F done
+**Live beta:** v3.79v (as of July 20 2026) — PocketBase migration line, Groups A-F done
 **Production:** v3.78b (promoted from beta on July 11 2026, tag v3.78b)
 
 ### Deployment structure
@@ -153,7 +153,7 @@ Verify any rollback the same way as a build: extract the inline script and run
 
 ## Session Log
 
-### July 20 2026 (Claude Code) — v3.79u: service worker was breaking sync
+### July 20 2026 (Claude Code) — v3.79u/v: first real-device test found two real bugs
 
 **First real-device test of v3.79t found a real bug, and it was in `sw.js`, not the
 PocketBase code.** Symptom: on iPhone, signup and import worked, then the header stuck on
@@ -188,10 +188,33 @@ Two fixes:
 `file://`, where service workers do not register at all. The SW was never exercised. A
 `file://` harness cannot validate a PWA's caching layer — that needs a real http origin.
 
-**Also visible in the vault:** the demo pile was uploaded (the device had real piles *and*
-the sample, and Group D only drops the sample when it is the *only* thing there), and
-repeated merges produced five `Demo Pile — 30 Days — Local Copy` duplicates via
-rename-on-conflict. Not fixed in v3.79u — see TODO.
+**v3.79v — demo pile duplicates fixed.** The same real-device session exposed a second
+problem: the vault held `Demo Pile — 30 Days` plus five `— Local Copy` duplicates.
+
+Two independent causes, both now closed:
+1. **The demo pile was being uploaded at all.** Group D only drops the sample pile when
+   it is the *only* thing on the device; a device with real piles *and* the sample pushed
+   both. Fixed at the boundary: `pbBuildPayload` filters sample piles out of the vault
+   payload. Because every vault write replaces `data` wholesale, this also **purges junk
+   an earlier build already uploaded** on the next successful save.
+2. **It never converged.** Rename-on-conflict fires when local and remote hold same-named
+   piles with *different* ids — and a reinstall regenerates the demo pile with a fresh id
+   while the vault still holds the old one. So each sign-in minted another "Local Copy"
+   rather than settling. Real piles converge fine (once renamed they match by id
+   thereafter); only the regenerating demo pile did not. `mergeCloudData` gains a
+   `dropSamplePiles` opt used by the PocketBase paths only, so legacy junk is not pulled
+   back down while the purge happens. **Drive does not pass it and stays byte-identical.**
+
+**Guarding against data loss:** `isSamplePile` now returns false for any pile carrying
+`lastModified`, so a demo pile a user adopted as a real one is never discarded. That
+exposed a latent bug — `renamePile` never stamped `lastModified` (it runs outside the
+active-pile path that `save()` stamps), which also meant a merge could revert a rename to
+an older remote copy. Now stamped.
+
+Verified by a 14-case harness (detection, upload filter, merge stripping, Drive
+unchanged, and a convergence test simulating five reinstall-and-sign-in cycles), plus an
+end-to-end run seeding a vault with the exact junk from the real account and confirming
+it self-cleans while the real piles survive.
 
 ### July 20 2026 (Claude Code) — PocketBase migration, Groups A through F
 

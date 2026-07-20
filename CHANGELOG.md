@@ -85,6 +85,23 @@ untouched and still Drive-based, as the fallback.
 
 ### Fixed
 
+- **v3.79v — the onboarding demo pile no longer reaches accounts, and its duplicates
+  clear themselves.** A real vault had accumulated `Demo Pile — 30 Days` plus five
+  `— Local Copy` duplicates. Two causes: Group D only dropped the sample pile when it was
+  the *only* thing on the device, so a device with real piles uploaded it too; and
+  rename-on-conflict fired on every load, because a reinstall regenerates the demo pile
+  with a **new id** while the vault still holds the old one — same name, different id, so
+  each sign-in minted another copy instead of converging. `pbBuildPayload` now filters
+  sample piles out of the vault payload, and since every write replaces `data` wholesale,
+  the next successful save purges junk an earlier build already uploaded. `mergeCloudData`
+  gains a `dropSamplePiles` opt (PocketBase only — Drive is untouched and still verified
+  byte-identical) so the junk is not pulled back down in the meantime.
+- **v3.79v — an edited demo pile is never treated as sample data.** `isSamplePile` now
+  returns false for any pile carrying `lastModified`, so a demo pile someone adopted as a
+  real one is uploaded and kept normally rather than silently discarded.
+- **v3.79v — `renamePile` did not stamp `lastModified`.** Renaming happens outside the
+  active-pile path, so `save()` never stamped it — meaning a merge could revert a rename
+  to an older remote copy. Latent since well before the migration.
 - **v3.79u — the service worker was caching API responses, permanently breaking sync.**
   Found on a real iPhone: signup and import worked, then the header stuck on SYNC ERROR
   and saves never reached SAVED. `sw.js`'s fetch handler intercepted **every** GET,

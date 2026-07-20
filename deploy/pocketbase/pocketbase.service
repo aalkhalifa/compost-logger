@@ -7,7 +7,10 @@ Type=simple
 User=pocketbase
 Group=pocketbase
 # Bind to localhost only; Caddy terminates TLS and proxies to this.
-ExecStart=/opt/pocketbase/pocketbase serve --http=127.0.0.1:8090
+# --origins locks CORS to the GitHub Pages app origin. Set here rather than in Caddy
+# because PocketBase already emits its own CORS headers; doing it in both places would
+# send two Access-Control-Allow-Origin headers and browsers reject that.
+ExecStart=/opt/pocketbase/pocketbase serve --http=127.0.0.1:8090 --origins=https://aalkhalifa.github.io
 WorkingDirectory=/opt/pocketbase
 Restart=always
 RestartSec=5

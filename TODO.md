@@ -2,17 +2,27 @@
 
 > One source of truth for what's next.
 > Updated: July 20 2026
-> Current version: beta v3.79v (PocketBase line) / production v3.78b
+> Current version: beta v3.79w (PocketBase line) / production v3.78b
+> Backend: https://api.compostlogger.com (stable, TLS, CORS locked)
 
 ---
 
-## 🔴 NOW — Active beta work (v3.79v)
+## 🔴 NOW — Active beta work (v3.79w)
 
-- [ ] **Re-test sync on the iPhone after v3.79v deploys.** Two fixes are waiting:
-  the SYNC ERROR (`sw.js` was caching API responses — not the tunnel, which was fine),
-  and the demo-pile duplicates. **Hard-refresh or reinstall the PWA** so the new service
-  worker activates — the old one is still installed on that device and will keep serving
-  the stale cached list until it does.
+- [ ] **Re-test sync on the iPhone after v3.79w deploys.** Three things are waiting:
+  the SYNC ERROR fix (`sw.js` was caching API responses — not the tunnel, which was fine),
+  the demo-pile duplicate fix, and the move to the real domain. **Hard-refresh or reinstall
+  the PWA** so the new service worker activates — the old one is still installed on that
+  device and will keep serving the stale cached list until it does.
+- [ ] **Confirm the vault self-cleans** — see below; unchanged by the domain move.
+- [ ] **Decide when to retire the Cloudflare tunnel.** It still fronts the same backend as
+  a fallback. Once the domain has proven itself, `systemctl disable --now
+  cloudflared-pocketbase` closes a second public path in. Its hostname still rotates on
+  restart, so it is break-glass only, not a second endpoint.
+- [ ] **Pending kernel upgrade on the box** (running 6.8.0-124, expects 6.8.0-136). A
+  reboot is now much safer than it was — the backend URL no longer depends on the tunnel —
+  but it *will* rotate the tunnel's fallback hostname. Verify `api.compostlogger.com`
+  comes back up after any reboot; all three services are `enabled`.
 - [ ] **Confirm the vault self-cleans.** It currently holds `Demo Pile — 30 Days` plus
   five `— Local Copy` duplicates. No manual cleanup needed: sign in on v3.79v and make any
   edit, and the next save purges them, because every vault write replaces `data` wholesale
@@ -34,10 +44,14 @@
   service-worker trap documented there: a rollback needs a *new* `sw.js` cache key, never
   the old one. Production stays v3.78b (pure Drive, untouched) as the ultimate fallback.
 - **Next up: Group G** (Drive/GSI removal), then H (release/promotion).
-- **Operational caveat:** `PB_BASE_URL` points at a Cloudflare *quick* tunnel, whose
-  hostname changes on every `cloudflared` restart. Now that logins are real, a rotated
-  hostname surfaces as "Can't reach the server" on every sign-in. Re-read the hostname
-  (command in `deploy/pocketbase/README.md`) before suspecting the code.
+- **The ephemeral-hostname caveat is retired.** `PB_BASE_URL` is now the stable
+  `https://api.compostlogger.com`. If sign-in fails with "Can't reach the server", check
+  `systemctl status caddy pocketbase` and the cert (`curl -sI
+  https://api.compostlogger.com/api/health`) rather than hunting for a rotated tunnel name.
+- **Local testing needs a CORS exception now.** The backend only accepts
+  `https://aalkhalifa.github.io`, so a `file://` or `localhost` build is blocked by the
+  browser. Add that origin to `--origins` in `pocketbase.service` temporarily, or test
+  against the deployed build.
 
 ---
 
@@ -53,9 +67,12 @@
     allows the GitHub Pages origin.
     - **[DONE and LIVE, July 20 2026]** Executed on the DO box: PocketBase 0.22.21 pinned,
       under systemd, `vaults` imported and verified (fields, unique index, all 5 rules),
-      superuser created. **Caddy/TLS skipped** — HTTPS is a Cloudflare quick tunnel, also
-      under systemd. `PB_BASE_URL` set. Remaining: buy the domain, then do the Caddy/TLS
-      step and lock CORS to `https://aalkhalifa.github.io` (currently permissive).
+      superuser created, `PB_BASE_URL` set. Initially fronted by a Cloudflare quick tunnel.
+    - **[COMPLETE, July 20 2026 — v3.79w]** Domain + TLS done: `api.compostlogger.com`
+      behind Caddy with an auto-renewing Let's Encrypt cert, PocketBase still bound to
+      localhost. CORS locked to `https://aalkhalifa.github.io` via PocketBase `--origins`
+      (**not** at the Caddy layer — doing both sends duplicate ACAO headers and browsers
+      reject that). Tunnel kept as a break-glass fallback. **Group A is fully done.**
   - **B. Auth:** add a single configurable `PB_BASE_URL` constant (all PB calls read from
     it); add `pbLogin/pbSignup/pbLogout/pbRestoreAuth` (+ `pbApi` helper) via raw `fetch`
     (no PB JS SDK — respects single-file + Safari/no-optional-chaining rules); store
@@ -112,10 +129,8 @@
     all Drive/GSI code once migrated.
   - **H. Release:** bump BUILD_VER (v3.79 line) + sw.js cache key; ship to /beta/ first,
     beta-test, then promote. Offline-first `save()` (localStorage first) is unchanged.
-  - **Deploy prerequisite (NOT a build blocker):** no domain purchased yet. Build
-    against the configurable `PB_BASE_URL` constant using a placeholder/IP for now.
-    Acquiring a domain (rootsofarabia.com or alternative) + TLS subdomain is required
-    before beta deploy, but not before writing/testing the code.
+  - **Deploy prerequisite — SATISFIED July 20 2026.** compostlogger.com registered on
+    Cloudflare; `PB_BASE_URL` is the stable `https://api.compostlogger.com`.
   - **Out of scope (stays backlog):** relational per-pile records, instructor/share
     tokens, actual analytics pipeline, Capacitor, custom domain.
 

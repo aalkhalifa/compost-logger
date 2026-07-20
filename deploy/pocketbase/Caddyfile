@@ -1,22 +1,17 @@
 # Caddy reverse proxy for PocketBase (Compost Logger backend).
-# Replace pb.example.com with your real subdomain once the domain is purchased and its
-# DNS A-record points at this box. Caddy then auto-issues a Let's Encrypt TLS cert.
+# Caddy auto-issues and renews a Let's Encrypt cert for this name.
+#
+# CORS is deliberately NOT handled here. PocketBase sets its own CORS headers, so adding
+# them at this layer too would send two Access-Control-Allow-Origin headers, and browsers
+# reject a response that carries more than one. The allowlist lives on PocketBase's
+# --origins flag instead (see /etc/systemd/system/pocketbase.service).
 
-pb.example.com {
+api.compostlogger.com {
 	# PocketBase listens on localhost only (see pocketbase.service).
 	reverse_proxy 127.0.0.1:8090
 
-	# --- Optional: tighten CORS before public launch ---------------------------
-	# PocketBase's default CORS is permissive (fine for beta). To restrict the API
-	# to just the app origin, uncomment and let Caddy enforce it:
-	#
-	# @preflight method OPTIONS
-	# handle @preflight {
-	# 	header Access-Control-Allow-Origin "https://aalkhalifa.github.io"
-	# 	header Access-Control-Allow-Methods "GET, POST, PATCH, DELETE, OPTIONS"
-	# 	header Access-Control-Allow-Headers "Authorization, Content-Type"
-	# 	respond 204
-	# }
-	# header Access-Control-Allow-Origin "https://aalkhalifa.github.io"
-	# ---------------------------------------------------------------------------
+	encode zstd gzip
+
+	# Access logs go to journald (journalctl -u caddy). Deliberately not a file: the
+	# packaged unit sandboxes filesystem writes, and journald already captures it.
 }

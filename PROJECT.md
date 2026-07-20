@@ -19,14 +19,16 @@
 **License:** Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia. See LICENSE.
 **Service worker:** sw.js — network-first, falls back to cache offline, and (since v3.79u)
 **only handles same-origin requests plus a static-CDN allowlist; all API traffic bypasses
-it entirely**. Cache key = `compost-logger-v3.79v` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
+it entirely**. Cache key = `compost-logger-v3.79w` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
 **SW registration (fixed v3.78a):** registration derives the repo root from `location.pathname` (strip the page filename, then a trailing `beta/`) and registers that root `sw.js`. Works from both `/<repo>/` and `/<repo>/beta/`, no hardcoded repo path. The root sw.js's default scope covers `/beta/`. Because the path is computed at runtime, promoting via `cp beta/index.html -> root index.html` stays a plain copy with no edits.
 
 ---
 
 ## Current Version
 
-**Live beta:** v3.79v (as of July 20 2026) — PocketBase migration line, Groups A-F done
+**Live beta:** v3.79w (as of July 20 2026) — PocketBase migration line, Groups A-F done
+**Backend:** `https://api.compostlogger.com` (Caddy + Let's Encrypt on the DO box)
+**Domain:** compostlogger.com, registered on Cloudflare (July 20 2026)
 **Production:** v3.78b (promoted from beta on July 11 2026, tag v3.78b)
 
 ### Deployment structure
@@ -152,6 +154,44 @@ Verify any rollback the same way as a build: extract the inline script and run
 ---
 
 ## Session Log
+
+### July 20 2026 (Claude Code) — v3.79w: real domain + TLS, CORS locked
+
+**compostlogger.com registered** (Cloudflare), `api` A-record → `64.226.83.129`, **proxy
+disabled (DNS only)** — which matters: Caddy validates via `tls-alpn-01`, so the TLS
+handshake has to reach this box rather than terminating at Cloudflare's edge.
+
+- **Caddy 2.11.4** installed and enabled, fronting PocketBase for `api.compostlogger.com`.
+  Let's Encrypt cert obtained via `tls-alpn-01`, valid to 2026-10-18, renewed
+  automatically by Caddy (no cron). HTTP 308-redirects to HTTPS. PocketBase stays bound to
+  `127.0.0.1:8090`, so Caddy is the only public path in.
+- **`PB_BASE_URL` = `https://api.compostlogger.com`** — finally a *stable* hostname. The
+  Cloudflare quick tunnel it replaces minted a new name on every restart, which is what
+  made the earlier ephemeral-hostname caveat necessary. That caveat is now retired.
+- **CORS locked to `https://aalkhalifa.github.io`** via PocketBase's `--origins` flag.
+
+> **Do the CORS lockdown on PocketBase, not in Caddy.** The `Caddyfile` template shipped a
+> commented block that set `Access-Control-Allow-Origin` at the proxy layer. PocketBase
+> already emits its own, so that would have sent **two** ACAO headers — and browsers reject
+> any response carrying more than one. It would have broken the app completely while
+> presenting as a CORS misconfiguration. The template has been corrected.
+
+**Tunnel kept as a fallback,** as requested: `cloudflared-pocketbase.service` still fronts
+the same instance. Two caveats recorded in the runbook — its hostname still rotates on
+restart (so it is break-glass, not a second endpoint), and it shares the same CORS
+allowlist.
+
+**Verified:** valid chain (`ssl_verify_result: 0`), health 200 over HTTPS, HTTP→HTTPS
+redirect, CORS allows the app origin and returns *no* headers for others with exactly one
+ACAO, and a full signup → login → vault create → scoped list → PATCH cycle through the new
+domain while an unauthenticated list still returns 0 items. All five harnesses still green
+(87 checks). Test accounts removed.
+
+**Consequence for local testing:** a `file://` or `localhost` build now has a page origin
+that is not allowlisted, so the browser blocks its API calls. The headless-Chrome harnesses
+that ran from `file://` can no longer reach the backend; they would need that origin added
+to `--origins` temporarily. Backend behavior itself is verified by curl, which is not
+subject to CORS.
 
 ### July 20 2026 (Claude Code) — v3.79u/v: first real-device test found two real bugs
 
@@ -522,18 +562,22 @@ piles, `recipes`, `volumeUnit`, `containerUnit`, `deletedPileIds`) plus separate
 - **Drive cutover:** import-then-remove — keep a one-time "import from Drive" during the
   beta, then delete all Drive/GSI code once users are migrated.
 - **Hosting:** PocketBase on the existing DigitalOcean box behind a TLS subdomain.
-- **Base URL:** a single configurable `PB_BASE_URL` constant in the app; build/test against
-  a placeholder or IP. **No domain purchased yet** — acquiring one (rootsofarabia.com or
-  alternative) is a *deploy* prerequisite, not a build blocker.
+  **Live since July 20 2026** at `https://api.compostlogger.com` (Caddy + Let's Encrypt).
+- **Base URL:** a single configurable `PB_BASE_URL` constant in the app — now
+  `https://api.compostlogger.com`. Kept configurable so the Cloudflare tunnel fallback is
+  a one-constant swap.
 - **Auth transport:** raw `fetch` against PB's REST API (no PB JS SDK) to respect the
   single-file + Safari/no-optional-chaining constraints.
 **Migration path for existing users:** On first PB login, detect localStorage data (and
 optionally an existing Drive file), offer one-tap import.
 
 ### Hosting plan
-- Keep GitHub Pages for now
-- Add custom domain (TBD — rootsofarabia.com or product-specific)
-- DigitalOcean for PocketBase backend
+- Keep GitHub Pages for the app (still `aalkhalifa.github.io` — the CORS allowlist is
+  pinned to that origin, so pointing the app at a compostlogger.com domain later means
+  updating `--origins` on the backend at the same time)
+- **Domain: compostlogger.com** (Cloudflare, registered July 20 2026). `api` subdomain
+  serves the backend; the apex is unused so far.
+- DigitalOcean for PocketBase backend — live behind Caddy/TLS
 - App Store / Google Play: via Capacitor wrapper, after PocketBase migration
 
 ### Data collection plan

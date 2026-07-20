@@ -815,17 +815,20 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
 <script>
 var CLIENT_ID="646828694419-0j8orsi53atb5dcl1an2h0adnusaddhn.apps.googleusercontent.com";
 // PocketBase backend base URL (migration). Single source of truth for every PB call.
-// No domain purchased yet - set this to your reachable PocketBase URL:
-//   local dev:        http://localhost:8090
-//   temp HTTPS host:  https://pb.SERVER-IP.nip.io   (or a Cloudflare Tunnel URL)
-//   production:       https://pb.YOUR-DOMAIN        (after domain + TLS)
-// GitHub Pages is HTTPS, so a deployed build needs an HTTPS PB URL (mixed-content rule);
-// http://localhost is exempt and works for local testing. See deploy/pocketbase/README.md.
-var PB_BASE_URL="https://democrats-rocky-dining-highs.trycloudflare.com";
+// Production backend: compostlogger.com on the DigitalOcean box, TLS by Caddy with a
+// Let's Encrypt cert that auto-renews. Stable hostname - unlike the Cloudflare quick
+// tunnel this replaced, which minted a new name on every restart.
+// The Cloudflare tunnel is still running as a fallback; if this host ever goes down,
+// swap this one constant to the tunnel URL (find it with:
+//   journalctl -u cloudflared-pocketbase | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1
+// ). CORS on the backend is locked to https://aalkhalifa.github.io, so requests from any
+// other page origin - including a local file:// or localhost build - are blocked by the
+// browser. See deploy/pocketbase/README.md.
+var PB_BASE_URL="https://api.compostlogger.com";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79v";
+var BUILD_VER="v3.79w";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},

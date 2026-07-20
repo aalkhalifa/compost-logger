@@ -83,6 +83,18 @@ untouched and still Drive-based, as the fallback.
   and login UI (Group F) not yet wired, so the auth functions are callable but not yet
   surfaced. Drive/GSI untouched (removed in Group G).
 
+### Changed
+- **v3.79w — backend moved to `https://api.compostlogger.com`.** Real domain, real TLS.
+  Caddy fronts PocketBase with a Let's Encrypt cert (`tls-alpn-01`, auto-renewing);
+  PocketBase stays bound to `127.0.0.1:8090` so Caddy is the only public path. `PB_BASE_URL`
+  is now a **stable** hostname, replacing the Cloudflare quick tunnel that minted a new
+  name on every restart. The tunnel keeps running as a break-glass fallback.
+- **v3.79w — CORS locked to `https://aalkhalifa.github.io`.** Enforced by PocketBase's
+  `--origins` flag rather than at the Caddy layer: PocketBase already emits CORS headers,
+  so adding them in Caddy too would send two `Access-Control-Allow-Origin` headers, which
+  browsers reject outright. Note this means a `file://` or `localhost` build can no longer
+  call the API — local testing needs that origin added to `--origins` temporarily.
+
 ### Fixed
 
 - **v3.79v — the onboarding demo pile no longer reaches accounts, and its duplicates

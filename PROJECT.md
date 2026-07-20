@@ -19,7 +19,9 @@
 **License:** Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia. See LICENSE.
 **Service worker:** sw.js — network-first, falls back to cache offline, and (since v3.79u)
 **only handles same-origin requests plus a static-CDN allowlist; all API traffic bypasses
-it entirely**. Cache key = `compost-logger-v3.79w` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
+it entirely**. Cache key = `compost-logger-v3.81` — bump on every deploy; sw.js is shared by
+prod + beta, so the key tracks the **newest deploy of either channel** (currently beta).
+NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
 **SW registration (fixed v3.78a):** registration derives the repo root from `location.pathname` (strip the page filename, then a trailing `beta/`) and registers that root `sw.js`. Works from both `/<repo>/` and `/<repo>/beta/`, no hardcoded repo path. The root sw.js's default scope covers `/beta/`. Because the path is computed at runtime, promoting via `cp beta/index.html -> root index.html` stays a plain copy with no edits.
 
 ---
@@ -28,8 +30,8 @@ it entirely**. Cache key = `compost-logger-v3.79w` (bump on every deploy; sw.js 
 
 **Production:** **v3.80** (promoted July 20 2026, tag `v3.80`) — first production build
 with PocketBase accounts. Drive still present and working (removal is Group G).
-**Live beta:** v3.81 (next line, opened July 20 2026) — identical to production until
-work lands on it.
+**Live beta:** v3.81 (opened July 20 2026) — identical to production except `BUILD_VER`,
+until work lands on it. First item: Group G (Drive/GSI removal), deferred to ~July 27.
 **Backend:** `https://api.compostlogger.com` (Caddy + Let's Encrypt on the DO box)
 **Domain:** compostlogger.com, registered on Cloudflare (July 20 2026)
 

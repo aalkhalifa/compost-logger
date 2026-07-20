@@ -3,7 +3,7 @@
 > One source of truth for what's next.
 > Updated: July 20 2026
 > **Production: v3.80** (promoted July 20 2026) — PocketBase accounts live, Drive retained
-> **Beta: v3.81** (next line, opened July 20 2026)
+> **Beta: v3.81** (opened July 20 2026) — identical to prod except `BUILD_VER`; first item is Group G
 > Backend: https://api.compostlogger.com (stable, TLS, CORS locked)
 > Versioning: production = clean numbers, beta = letter suffixes (`v3.81a`, …)
 

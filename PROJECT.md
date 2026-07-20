@@ -14,8 +14,8 @@
 **Repo:** github.com/aalkhalifa/compost-logger
 **Owner:** Abdulla Al-Khalifa, Bahrain (UTC+3), Roots of Arabia
 **Stack:** Single HTML file, vanilla JS, Chart.js, chartjs-plugin-annotation, jsPDF, SheetJS
-**Storage:** localStorage primary (`ca_v5` key), Google Drive as cloud backup (to be replaced with PocketBase)
-**Auth:** Google Identity Services OAuth (testing mode, max 100 users, 7-day token expiry)
+**Storage:** localStorage primary (`ca_v5` key). Cloud sync = **PocketBase** (`https://api.compostlogger.com`). Google Drive still present as a fallback for unmigrated users; removal is Group G.
+**Auth:** **PocketBase email/password** (no popup, no user cap, no 7-day expiry). Google Identity Services OAuth still present for the Drive fallback; removed with Group G.
 **License:** Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia. See LICENSE.
 **Service worker:** sw.js — network-first, falls back to cache offline, and (since v3.79u)
 **only handles same-origin requests plus a static-CDN allowlist; all API traffic bypasses
@@ -81,14 +81,23 @@ compost-logger/
 ├── CHANGELOG.md        ← Keep a Changelog format, grouped by version
 ├── PROJECT.md          ← this file
 ├── TODO.md
+├── test/               ← node harnesses, no build step (./test/run-all.sh)
 └── deploy/
-    └── pocketbase/     ← backend infra (Group A): runbook, collection schema, systemd, Caddy
+    └── pocketbase/     ← backend infra: runbook, collection schema, systemd unit, Caddyfile
+                          (mirrors of what is live on the box - keep in sync)
 ```
 
 ### Promotion process
-When beta is stable: copy `beta/index.html` → root `index.html`, commit with version tag.
+When beta is stable:
+1. Set `BUILD_VER` in `beta/index.html` to the line's clean number (drop the letter).
+2. `cp beta/index.html index.html` — a **plain copy**, no edits. `APP_VERSION` derives the
+   " BETA" suffix from `location.pathname` at runtime, so both files stay byte-identical.
+3. Bump the `sw.js` cache key to match. **Easy to forget, and a stale service worker means
+   testers get the old file and report the release as broken.**
+4. Verify: `./test/run-all.sh`, `node --check` on the extracted inline script of *both*
+   index.html files, then commit and annotate-tag.
 
-### What's confirmed in v3.77p
+### Core features (established by v3.77p; all still present)
 
 - Multi-probe support: CORE 1, 2, 3, 4
 - Sites system with GPS capture + site manager
@@ -114,6 +123,89 @@ When beta is stable: copy `beta/index.html` → root `index.html`, commit with v
 - NEXT TURN DUE in duration format
 - SINCE THERMOPHILIC START as duration
 - Sample pile on first run
+
+---
+
+## Operating this project (read before touching the backend)
+
+**Claude Code runs ON the DigitalOcean droplet.** The repo at `/root/compost-logger` and
+the live backend are the same machine — `systemctl`, `journalctl` and `curl
+127.0.0.1:8090` all work directly. Older session-log entries that say "server execution is
+on Abdulla, I can't reach the DO box" describe how things were on July 11 and are no
+longer true.
+
+### Services
+
+| Unit | Role |
+|---|---|
+| `pocketbase` | PocketBase 0.22.21, `/opt/pocketbase`, bound `127.0.0.1:8090`, `--origins` CORS lockdown |
+| `caddy` | TLS + reverse proxy for `api.compostlogger.com`; the only public path in |
+| `cloudflared-pocketbase` | Cloudflare quick tunnel, kept as break-glass fallback (hostname rotates on restart) |
+
+All three are `enabled`. Config lives at `/etc/caddy/Caddyfile` and
+`/etc/systemd/system/pocketbase.service`; both are mirrored into `deploy/pocketbase/` and
+should be kept in sync when changed.
+
+### Admin token (needed for anything server-side)
+
+PocketBase 0.22 uses `/api/admins/`; 0.23+ renames this to `_superusers`, so this breaks
+if the binary is ever upgraded.
+
+```bash
+PBPW=$(cat /root/.pb_admin_password)
+TK=$(curl -s -X POST http://127.0.0.1:8090/api/admins/auth-with-password \
+  -H "Content-Type: application/json" \
+  -d "{\"identity\":\"aalkhalifa@gmail.com\",\"password\":\"$PBPW\"}" \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin)["token"])')
+```
+
+Superuser is `aalkhalifa@gmail.com`; the password is at `/root/.pb_admin_password` (mode
+0600). It was **auto-generated during setup and has appeared in a chat transcript** — see
+TODO for the rotation item.
+
+### Inspecting a vault
+
+```bash
+curl -s http://127.0.0.1:8090/api/collections/vaults/records -H "Authorization: $TK" \
+  | python3 -c 'import sys,json
+d=json.load(sys.stdin)
+for r in d["items"]:
+    p=r["data"].get("piles",[])
+    print(r["id"], r["updated"], len(p), "piles")
+    for x in p: print("   ", x.get("name"), len(x.get("entries") or []), "entries")'
+```
+
+### The diagnostic that found the worst bug
+
+PocketBase logs every request. Filtering for failures is how the v3.79u service-worker bug
+was found — the app showed only "SYNC ERROR", but the server showed exactly which call was
+failing and why:
+
+```bash
+curl -s "http://127.0.0.1:8090/api/logs?perPage=40&sort=-created&filter=data.status%3E%3D400" \
+  -H "Authorization: $TK" | python3 -c 'import sys,json
+for i in json.load(sys.stdin)["items"]:
+    d=i.get("data",{}); print(i["created"], d.get("status"), d.get("method"), d.get("url"), "|", d.get("error"))'
+```
+
+`data.auth`, `data.userAgent` and `data.details` on each entry distinguish "bad token"
+from "valid token, rejected request" — that distinction is what identified the bug as
+client-side caching rather than auth.
+
+### Test-account hygiene
+
+Signup is public, so testing creates real accounts. **Delete them afterwards** — deleting
+a user cascades to their vault. Verify only the real account remains:
+
+```bash
+curl -s http://127.0.0.1:8090/api/collections/users/records -H "Authorization: $TK" \
+  | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d["totalItems"],[i.get("email") for i in d["items"]])'
+```
+
+### Current backend state (July 20 2026)
+
+One real account (`aalkhalifa@gmail.com`, `verified: false` — email verification is **off**,
+so signup logs straight in), one vault, 7 piles. No test accounts remain.
 
 ---
 
@@ -222,6 +314,17 @@ Verify any rollback the same way as a build: extract the inline script and run
 
 ## Session Log
 
+> **Reading order:** entries are newest-first, so a single day reads bottom-up. July 20's
+> arc, in the order it happened: Groups A–F (v3.79r→t) → real-device test → fixes
+> (v3.79u/v) → domain + TLS (v3.79w) → **promoted v3.80** → demo-pile purge fix (v3.81a) →
+> **promoted v3.82**. Start at *SESSION SUMMARY* for the overview.
+>
+> Version history across sessions: **v3.75 → v3.77q → v3.78b** (July 11, two sessions) →
+> **v3.82** (July 20). Beta went v3.78 → v3.79 → v3.82 over the same span. Note the v3.79
+> line has a gap in this log: **v3.79b–q were made outside these sessions** (chart
+> refinements, water labels, probe-spread/heating-rate mini charts, and the freeze cap
+> raised 8h → 24h) and are documented only in their commit messages.
+
 ### July 20 2026 (Claude Code) — v3.81a: the demo-pile purge never actually ran
 
 Checking the real account to confirm the v3.79v self-clean showed it had **not** happened:
@@ -323,9 +426,18 @@ wrong.
 
 **State at session end:** backend live and stable at `https://api.compostlogger.com`.
 v3.79v and v3.79w were **verified on iPad Safari** (signup, import, `ACCOUNT SYNCED`,
-`OFFLINE (local only)`, reconnect sync — and again after the domain move), which
-unblocked Group H. **Promoted to production as v3.80.** Group G (Drive removal) remains
-deferred ~July 27; next beta line opened at **v3.81**.
+`OFFLINE (local only)`, reconnect sync — and again after the domain move), which unblocked
+Group H. Promoted as v3.80, then a further fix (v3.81a) shipped as **v3.82** after the
+demo-pile purge was found not to have worked. Group G remains deferred ~July 27.
+
+**Verification assets were preserved into `test/`** at the end of the session — the five
+harness suites had lived only in a session scratchpad and would have been lost. They are
+the guard for Group G, which will heavily edit `mergeCloudData`. `./test/run-all.sh`.
+
+**What I would tell the next session in one line:** the harnesses protect refactors, but
+both bugs that actually reached a user were found on a phone — treat device testing as
+required, and be suspicious of any test fixture that only covers the path you were already
+thinking about.
 
 ---
 
@@ -665,7 +777,10 @@ settings live in their own keys: `ca_displayBasis`, `ca_showPFRP`, `ca_pilesSort
 - `displayCycles = cycles.slice(1)` when cycles.length > 1
 - Stage satisfaction: continuous streak above stage floor for required hours
 
-### Drive sync (v3.77p behavior)
+### Drive sync (superseded — see `mergeCloudData`)
+Since v3.79r both Drive paths call the shared `mergeCloudData(remote, opts)`; the behavior
+below is preserved exactly via its `opts` flags, verified byte-identical
+(`test/c-merge-equivalence.js`). Drive itself is removed in Group G.
 - On connect: merges local + Drive data
 - Local-only piles: uploaded to Drive
 - Conflict: local pile renamed "[Name] — Local Copy"
@@ -697,7 +812,7 @@ merge paths could replace a pile with an older Drive copy that had no `siteId`.
 **Fix (v3.77q):** Drive payload now = full `ca_v5` shape. Connect + sync paths merge sites by
 id (local wins), preserve `pile.siteId` when the Drive copy lacks it, skip the site merge when
 `driveData.sites` is undefined (no wipe), and run `migrateSites()` after merge.
-**Status:** Fixed in beta v3.77q. Awaiting beta test before promotion.
+**Status:** Fixed and shipped to production in v3.77q (July 11 2026).
 
 ### BUG 2 — FIXED (v3.77q): active-cycle extrapolation
 **Symptom:** Active cycle bars show 500-900h READY time.
@@ -706,14 +821,14 @@ all elapsed time counted as READY.
 **Fix (v3.77q):** Added `cappedNow(lastTs)` helper (caps at lastEntry + 8h). Applied in
 `computeIndependentStages`, `classifyCycleTime`, `buildChronologicalSegments`, and
 `computeSatisfiedStages`. `calcSmartTimer` inherits the cap.
-**Status:** Fixed in beta v3.77q. Awaiting beta test before promotion.
+**Status:** Fixed and shipped to production in v3.77q (July 11 2026).
 
 ### BUG 3 — FIXED (v3.77q): JSON export incomplete
 **Symptom:** Export JSON missing sites array, recipe templates, and some settings.
 **Fix (v3.77q):** `exportAllJSON` now emits the full `ca_v5` shape (incl. `sites`, `siteId` on
 piles, `recipes`, `volumeUnit`, `containerUnit`, `deletedPileIds`) plus separate-key settings
 (`displayBasis`, `showPFRP`, `pilesSortMode`, `entriesSortMode`) and `exportVersion`/`exportedAt`.
-**Status:** Fixed in beta v3.77q. Awaiting beta test before promotion.
+**Status:** Fixed and shipped to production in v3.77q (July 11 2026).
 
 ---
 
@@ -728,7 +843,7 @@ piles, `recipes`, `volumeUnit`, `containerUnit`, `deletedPileIds`) plus separate
 - Drive API is a hack for what should be a proper backend
 - PocketBase: single binary, runs on existing DigitalOcean server, no extra cost,
   clean email/password auth, no scary popups, full data ownership
-**Status:** Scoped July 11 2026 (approvable change list in TODO.md), build not yet started.
+**Status:** **SHIPPED.** Scoped July 11 2026, built July 20 2026 (Groups A-F), live in production as v3.82. Group G (delete Drive/GSI) is the only part outstanding.
 **Locked design decisions (July 11 2026):**
 - **Data model:** blob-per-user — one `vaults` record holds the full `ca_v5` JSON;
   reuses the existing pile/entry/site/recipe/tombstone merge logic (extracted once into
@@ -776,21 +891,30 @@ Brian was warm and impressed — invited Abdulla to contribute to their student 
 
 ## Pending Features (Prioritized)
 
-### 🔴 HIGH — Bugs to fix first
-1. **Location/siteId bug** — site assignments lost on Drive sync
-2. **classifyCycleTime extrapolation** — inflated READY times
-3. **JSON export completeness** — add sites, recipe templates, settings
+> **TODO.md is the live task list.** This section is the longer-range view; where the two
+> disagree, TODO.md wins.
 
-### 🟡 NEXT — Confirmed to build
-4. **PocketBase migration** — replace Google Drive sync
-5. **Migration path for existing users** — detect localStorage on first PocketBase login
-6. **Opt-in analytics consent at signup**
-7. **Drive auto-connect on app load** — before PocketBase migration if keeping Drive temporarily
+### ✅ DONE (kept for context)
+- Location/siteId bug, `classifyCycleTime` extrapolation, JSON export completeness — all
+  fixed in v3.77q (July 11 2026)
+- **PocketBase migration** — Groups A–F, live in production as v3.82 (July 20 2026)
+- **Migration path for existing users** — Group D, first-login import decision
+- **Opt-in analytics consent at signup** — Group E (wiring only; no pipeline exists)
+- **Custom domain** — compostlogger.com registered; `api.` subdomain serves the backend
+- **Drive auto-connect** — moot; PocketBase replaced the need
+
+### 🟡 NEXT
+1. **Group G** — delete Drive/GSI code (deferred ~July 27 2026)
+2. **Point the app at compostlogger.com** — needs the migration-banner + dual-URL cutover
+   in TODO.md, *and* a `--origins` update on the backend at the same time
+3. **Privacy policy** — a launch blocker. E's consent copy is deliberately written not to
+   depend on one, but public launch does.
 
 ### 🟢 BACKLOG
-8. **Instructor/share view** — share pile read-only via link
-9. **Custom domain** — when ready to go public
-10. **App Store / Play Store** — via Capacitor, after PocketBase
+- **Instructor/share view** — share pile read-only via link. Depends on server-side share
+  tokens, and is the trigger for revisiting the blob-per-user data model.
+- **App Store / Play Store** — via Capacitor, now unblocked (clean auth story exists)
+- **Analytics pipeline** — consent is captured; nothing collects yet
 
 ---
 
@@ -822,7 +946,7 @@ Brian was warm and impressed — invited Abdulla to contribute to their student 
 | Replacing Drive with PocketBase | Own backend on DigitalOcean | Eliminate Google OAuth warning, own the data, enable analytics |
 | Turn entry = last in cycle | buildCycles() puts turn as last entry | Biological model: record turn at moment of turning |
 | Stage tracking is independent | Each stage has its own streak counter | Pile can satisfy Stage 3 without satisfying Stage 1 |
-| classifyCycleTime cap at 8h | Freeze extrapolation after 8h | Prevents runaway READY time when user hasn't logged in days |
+| classifyCycleTime cap at **24h** | Freeze extrapolation 24h after the last entry | Prevents runaway READY time when the user hasn't logged in days. Was 8h in v3.77q; **raised to 24h in v3.79d**. NOTE: a stale comment in both index.html files still says 8h — code is correct, comment is not (TODO). |
 | Decimal rounding on display | Math.round() for display only | C↔F conversions create .9 artifacts, storage keeps precision |
 | No auto-advance on temp fields | Removed | iOS keyboard has no Enter key, caused inconsistency |
 | Day 1 = earliest entry date | Not pile.created timestamp | Users backfill historical entries before app creation date |

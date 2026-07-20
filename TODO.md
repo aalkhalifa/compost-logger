@@ -51,6 +51,22 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
 
 ### Operational
 
+- [ ] **Rotate the PocketBase admin password.** It was auto-generated during setup on
+  July 20 2026 and **appeared in a chat transcript**. Stored at
+  `/root/.pb_admin_password` (0600). Change it in the Admin UI
+  (`https://api.compostlogger.com/_/`), then update that file — several runbook commands
+  read it. Not urgent (admin API is not exposed publicly beyond the login form) but it
+  should not stay indefinitely.
+- [ ] **Stale code comment: the freeze cap says 8h, the code does 24h.** `cappedNow()`
+  caps at 24h (raised in v3.79d) but the comment above `computeIndependentStages` still
+  says "capped at 8h past that entry", in **both** `index.html` and `beta/index.html`.
+  Comment-only, zero behavior risk — fold into the next beta line rather than cutting a
+  release for it.
+- [ ] **PocketBase 0.22.21 is version-pinned.** Upgrading to 0.23+ renames the admin API
+  from `/api/admins/` to `/api/_superusers/`, which breaks every server-side snippet in
+  PROJECT.md's *Operating this project* section and in `deploy/pocketbase/README.md`.
+  Update both if the binary is ever upgraded.
+
 - [ ] **Decide when to retire the Cloudflare tunnel.** It still fronts the same backend as
   a fallback. Once the domain has proven itself, `systemctl disable --now
   cloudflared-pocketbase` closes a second public path in. Its hostname still rotates on
@@ -62,6 +78,13 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
 
 ### Standing notes
 
+- **Run `./test/run-all.sh` before and after any change to sync/merge logic.** Five suites,
+  94 checks, no network or browser needed. `test/README.md` says what each one protects —
+  and, importantly, documents how they have given false confidence before.
+- **Group G will heavily edit `mergeCloudData`.** `test/c-merge-equivalence.js` is the
+  guard: it proves the shared merge still matches the pre-extraction Drive code. Once Drive
+  is deleted that suite becomes meaningless and should be **removed in the same commit**,
+  not left passing against code nobody calls.
 - **Test the PWA over http(s), not `file://`.** Service workers do not register on
   `file://`, which is exactly why the API-caching bug survived every headless test.
 - **Local testing needs a CORS exception now.** The backend only accepts

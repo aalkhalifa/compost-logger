@@ -9,49 +9,69 @@
 
 ## 🔴 NOW — Active beta work (v3.79w)
 
-- [ ] **Re-test sync on the iPhone after v3.79w deploys.** Three things are waiting:
-  the SYNC ERROR fix (`sw.js` was caching API responses — not the tunnel, which was fine),
-  the demo-pile duplicate fix, and the move to the real domain. **Hard-refresh or reinstall
-  the PWA** so the new service worker activates — the old one is still installed on that
-  device and will keep serving the stale cached list until it does.
-- [ ] **Confirm the vault self-cleans** — see below; unchanged by the domain move.
+PocketBase migration **Groups A–F are done and the backend is on a real domain**. A user
+can sign up, sign in, sync, migrate a device's data into an account, and set analytics
+consent. **Group G is deferred one week (~July 27 2026); Group H (promote to production)
+is next.**
+
+- [ ] **Re-test on the iPhone — this gates everything else.** Three fixes are waiting and
+  **none has been confirmed on a real device**: the SYNC ERROR fix (`sw.js` was caching API
+  responses — the tunnel was fine), the demo-pile duplicate fix, and the move to
+  `api.compostlogger.com`. **Hard-refresh or reinstall the PWA** so the new service worker
+  activates; the old one is still installed there and will keep serving the stale cached
+  list until it does. Check specifically:
+  - saves reach SAVED and the header no longer sticks on SYNC ERROR
+  - the vault self-cleans: it still holds `Demo Pile — 30 Days` plus five `— Local Copy`
+    duplicates. No manual cleanup — sign in, make any edit, and the next save purges them,
+    because every vault write replaces `data` wholesale and demo piles are now filtered out
+    of the payload. Confirm afterwards that the six demo entries are gone **and the real
+    piles are intact**.
+- [ ] **Do not promote to production (Group H) until that re-test passes.** Production is
+  still v3.78b, pure Drive, untouched. Promoting would put device-unverified sync code in
+  front of every user, and the last real-device test found a bug every headless test
+  missed.
+
+### Before pointing compostlogger.com at the app
+
+- [ ] **Migration banner + dual-URL cutover.** When the app itself moves to
+  compostlogger.com, do it additively rather than as a hard switch:
+  - **Add a migration banner to the `github.io` build** prompting users to sign in, so
+    their data reaches an account before they follow the new URL. A user who moves domains
+    with only localStorage data would land on a fresh origin with an empty app — different
+    origin means different localStorage.
+  - **Keep both URLs live; do not redirect.** Installed PWAs, home-screen shortcuts and
+    bookmarks all point at the old origin, and a redirect can leave a stale service worker
+    serving the old app from cache. Retire the old URL only once traffic has actually moved.
+  - **Update PocketBase `--origins` to include the new domain** *before* the app is served
+    from it — the allowlist is currently pinned to `https://aalkhalifa.github.io` alone, so
+    the new origin would be blocked on arrival. Keep **both** origins listed for as long as
+    both URLs are live, comma-separated in `pocketbase.service`, then `daemon-reload` and
+    restart PocketBase.
+
+### Operational
+
 - [ ] **Decide when to retire the Cloudflare tunnel.** It still fronts the same backend as
   a fallback. Once the domain has proven itself, `systemctl disable --now
   cloudflared-pocketbase` closes a second public path in. Its hostname still rotates on
   restart, so it is break-glass only, not a second endpoint.
 - [ ] **Pending kernel upgrade on the box** (running 6.8.0-124, expects 6.8.0-136). A
-  reboot is now much safer than it was — the backend URL no longer depends on the tunnel —
-  but it *will* rotate the tunnel's fallback hostname. Verify `api.compostlogger.com`
-  comes back up after any reboot; all three services are `enabled`.
-- [ ] **Confirm the vault self-cleans.** It currently holds `Demo Pile — 30 Days` plus
-  five `— Local Copy` duplicates. No manual cleanup needed: sign in on v3.79v and make any
-  edit, and the next save purges them, because every vault write replaces `data` wholesale
-  and the demo piles are now filtered out of the payload. Verify afterwards that the six
-  demo entries are gone and the real piles are intact.
+  reboot is much safer now that the backend URL no longer depends on the tunnel, but it
+  *will* rotate the tunnel's fallback hostname. Verify `api.compostlogger.com` comes back
+  after any reboot; all three services are `enabled`.
 
-- PocketBase migration **Groups A–F are done**. The migration is now **reachable by a
-  real user**: sign up, sign in, sync, migrate a device's existing data into an account,
-  and set analytics consent.
-- **Beta-test before Group G.** G deletes the Drive code, the last exit if something in
-  A–F is wrong. The first real-device test already found a genuine bug (the `sw.js`
-  caching issue above) that every headless test missed, so treat device testing as
-  required, not a formality.
+### Standing notes
+
 - **Test the PWA over http(s), not `file://`.** Service workers do not register on
-  `file://`, so the entire caching layer went unexercised until the iPhone test. Any
-  future browser verification needs a local http server at minimum.
-- **Rollback is ready if it misbehaves.** Beta builds are tagged `v3.79r` / `v3.79s` /
-  `v3.79t`; exact revert commands are in the **ROLLBACK** section of PROJECT.md. Note the
-  service-worker trap documented there: a rollback needs a *new* `sw.js` cache key, never
-  the old one. Production stays v3.78b (pure Drive, untouched) as the ultimate fallback.
-- **Next up: Group G** (Drive/GSI removal), then H (release/promotion).
-- **The ephemeral-hostname caveat is retired.** `PB_BASE_URL` is now the stable
-  `https://api.compostlogger.com`. If sign-in fails with "Can't reach the server", check
-  `systemctl status caddy pocketbase` and the cert (`curl -sI
-  https://api.compostlogger.com/api/health`) rather than hunting for a rotated tunnel name.
+  `file://`, which is exactly why the API-caching bug survived every headless test.
 - **Local testing needs a CORS exception now.** The backend only accepts
   `https://aalkhalifa.github.io`, so a `file://` or `localhost` build is blocked by the
-  browser. Add that origin to `--origins` in `pocketbase.service` temporarily, or test
-  against the deployed build.
+  browser. Add that origin to `--origins` temporarily, or test the deployed build.
+- **Rollback is ready.** Beta builds are tagged `v3.79r` … `v3.79w`; exact commands are in
+  the **ROLLBACK** section of PROJECT.md, including the service-worker trap (a rollback
+  needs a *new* `sw.js` cache key, never the old one).
+- **The ephemeral-hostname caveat is retired.** If sign-in fails with "Can't reach the
+  server", check `systemctl status caddy pocketbase` and the cert rather than hunting for
+  a rotated tunnel name.
 
 ---
 
@@ -127,12 +147,23 @@
       migration prompts and the destructive decline path.
   - **G. Drive removal:** keep a one-time "import from Drive" during beta, then delete
     all Drive/GSI code once migrated.
-  - **H. Release:** bump BUILD_VER (v3.79 line) + sw.js cache key; ship to /beta/ first,
-    beta-test, then promote. Offline-first `save()` (localStorage first) is unchanged.
+    - **DEFERRED one week (~July 27 2026).** Drive is the last exit if anything in A–F is
+      wrong, and A–F have not yet been confirmed working on a real device. Deleting it
+      before then removes the fallback while the replacement is unproven. Also note
+      `mergeCloudData`'s Drive-only flags (`mergeRecipes`, `adoptRemoteSettings`,
+      `renameOnConflict`, `strictSitesGuard`) and the two `updateDriveUI`/`updatePbUI`
+      yield guards all become dead weight once Drive goes — G is the cleanup that
+      simplifies them.
+  - **H. Release: NEXT.** bump BUILD_VER (v3.79 line) + sw.js cache key; ship to /beta/
+    first, beta-test, then promote. Offline-first `save()` (localStorage first) is
+    unchanged. **Blocked on the iPhone re-test** — see NOW. Promoting device-unverified
+    sync code would put it in front of every user, and production is currently a clean
+    Drive-based fallback worth protecting.
   - **Deploy prerequisite — SATISFIED July 20 2026.** compostlogger.com registered on
     Cloudflare; `PB_BASE_URL` is the stable `https://api.compostlogger.com`.
   - **Out of scope (stays backlog):** relational per-pile records, instructor/share
-    tokens, actual analytics pipeline, Capacitor, custom domain.
+    tokens, actual analytics pipeline. Capacitor and pointing the app at
+    compostlogger.com are now near-term — see the cutover checklist in NOW.
 
 - [x] **Promote beta to production** — done July 11 2026 (v3.78b, tag v3.78b)
 

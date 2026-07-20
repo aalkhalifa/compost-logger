@@ -155,6 +155,47 @@ Verify any rollback the same way as a build: extract the inline script and run
 
 ## Session Log
 
+### July 20 2026 (Claude Code) — SESSION SUMMARY
+
+**The PocketBase migration went from "scoped, nothing running" to "live on a real domain
+and reachable by a user", in one session.** Beta v3.79q → **v3.79w**, seven tagged builds.
+Production untouched at v3.78b (pure Drive) throughout.
+
+| Phase | Builds | What |
+|---|---|---|
+| Groups A–F | v3.79r → v3.79t | Backend stood up, sync, migration gate, consent, account UI |
+| Real-device test | — | iPhone found two genuine bugs no headless test caught |
+| Fixes | v3.79u, v3.79v | `sw.js` API-caching bug; demo-pile duplicates |
+| Domain + TLS | v3.79w | `api.compostlogger.com`, Caddy/Let's Encrypt, CORS locked |
+
+**What today actually demonstrated:** the harnesses (87 checks across five suites) caught
+real regressions and made the refactors safe — but the two bugs that would have hurt users
+were both found by *running the thing on a phone*. One (`sw.js` caching API responses) was
+invisible to every headless test because service workers do not register on `file://`. The
+other (demo-pile duplicates) only appeared because a real device had been reinstalled a few
+times. Harnesses proved the code did what I meant; the device proved what I meant was
+wrong.
+
+**Bugs found and fixed today, none of which were in any group's scope:**
+1. `sw.js` cached cross-origin API responses → permanent SYNC ERROR (v3.79u)
+2. `pbLoad` could not distinguish "no vault" from "cannot see vault" → now self-heals (v3.79u)
+3. Demo pile uploaded to real accounts + non-converging `— Local Copy` duplicates (v3.79v)
+4. `renamePile` never stamped `lastModified` → a merge could silently revert a rename (v3.79v)
+5. `pbLoad` silently uploaded the whole local vault on first login (v3.79s)
+6. `pbLogout` leaked `pbAnalyticsOptIn` across accounts — a consent bug (v3.79t)
+7. `showToast` rendered a dead UNDO button on every informational toast (v3.79t)
+8. `pbRestoreAuth` signed users out silently, including when merely offline (v3.79t)
+9. A failed signup could strand a user on "already registered" (v3.79t)
+10. `sw.js` cache key had drifted at v3.78b through v3.79b–q (v3.79r)
+11. "1 entries" grammar in Group D's destructive confirm (v3.79s)
+
+**State at session end:** backend live and stable at `https://api.compostlogger.com`;
+beta v3.79w pushed and tagged. **Group G (Drive removal) deferred one week (~July 27);
+Group H (promote to production) is next — but blocked on the iPhone re-test, because none
+of the v3.79u/v/w fixes has yet been confirmed on a real device.**
+
+---
+
 ### July 20 2026 (Claude Code) — v3.79w: real domain + TLS, CORS locked
 
 **compostlogger.com registered** (Cloudflare), `api` A-record → `64.226.83.129`, **proxy
@@ -385,10 +426,10 @@ consent copy is deliberately written not to depend on one); and `PB_BASE_URL` po
 an ephemeral quick-tunnel hostname. Two accepted limitations are parked in TODO.md with
 triggers: non-atomic read-merge-write concurrency, and the 5 MB vault field cap.
 
-**Next:** beta-test v3.79t on a real device, then Group G (Drive/GSI removal) and H
-(release/promotion). G deletes the Drive fallback, so it is worth confirming A-F work on
-an actual iPhone first — everything so far has been verified headlessly, and the
-Safari/iOS constraints in this document exist because that is where this app breaks.
+*(This was written before the real-device test. It said A–F should be confirmed on an
+actual iPhone before Group G removes the Drive fallback, since everything so far had been
+verified headlessly. That test happened the same day and immediately found two genuine
+bugs — see the v3.79u/v entry above. The caution was warranted.)*
 
 ### July 11 2026 (Claude Code) — later session
 

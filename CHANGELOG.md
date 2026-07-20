@@ -12,10 +12,15 @@ This project uses date-stamped `v3.XX` releases with letter sub-revisions
 PocketBase migration line (replacing Google Drive sync). Ships from `/beta/`; additive
 during the transition (Drive/GSI keeps working until Group G's import-then-remove).
 
-**Groups A–F landed 2026-07-20.** Backend live on the DigitalOcean box; beta v3.79t is
-the first build a user can sign into. Tagged `v3.79r`, `v3.79s`, `v3.79t` — see the
-ROLLBACK section of PROJECT.md for the revert procedure. Production remains v3.78b,
-untouched and still Drive-based, as the fallback.
+**Groups A–F landed 2026-07-20**, followed the same day by two fixes from the first
+real-device test and the move to a real domain. Beta went v3.79q → **v3.79w**, tagged at
+each step (`v3.79r` … `v3.79w`) — see the ROLLBACK section of PROJECT.md for the revert
+procedure. Backend is live at `https://api.compostlogger.com`. Production remains
+**v3.78b, untouched and still Drive-based**, as the fallback.
+
+**Status:** Group G (Drive/GSI removal) is **deferred one week (~2026-07-27)** — Drive is
+the last exit if anything in A–F proves wrong, and A–F are not yet confirmed on a real
+device. Group H (promote to production) is **next**, blocked on that re-test.
 
 ### Added
 - **v3.79t — Group F (account UI).** The PocketBase migration is now reachable by a user.
@@ -84,6 +89,13 @@ untouched and still Drive-based, as the fallback.
   surfaced. Drive/GSI untouched (removed in Group G).
 
 ### Changed
+- **v3.79w — planned app-domain cutover is additive, not a redirect.** When the *app*
+  moves to compostlogger.com it must ship a migration banner on the `github.io` build
+  first (localStorage does not follow a user across origins, so anyone who has not signed
+  in would arrive at an empty app), keep both URLs live rather than redirecting (installed
+  PWAs and home-screen shortcuts point at the old origin, and a redirect can leave a stale
+  service worker serving the old build), and add the new origin to PocketBase `--origins`
+  *before* the app is served from it. Checklist in TODO.md.
 - **v3.79w — backend moved to `https://api.compostlogger.com`.** Real domain, real TLS.
   Caddy fronts PocketBase with a Let's Encrypt cert (`tls-alpn-01`, auto-renewing);
   PocketBase stays bound to `127.0.0.1:8090` so Caddy is the only public path. `PB_BASE_URL`

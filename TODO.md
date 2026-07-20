@@ -2,34 +2,32 @@
 
 > One source of truth for what's next.
 > Updated: July 20 2026
-> **Production: v3.80** (promoted July 20 2026) — PocketBase accounts live, Drive retained
-> **Beta: v3.81a** (July 20 2026) — demo-pile purge fix; production v3.80 still has the broken filter
+> **Production: v3.82** (July 20 2026) — PocketBase accounts + demo-pile fix, Drive retained
+> **Beta: v3.82** — identical to production; next line opens when work starts
 > Backend: https://api.compostlogger.com (stable, TLS, CORS locked)
 > Versioning: production = clean numbers, beta = letter suffixes (`v3.81a`, …)
 
 ---
 
-## 🔴 NOW — v3.80 is in production
+## 🔴 NOW — v3.82 is in production
 
 The PocketBase migration is **live for all users**. Groups A–F shipped; v3.79v and v3.79w
 were verified on **iPad Safari** (signup, import, `ACCOUNT SYNCED`, `OFFLINE (local only)`,
 reconnect sync — and again after the domain move), which unblocked Group H. Production went
-v3.78b → v3.80. **Drive is retained and still works.**
+v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and still works.**
 
 - [ ] **Watch production for a few days.** Every existing user is a Drive user who now sees
   an account UI for the first time. Things worth checking early: nobody is stuck on SYNC
   ERROR, Drive-only users see an unchanged header, and no unexpected `— Local Copy`
   duplicates appear in vaults.
-- [ ] **Confirm the vault self-cleans — retry on v3.81a.** Checked on v3.80: it did **not**
-  clean. The v3.79v filter was defeated by its own data-loss guard (`mergeCloudData` stamps
-  `lastModified` on every merged pile, which the guard read as "user edited this"). Fixed
-  in **v3.81a**, which is beta-only right now.
-  - Sign in on **/beta/** and make any edit, then confirm the vault drops from 13 piles to
-    7 with all real piles intact.
-  - **Production v3.80 still has the broken filter.** It is not harmful — new signups are
-    unaffected, since a fresh demo pile is local-only at first sync and gets filtered
-    before any merge can stamp it — but an already-polluted vault will not clean itself on
-    prod. Promote v3.81a once the beta check passes.
+- [x] **Vault self-clean — CONFIRMED July 20 2026.** Failed on v3.80 (the v3.79v filter was
+  defeated by its own data-loss guard: `mergeCloudData` stamps `lastModified` on every
+  merged pile, which the guard read as "user edited this"). Fixed in v3.81a and verified on
+  the real account: **13 piles → 7**, all six `Demo Pile` entries gone, all seven real piles
+  intact — checked by diffing pile ids *and individual entry ids* against a pre-fix
+  snapshot, plus `sites`/`recipes`/`ingHist`/units/settings all unchanged. A later sync
+  stayed clean, which is the case that matters since the original bug minted a duplicate on
+  every sign-in. **Promoted to production as v3.82.**
 - [ ] **Group G — Drive/GSI removal, deferred to ~July 27 2026.** Now that production runs
   on PocketBase, Drive is the fallback for anyone who has not migrated. Let it sit a week
   before deleting it.
@@ -69,9 +67,11 @@ v3.78b → v3.80. **Drive is retained and still works.**
 - **Local testing needs a CORS exception now.** The backend only accepts
   `https://aalkhalifa.github.io`, so a `file://` or `localhost` build is blocked by the
   browser. Add that origin to `--origins` temporarily, or test the deployed build.
-- **Rollback is ready.** Beta builds are tagged `v3.79r` … `v3.79w`; exact commands are in
-  the **ROLLBACK** section of PROJECT.md, including the service-worker trap (a rollback
-  needs a *new* `sw.js` cache key, never the old one).
+- **Rollback is ready.** Builds are tagged `v3.79r` … `v3.79w`, `v3.80`, `v3.81a`, `v3.82`;
+  exact commands are in the **ROLLBACK** section of PROJECT.md, including the service-worker
+  trap (a rollback needs a *new* `sw.js` cache key, never the old one). Note: **do not roll
+  production back to `v3.80`** — it carries the broken demo-pile filter, and that fix is the
+  only difference from v3.82.
 - **The ephemeral-hostname caveat is retired.** If sign-in fails with "Can't reach the
   server", check `systemctl status caddy pocketbase` and the cert rather than hunting for
   a rotated tunnel name.

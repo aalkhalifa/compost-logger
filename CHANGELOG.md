@@ -32,9 +32,23 @@ syncing, and the same again after the backend moved to `api.compostlogger.com`.
 > fallback is now the `v3.78b` **tag** only. See ROLLBACK in PROJECT.md, including what
 > falling back would cost a user whose piles already live in an account.
 
-## [3.81] - unreleased [beta]
+## [3.82] - 2026-07-20 — PRODUCTION
 
-Next beta line, opened 2026-07-20. Group G (Drive/GSI removal) is deferred to ~2026-07-27.
+Promotion of beta v3.81a. Tag `v3.82`. The only change from v3.80 is the demo-pile purge
+fix below — production and beta now agree.
+
+Confirmed on the real account before promoting: the vault self-cleaned from 13 piles to 7,
+with all six `Demo Pile` entries removed and all seven real piles intact — verified by
+diffing pile ids and individual entry ids against a pre-fix snapshot, not just counts.
+`sites`, `recipes`, `ingHist`, units, `deletedPileIds` and settings all unchanged. A second
+sync a few minutes later stayed clean, which is the case that matters: the original bug
+minted a new duplicate on *every* sign-in.
+
+Google Drive remains retained — removal is still Group G, deferred to ~2026-07-27.
+
+## [3.81] - 2026-07-20 [beta]
+
+Beta line opened 2026-07-20, promoted the same day as v3.82.
 
 ### Fixed
 - **v3.81a — the v3.79v demo-pile purge never actually ran.** Checking the real account

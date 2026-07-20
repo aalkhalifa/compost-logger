@@ -19,7 +19,7 @@
 **License:** Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia. See LICENSE.
 **Service worker:** sw.js — network-first, falls back to cache offline, and (since v3.79u)
 **only handles same-origin requests plus a static-CDN allowlist; all API traffic bypasses
-it entirely**. Cache key = `compost-logger-v3.81a` — bump on every deploy; sw.js is shared by
+it entirely**. Cache key = `compost-logger-v3.82` — bump on every deploy; sw.js is shared by
 prod + beta, so the key tracks the **newest deploy of either channel** (currently beta).
 NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
 **SW registration (fixed v3.78a):** registration derives the repo root from `location.pathname` (strip the page filename, then a trailing `beta/`) and registers that root `sw.js`. Works from both `/<repo>/` and `/<repo>/beta/`, no hardcoded repo path. The root sw.js's default scope covers `/beta/`. Because the path is computed at runtime, promoting via `cp beta/index.html -> root index.html` stays a plain copy with no edits.
@@ -28,10 +28,10 @@ NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not
 
 ## Current Version
 
-**Production:** **v3.80** (promoted July 20 2026, tag `v3.80`) — first production build
-with PocketBase accounts. Drive still present and working (removal is Group G).
-**Live beta:** v3.81a (July 20 2026) — fixes the demo-pile purge that v3.79v never actually
-applied. Next up on this line: Group G (Drive/GSI removal), deferred to ~July 27.
+**Production:** **v3.82** (promoted July 20 2026, tag `v3.82`) — PocketBase accounts plus
+the demo-pile purge fix. Drive still present and working (removal is Group G).
+**Live beta:** v3.82 — identical to production; next line opens when work starts.
+Next up: Group G (Drive/GSI removal), deferred to ~July 27.
 **Backend:** `https://api.compostlogger.com` (Caddy + Let's Encrypt on the DO box)
 **Domain:** compostlogger.com, registered on Cloudflare (July 20 2026)
 
@@ -51,9 +51,9 @@ of either.
 ### Deployment structure
 ```
 compost-logger/
-├── index.html          ← production (v3.80 — PocketBase accounts + Drive)
+├── index.html          ← production (v3.82 — PocketBase accounts + Drive)
 ├── beta/
-│   └── index.html      ← active development (v3.81a)
+│   └── index.html      ← active development (v3.82, == prod)
 ├── sw.js               ← service worker (shared)
 ├── manifest.json
 ├── LICENSE             ← proprietary, all rights reserved
@@ -114,14 +114,20 @@ it is pushed, and a force-push would destroy commits.
 | `v3.79u` | beta | `sw.js` API-caching fix + `pbLoad` self-heal. |
 | `v3.79v` | beta | Demo-pile duplicate fix. Verified on iPad Safari. |
 | `v3.79w` | beta | Backend on `api.compostlogger.com`, CORS locked. Verified on iPad Safari. |
-| **`v3.80`** | **production** | **Current production.** PocketBase accounts + Drive, both live. |
+| `v3.80` | ex-production | PocketBase accounts + Drive. **Demo-pile purge here is broken** — a polluted vault will not self-clean. |
+| `v3.81a` | beta | Demo-pile purge fix. Confirmed to clean the real vault, 13 piles → 7. |
+| **`v3.82`** | **production** | **Current production.** v3.81a promoted; prod and beta agree. |
 
 Group A (`85ade7f`) carried no version bump — it was server infra plus the `PB_BASE_URL`
 value — so there is no `v3.79` tag between `q` and `r`.
 
 > **Changed July 20 2026:** production is **no longer** the untouched Drive-only build.
-> `v3.80` ships PocketBase. The pure-Drive safety net is now the **`v3.78b` tag**, not the
-> live production file — see "Emergency" below.
+> `v3.80` onward ships PocketBase. The pure-Drive safety net is now the **`v3.78b` tag**,
+> not the live production file — see "Emergency" below.
+>
+> **Do not roll production back to `v3.80`** to undo something in v3.82: v3.80 carries the
+> broken demo-pile filter, so a vault that gets polluted again would not self-clean. The
+> only difference between them is that fix.
 
 ### Roll a build back to a tagged version
 

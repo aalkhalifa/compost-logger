@@ -828,7 +828,7 @@ var PB_BASE_URL="https://api.compostlogger.com";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.80";
+var BUILD_VER="v3.82";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -1840,7 +1840,17 @@ function getContainerPresets(vu){
 
 function save(){
   // Stamp lastModified on any pile that just changed
-  if(activeId){var ap=piles.find(function(p){return p.id===activeId;});if(ap)ap.lastModified=Date.now();}
+  if(activeId){
+    var ap=piles.find(function(p){return p.id===activeId;});
+    if(ap){
+      ap.lastModified=Date.now();
+      // The user is working in this pile, so it is their data now, not onboarding data.
+      // Recorded as an explicit false (not a delete) because it has to survive merges -
+      // lastModified cannot be used for this, since mergeCloudData stamps it on every
+      // pile it touches.
+      if(ap.isSample)ap.isSample=false;
+    }
+  }
   localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
   // Cloud push is fire-and-forget - localStorage above is the source of truth, so this
   // stays offline-first. PocketBase wins when signed in: a migrated user must not also
@@ -2298,9 +2308,9 @@ function renamePile(id){
   if(!newName){alert("Pile name cannot be empty");return;}
   p.name=newName;
   // A rename is a real edit, but this path has no activeId so save() would not stamp it.
-  // Without the stamp a merge could revert the rename to an older remote copy, and a
-  // renamed demo pile would still look like sample data to isSamplePile.
+  // Without the stamp a merge could revert the rename to an older remote copy.
   p.lastModified=Date.now();
+  if(p.isSample)p.isSample=false;   // renaming it makes it the user's pile
   save();
   renderHome();
   if(activeId===id){
@@ -5537,17 +5547,46 @@ function pbPersistLocal(){
 // moment a user signed in.
 // ============================================================
 
-// Onboarding demo data. New sample piles carry isSample; anyone who ran an earlier
-// build has an unflagged one, hence the name fallback. "Demo Pile" is an ASCII prefix
-// of the real name, so no non-ASCII literal is needed here.
+// How many entries the pristine onboarding pile has. Counted from SAMPLE_CSV rather than
+// hardcoded, so it cannot drift if the sample data is ever edited. Computed once.
+var _sampleEntryCount=null;
+function sampleEntryCount(){
+  if(_sampleEntryCount!==null)return _sampleEntryCount;
+  var n=0,inEntries=false,lines=String(SAMPLE_CSV).split("\n");
+  for(var i=0;i<lines.length;i++){
+    var L=lines[i].trim();
+    if(L==="[ENTRIES]"){inEntries=true;continue;}
+    if(L.indexOf("[")===0){inEntries=false;continue;}
+    if(!inEntries||!L)continue;
+    if(L.indexOf("#")===0)continue;
+    if(L.indexOf("Date,")===0)continue;   // header row
+    n++;
+  }
+  _sampleEntryCount=n;
+  return n;
+}
+
+// Onboarding demo data - must never be pushed into a real account.
+//
+// The discriminator has to survive a merge. An earlier version keyed off lastModified,
+// on the assumption that it meant "the user edited this pile". It does not:
+// mergeCloudData stamps lastModified=Date.now() on EVERY pile present on both sides, so
+// after a single sync every demo pile looked user-edited and the filter became a no-op.
+// That is why vaults polluted before this fix never cleaned themselves.
+//
+// isSample is merge-stable (mergeCloudData deep-clones pile objects, so the flag rides
+// along), and is set to false the moment the user edits the pile - see save() and
+// renamePile. Piles from builds that predate the flag have no isSample at all, so they
+// fall back to the demo name AND a still-pristine entry count: if someone adopted the
+// demo pile and added readings, the count differs and it is treated as their data.
+// A pile is onboarding data only if it is untouched by all three measures. Any one of
+// them failing means the user made it theirs, so err toward keeping it - dropping a real
+// pile is far worse than leaving a demo pile in a vault.
 function isSamplePile(p){
   if(!p)return false;
-  // A pile the user has actually worked in is NEVER sample data, whatever it is called
-  // or flagged. save() and renamePile stamp lastModified on any edit, so this is the
-  // guard that stops us discarding a demo pile someone adopted as a real one.
-  if(p.lastModified)return false;
-  if(p.isSample===true)return true;
-  return String(p.name||"").indexOf("Demo Pile")===0;
+  if(p.isSample===false)return false;                            // explicitly adopted
+  if(String(p.name||"").indexOf("Demo Pile")!==0)return false;   // renamed => theirs
+  return (p.entries||[]).length===sampleEntryCount();            // edited => theirs
 }
 
 // Classify what this device is actually holding: "empty", "sample-only" (nothing but

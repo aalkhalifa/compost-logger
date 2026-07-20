@@ -17,14 +17,16 @@
 **Storage:** localStorage primary (`ca_v5` key), Google Drive as cloud backup (to be replaced with PocketBase)
 **Auth:** Google Identity Services OAuth (testing mode, max 100 users, 7-day token expiry)
 **License:** Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia. See LICENSE.
-**Service worker:** sw.js — network-first, falls back to cache offline. Cache key = `compost-logger-v3.79t` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
+**Service worker:** sw.js — network-first, falls back to cache offline, and (since v3.79u)
+**only handles same-origin requests plus a static-CDN allowlist; all API traffic bypasses
+it entirely**. Cache key = `compost-logger-v3.79u` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
 **SW registration (fixed v3.78a):** registration derives the repo root from `location.pathname` (strip the page filename, then a trailing `beta/`) and registers that root `sw.js`. Works from both `/<repo>/` and `/<repo>/beta/`, no hardcoded repo path. The root sw.js's default scope covers `/beta/`. Because the path is computed at runtime, promoting via `cp beta/index.html -> root index.html` stays a plain copy with no edits.
 
 ---
 
 ## Current Version
 
-**Live beta:** v3.79t (as of July 20 2026) — PocketBase migration line, Groups A-F done
+**Live beta:** v3.79u (as of July 20 2026) — PocketBase migration line, Groups A-F done
 **Production:** v3.78b (promoted from beta on July 11 2026, tag v3.78b)
 
 ### Deployment structure
@@ -150,6 +152,46 @@ Verify any rollback the same way as a build: extract the inline script and run
 ---
 
 ## Session Log
+
+### July 20 2026 (Claude Code) — v3.79u: service worker was breaking sync
+
+**First real-device test of v3.79t found a real bug, and it was in `sw.js`, not the
+PocketBase code.** Symptom: on iPhone, signup and import worked, then the header stuck on
+SYNC ERROR and saves never reached SAVED.
+
+Diagnosis, from PocketBase's own request log (`/api/logs`): six `POST
+/api/collections/vaults/records` → `400 user: Value must be unique`, all with
+`"auth":"authRecord"` (so the token was fine) and a Safari user agent. That is `pbLoad`
+taking its *create-a-vault* branch for a user who already had one — meaning the list
+query had returned empty.
+
+Root cause: `sw.js`'s fetch handler intercepted **every** GET, including cross-origin,
+and cached successful responses. `pbLoad`'s "does this user have a vault?" GET was cached
+while the answer was still *no*. Any later network hiccup served that stale empty list
+from cache, so `pbLoad` tried to create a second vault, the unique index rejected it, and
+`pbVaultId` stayed null — so every subsequent `save()` repeated the same doomed create.
+A permanent failure that no retry could clear.
+
+Two fixes:
+- **`sw.js` only handles same-origin requests plus an allowlist of static asset CDNs.**
+  All API traffic (PocketBase, Drive, Open-Meteo, Anthropic) now bypasses the worker with
+  no `respondWith` at all. The same bug would have served stale Drive and weather data.
+- **`pbLoad` self-heals.** The list rule returns `200` with an empty array for anything it
+  filters out, so "no vault" and "cannot see your vault" are indistinguishable. On a
+  unique-violation create, `pbLoad` re-queries and adopts the existing vault. The re-query
+  uses a cache-busting URL — the first attempt reused the same URL and was defeated by the
+  very cache entry it was recovering from, which the test caught.
+- Vault-adoption logic extracted to `pbAdoptVaultRecord` so the normal and heal paths
+  cannot drift.
+
+**Why the earlier verification missed it:** every browser test loaded the app from
+`file://`, where service workers do not register at all. The SW was never exercised. A
+`file://` harness cannot validate a PWA's caching layer — that needs a real http origin.
+
+**Also visible in the vault:** the demo pile was uploaded (the device had real piles *and*
+the sample, and Group D only drops the sample when it is the *only* thing there), and
+repeated merges produced five `Demo Pile — 30 Days — Local Copy` duplicates via
+rename-on-conflict. Not fixed in v3.79u — see TODO.
 
 ### July 20 2026 (Claude Code) — PocketBase migration, Groups A through F
 

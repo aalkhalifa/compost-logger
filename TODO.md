@@ -2,18 +2,36 @@
 
 > One source of truth for what's next.
 > Updated: July 20 2026
-> Current version: beta v3.79t (PocketBase line) / production v3.78b
+> Current version: beta v3.79u (PocketBase line) / production v3.78b
 
 ---
 
-## 🔴 NOW — Active beta work (v3.79t)
+## 🔴 NOW — Active beta work (v3.79u)
+
+- [ ] **Re-test sync on the iPhone after v3.79u deploys.** The SYNC ERROR was `sw.js`
+  caching API responses, not the tunnel. Fixed in v3.79u. **Hard-refresh or reinstall the
+  PWA** so the new service worker activates — the old one is still installed on that
+  device and will keep serving the stale cached list until it does.
+- [ ] **Clean up the demo-pile duplicates in the vault.** It currently holds
+  `Demo Pile — 30 Days` plus five `— Local Copy` duplicates. Deleting them in the app and
+  letting it sync is enough. Root causes, both still open:
+  - Group D only drops the sample pile when it is the *only* thing on the device. A device
+    with real piles *and* the sample uploads the sample too. Arguably it should never be
+    uploaded at all.
+  - `rename-on-conflict` fires on every `pbLoad` when local and remote hold same-named
+    piles with different ids (a fresh install regenerates the demo pile with a new id), so
+    duplicates accumulate one per sign-in rather than converging.
 
 - PocketBase migration **Groups A–F are done**. The migration is now **reachable by a
   real user**: sign up, sign in, sync, migrate a device's existing data into an account,
   and set analytics consent.
-- **Beta-test v3.79t on a real device before Group G.** G deletes the Drive code, which
-  is the last exit if something in A–F is wrong. Everything so far has been verified
-  headlessly (harnesses + a headless Chrome run) — nobody has touched it on an iPhone.
+- **Beta-test before Group G.** G deletes the Drive code, the last exit if something in
+  A–F is wrong. The first real-device test already found a genuine bug (the `sw.js`
+  caching issue above) that every headless test missed, so treat device testing as
+  required, not a formality.
+- **Test the PWA over http(s), not `file://`.** Service workers do not register on
+  `file://`, so the entire caching layer went unexercised until the iPhone test. Any
+  future browser verification needs a local http server at minimum.
 - **Rollback is ready if it misbehaves.** Beta builds are tagged `v3.79r` / `v3.79s` /
   `v3.79t`; exact revert commands are in the **ROLLBACK** section of PROJECT.md. Note the
   service-worker trap documented there: a rollback needs a *new* `sw.js` cache key, never

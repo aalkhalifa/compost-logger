@@ -85,7 +85,24 @@ untouched and still Drive-based, as the fallback.
 
 ### Fixed
 
-All of these were latent bugs found by building the next layer on top, not by review.
+- **v3.79u — the service worker was caching API responses, permanently breaking sync.**
+  Found on a real iPhone: signup and import worked, then the header stuck on SYNC ERROR
+  and saves never reached SAVED. `sw.js`'s fetch handler intercepted **every** GET,
+  including cross-origin ones, and cached successful responses. `pbLoad`'s "does this
+  user have a vault?" list GET was cached while the answer was still *no*; any later
+  network hiccup served that stale empty list, so `pbLoad` took its create-a-vault
+  branch, which the unique index rejected with 400 — permanently, because `pbVaultId`
+  never got set and every subsequent save retried the same doomed create. The handler now
+  only touches same-origin requests and a small allowlist of static asset CDNs; all API
+  traffic (PocketBase, Google Drive, Open-Meteo, Anthropic) bypasses the worker entirely.
+  The same bug would have served stale Drive and weather data.
+- **v3.79u — `pbLoad` now self-heals a phantom "no vault".** The list rule returns
+  `200` with an empty `items` array for anything it filters out, so "you have no vault"
+  and "I could not see your vault" are indistinguishable. When the follow-on create is
+  rejected by the unique index, `pbLoad` re-queries — with a cache-busting URL, so a
+  stale cache entry cannot defeat the recovery — and adopts the existing vault.
+
+The rest of these were latent bugs found by building the next layer on top, not by review.
 
 - **v3.79s — first login uploaded the local vault silently.** `pbLoad`'s create branch
   POSTed the entire local vault the moment a user authenticated — no consent, and the

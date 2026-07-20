@@ -825,7 +825,7 @@ var PB_BASE_URL="https://democrats-rocky-dining-highs.trycloudflare.com";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79t";
+var BUILD_VER="v3.79u";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -5618,6 +5618,53 @@ function pbFirstRunDecision(hasVault){
 
 // Fetch this user's vault and merge it in. The collection's list rule scopes results to
 // the caller server-side, so an unfiltered list returns at most this user's own record.
+// Take an existing vault record as this session's vault: adopt its id/updated stamp and
+// consent, then run the Group D decision and merge. Shared by pbLoad's normal path and
+// its unique-violation self-heal, so both behave identically.
+function pbAdoptVaultRecord(rec){
+  pbVaultId=rec.id;
+  pbVaultUpdated=rec.updated||null;
+  // Group E: the vault is authoritative for consent. Guarded on the type so a
+  // malformed or field-less response cannot silently revoke an opt-in.
+  if(typeof rec.analyticsOptIn==="boolean"){
+    pbAnalyticsOptIn=rec.analyticsOptIn;
+    try{localStorage.setItem(PB_ANALYTICS_KEY,rec.analyticsOptIn?"1":"0");}catch(e){}
+  }
+  // PocketBase returns the JSON field already parsed; tolerate a string just in case.
+  var d=rec.data;
+  if(typeof d==="string"){try{d=JSON.parse(d);}catch(e){d=null;}}
+  var hadRemote=!!(d&&typeof d==="object");
+  // Captured BEFORE the decision, which may drop sample piles.
+  var preState=pbLocalDataState();
+  var decision=pbFirstRunDecision(hadRemote);
+  if(decision==="cloud"){
+    // Destructive path, already double-confirmed: take the vault verbatim and do NOT
+    // merge local in. No push follows, so the vault is left exactly as it was.
+    pbAdoptCloudOnly(hadRemote?d:null);
+    setPbStatus("synced");
+    return true;
+  }
+  if(hadRemote){
+    mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:true,renameOnConflict:true,strictSitesGuard:true});
+    pbApplySettings(d);
+    pbPersistLocal();
+    if(typeof renderHome==="function")renderHome();
+  }
+  setPbStatus("synced");
+  // A real import must reach the vault, not sit locally until the next edit. Only
+  // when this device actually contributed something. pbVaultId is set above, so this
+  // cannot recurse back into pbLoad.
+  if(preState.state==="real"&&preState.pileCount){
+    return pbSaveNow().then(function(){
+      if(typeof showToast==="function"){
+        showToast("Imported "+preState.pileCount+" pile"+(preState.pileCount===1?"":"s")+" into your account");
+      }
+      return true;
+    });
+  }
+  return true;
+}
+
 // No vault yet => create one, seeded per the Group D decision.
 function pbLoad(){
   if(!pbToken||!pbUserId)return Promise.resolve(false);
@@ -5641,49 +5688,27 @@ function pbLoad(){
           showToast("Imported "+importedCount+" pile"+(importedCount===1?"":"s")+" into your account");
         }
         return true;
+      }).catch(function(err){
+        // Self-heal: the unique index says this user already HAS a vault, so the list
+        // above lied to us - it returns 200 with an empty items array for anything the
+        // list rule filters out, so "no vault" and "could not see your vault" are
+        // indistinguishable. Without this the failure is permanent: pbVaultId stays null,
+        // so every later save calls pbLoad, retries the create, and 400s again.
+        var dup=err&&err.status===400&&err.body&&err.body.data&&err.body.data.user;
+        if(!dup)throw err;
+        // The re-query MUST use a different URL than the list above. A stale cached
+        // response is the likeliest reason we got an empty list in the first place, and
+        // reusing the same URL would just hit the same cache entry - the heal would be
+        // defeated by the very bug it exists to recover from. The unique cache-buster
+        // guarantees a fresh round-trip.
+        return pbApi("/api/collections/vaults/records?perPage=1&_cb="+Date.now(),{auth:true}).then(function(res2){
+          var rec2=(res2&&res2.items&&res2.items.length)?res2.items[0]:null;
+          if(!rec2)throw err;
+          return pbAdoptVaultRecord(rec2);
+        });
       });
     }
-    pbVaultId=rec.id;
-    pbVaultUpdated=rec.updated||null;
-    // Group E: the vault is authoritative for consent. Guarded on the type so a
-    // malformed or field-less response cannot silently revoke an opt-in.
-    if(typeof rec.analyticsOptIn==="boolean"){
-      pbAnalyticsOptIn=rec.analyticsOptIn;
-      try{localStorage.setItem(PB_ANALYTICS_KEY,rec.analyticsOptIn?"1":"0");}catch(e){}
-    }
-    // PocketBase returns the JSON field already parsed; tolerate a string just in case.
-    var d=rec.data;
-    if(typeof d==="string"){try{d=JSON.parse(d);}catch(e){d=null;}}
-    var hadRemote=!!(d&&typeof d==="object");
-    // Captured BEFORE the decision, which may drop sample piles.
-    var preState=pbLocalDataState();
-    var decision=pbFirstRunDecision(hadRemote);
-    if(decision==="cloud"){
-      // Destructive path, already double-confirmed: take the vault verbatim and do NOT
-      // merge local in. No push follows, so the vault is left exactly as it was.
-      pbAdoptCloudOnly(hadRemote?d:null);
-      setPbStatus("synced");
-      return true;
-    }
-    if(hadRemote){
-      mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:true,renameOnConflict:true,strictSitesGuard:true});
-      pbApplySettings(d);
-      pbPersistLocal();
-      if(typeof renderHome==="function")renderHome();
-    }
-    setPbStatus("synced");
-    // A real import must reach the vault, not sit locally until the next edit. Only
-    // when this device actually contributed something. pbVaultId is set above, so this
-    // cannot recurse back into pbLoad.
-    if(preState.state==="real"&&preState.pileCount){
-      return pbSaveNow().then(function(){
-        if(typeof showToast==="function"){
-          showToast("Imported "+preState.pileCount+" pile"+(preState.pileCount===1?"":"s")+" into your account");
-        }
-        return true;
-      });
-    }
-    return true;
+    return pbAdoptVaultRecord(rec);
   }).catch(function(err){
     setPbStatus(navigator.onLine?"error":"offline");
     console.error("PocketBase load error",err);

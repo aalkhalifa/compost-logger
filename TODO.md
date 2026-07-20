@@ -32,6 +32,36 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   on PocketBase, Drive is the fallback for anyone who has not migrated. Let it sit a week
   before deleting it.
 
+### ⚠️ Before making any compliance claim
+
+- [ ] **Review the three July-15 biological-model changes against the intended model.**
+  They are live in production (v3.82), were made in a session that left no notes, and have
+  not been reviewed by anyone outside it. **The 24h cap is deliberately left as-is for now
+  — this is a review gate, not a bug report.** Reconstructed in PROJECT.md's July 15 entry.
+
+  | Build | Change | Judgement needed |
+  |---|---|---|
+  | `v3.79b` | Segmented stage bars derive their band from `displayTemp` (honours AVG/MIN basis) instead of raw `core1` | Should the *visual stage bars* follow the user's chosen display basis, or should they always be strict like PFRP? |
+  | `v3.79c` / `v3.79e` | A logged turn closes its cycle regardless of the turn reading's own temperature — closure depends on whether a stage was satisfied *earlier* in the cycle | Is "turn closes the cycle it belongs to" right, or should a turn logged below the band floor leave the cycle open? |
+  | `v3.79d` | `cappedNow()` extrapolation cap **8h → 24h** — one reading on a hot pile credits up to a full day of thermophilic/READY time | Is 24h of unlogged time a defensible inference about a real pile? 8h was the original judgement. |
+
+  **Scope, verified in code July 20 — narrower than first assumed.** These affect the
+  **Compost Academy stage model** (Stage 1-4 satisfaction, READY/thermophilic times, cycle
+  bars, TURN NOW). They do **not** affect the PFRP figures: `pfrpStatus()` uses
+  `strictMinTemp` (coldest probe, ignores display basis) and gives **zero** credit after
+  the last reading — it never calls `cappedNow`. "Avg PFRP days" and "Windrow-PFRP pass
+  rate" are unaffected by all three.
+
+- [ ] **Rename or re-scope `complianceTemp()`.** It is a **legacy alias that now returns
+  `displayTemp`** — it follows the AVG/MIN display basis despite the name. It feeds stage
+  satisfaction, degree-hours-above-threshold, and the "first entry ≥131°F" figure shown in
+  the Operation Summary and PDF. Only `pfrpStatus` uses the strict minimum. The name
+  invites exactly the wrong assumption in exactly the place it matters; either rename it
+  (e.g. `bandingTemp`) or make it strict, but decide deliberately.
+
+  Note the app already disclaims correctly in code — *"On-pile temperature record, NOT a
+  certified test"* — and that wording should survive any change here.
+
 ### Before pointing compostlogger.com at the app
 
 - [ ] **Migration banner + dual-URL cutover.** When the app itself moves to
@@ -62,17 +92,6 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   says "capped at 8h past that entry", in **both** `index.html` and `beta/index.html`.
   Comment-only, zero behavior risk — fold into the next beta line rather than cutting a
   release for it.
-- [ ] **Confirm the July 15 (v3.79b–q) behaviour changes are wanted.** Reconstructed in
-  PROJECT.md's July 15 entry. Three are compliance-relevant, live in production, and were
-  never recorded at the time:
-  - `v3.79b` — stage banding on bars now follows `displayTemp` (AVG/MIN basis) rather than
-    raw `core1`
-  - `v3.79c`/`v3.79e` — a turn closes its cycle regardless of the turn reading's own temp
-  - `v3.79d` — extrapolation cap raised **8h → 24h**, so one reading on a hot pile can
-    credit a full day of thermophilic/READY time. Most likely of the three to affect a
-    PFRP-style claim.
-  Worth an explicit confirm that these match the intended biological model, since nobody
-  reviewed them outside the session that wrote them.
 - [ ] **Find out what "Task 2" was.** Commit bodies from July 15 cite Tasks 1 and 3–12; no
   commit mentions Task 2, and the task list is not in this repo. May have been dropped,
   done elsewhere, or renumbered.

@@ -7,32 +7,6 @@ This project uses date-stamped `v3.XX` releases with letter sub-revisions
 (e.g. `v3.77q`). Beta builds ship from `/beta/`; production is promoted by copying
 `beta/index.html` to the repo-root `index.html`. `sw.js` is shared by both.
 
-## [3.80] - 2026-07-20 — PRODUCTION
-
-**The PocketBase migration is live for all users.** Production went v3.78b → v3.80,
-promoting the whole of Groups A–F in one release (`cp beta/index.html index.html`, a plain
-copy — `APP_VERSION` derives the " BETA" suffix from the path at runtime). Tag `v3.80`.
-
-Unblocked by device verification on **iPad Safari** of v3.79v and v3.79w: signup, import,
-save reaching `ACCOUNT SYNCED`, `OFFLINE (local only)` when disconnected, reconnect
-syncing, and the same again after the backend moved to `api.compostlogger.com`.
-
-- Accounts (email/password), cloud sync, first-login data migration, analytics consent.
-- Backend: `https://api.compostlogger.com` (Caddy + Let's Encrypt, CORS locked).
-- **Google Drive is retained and still works** — removal is Group G, deferred ~2026-07-27.
-  PocketBase takes precedence when signed in; unmigrated users keep syncing to Drive.
-- `sw.js` cache key → `compost-logger-v3.80`.
-
-> **Version convention changed here.** **Beta builds always carry a letter; production
-> builds never do.** That is why this shipped as v3.80 rather than v3.79w, and why
-> promoting a lettered build — as `v3.77q` and `v3.78b` were — is retired.
-> *(Refined again on the same day: a line is promoted as **its own** number, not the next
-> one. See the v3.82 entry.)*
-
-> **Rollback note:** production is no longer the untouched Drive-only build. The pure-Drive
-> fallback is now the `v3.78b` **tag** only. See ROLLBACK in PROJECT.md, including what
-> falling back would cost a user whose piles already live in an account.
-
 ## [3.82] - 2026-07-20 — PRODUCTION
 
 Promotion of beta v3.81a. Tag `v3.82`. The only change from v3.80 is the demo-pile purge
@@ -78,13 +52,44 @@ Beta line opened 2026-07-20, promoted the same day as v3.82.
   Verified against the real vault blob: 13 piles → 7, all six demo entries gone, all seven
   real piles intact with unchanged entry counts.
 
+## [3.80] - 2026-07-20 — PRODUCTION
+
+**The PocketBase migration is live for all users.** Production went v3.78b → v3.80,
+promoting the whole of Groups A–F in one release (`cp beta/index.html index.html`, a plain
+copy — `APP_VERSION` derives the " BETA" suffix from the path at runtime). Tag `v3.80`.
+
+Unblocked by device verification on **iPad Safari** of v3.79v and v3.79w: signup, import,
+save reaching `ACCOUNT SYNCED`, `OFFLINE (local only)` when disconnected, reconnect
+syncing, and the same again after the backend moved to `api.compostlogger.com`.
+
+- Accounts (email/password), cloud sync, first-login data migration, analytics consent.
+- Backend: `https://api.compostlogger.com` (Caddy + Let's Encrypt, CORS locked).
+- **Google Drive is retained and still works** — removal is Group G, deferred ~2026-07-27.
+  PocketBase takes precedence when signed in; unmigrated users keep syncing to Drive.
+- `sw.js` cache key → `compost-logger-v3.80`.
+
+> **Version convention changed here.** **Beta builds always carry a letter; production
+> builds never do.** That is why this shipped as v3.80 rather than v3.79w, and why
+> promoting a lettered build — as `v3.77q` and `v3.78b` were — is retired.
+> *(Refined again on the same day: a line is promoted as **its own** number, not the next
+> one. See the v3.82 entry.)*
+
+> **Rollback note:** production is no longer the untouched Drive-only build. The pure-Drive
+> fallback is now the `v3.78b` **tag** only. See ROLLBACK in PROJECT.md, including what
+> falling back would cost a user whose piles already live in an account.
+
 ## [3.79b–3.79q] - 2026-07-15 [beta] — reconstructed
 
 Sixteen beta builds made on 2026-07-15 in a session that left no notes. **Reconstructed
 2026-07-20 from commit messages and diffs**; see PROJECT.md's July 15 entry for the
 per-build table and what remains uncertain. All of it shipped to production with v3.80.
 
-### Changed — biological / compliance model (live in production)
+### Changed — biological model (live in production)
+
+> Affects the **Compost Academy stage model** (Stage 1-4 satisfaction, READY times, cycle
+> bars, TURN NOW). Verified July 20 that the **PFRP figures are unaffected**: `pfrpStatus()`
+> uses `strictMinTemp` and gives no credit after the last reading. Flagged for review before
+> any compliance claim — see TODO.md.
 - **v3.79b** — segmented stage bars derive their band from `displayTemp` (honouring the
   AVG/MIN display basis) instead of raw `core1`, which could contradict the headline status.
 - **v3.79c** + **v3.79e** — a logged turn closes its cycle regardless of the turn reading's
@@ -118,8 +123,8 @@ during the transition (Drive/GSI keeps working until Group G's import-then-remov
 **Groups A–F landed 2026-07-20**, followed the same day by two fixes from the first
 real-device test and the move to a real domain. Beta went v3.79q → **v3.79w**, tagged at
 each step (`v3.79r` … `v3.79w`) — see the ROLLBACK section of PROJECT.md for the revert
-procedure. Backend is live at `https://api.compostlogger.com`. Production remains
-**v3.78b, untouched and still Drive-based**, as the fallback.
+procedure. Backend is live at `https://api.compostlogger.com`. (Production was v3.78b at
+the time; it has since been promoted to v3.80 and then v3.82 — see above.)
 
 **Status:** v3.79v and v3.79w were verified on iPad Safari, and the line was **promoted to
 production as v3.80** — see above. Group G (Drive/GSI removal) is **deferred one week

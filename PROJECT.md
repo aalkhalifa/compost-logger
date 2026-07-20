@@ -744,17 +744,28 @@ touching this area.
 
 #### Why this matters now
 
-Three of these are **behaviour changes to the compliance-relevant model**, not cosmetics,
-and all three are live in production:
+Three of these are **behaviour changes to the biological model**, not cosmetics, and all
+three are live in production:
 
 - `v3.79b` changed which temperature drives stage banding on the bars.
 - `v3.79c`/`v3.79e` changed when a cycle is considered closed.
-- `v3.79d` **doubled-and-then-some the extrapolation credit** (8h → 24h), so a pile logged
-  once and left hot now accrues up to a full day of thermophilic/READY time from a single
-  reading. This is the change most likely to affect a PFRP-style compliance claim, and it
-  is the one this document previously recorded incorrectly as 8h.
+- `v3.79d` raised the extrapolation cap 8h → 24h, so a pile logged once and left hot now
+  accrues up to a full day of thermophilic/READY time from a single reading. This document
+  had recorded the cap incorrectly as 8h until July 20.
 
-If compliance output is ever questioned, start here.
+**Scope check (verified in code, July 20):** these affect the **Compost Academy stage
+model** — Stage 1-4 satisfaction, READY/thermophilic times, cycle bars, TURN NOW. They do
+**not** touch the PFRP numbers. `pfrpStatus()` uses `strictMinTemp` (coldest probe,
+independent of display basis) and gives **zero** credit for time after the last reading —
+it never calls `cappedNow`. So "Avg PFRP days" and "Windrow-PFRP pass rate" are unaffected
+by all three.
+
+> **Naming hazard found while checking this.** `complianceTemp()` is a **legacy alias that
+> now returns `displayTemp`**, i.e. it follows the AVG/MIN display basis — despite the
+> name. It feeds stage-streak satisfaction, degree-hours-above-threshold, and the "first
+> entry >=131F" figure used in the Operation Summary and PDF. Only `pfrpStatus` uses the
+> strict minimum. Anyone reading `complianceTemp` and assuming "regulatory temperature"
+> would be wrong. See the review item in TODO.md.
 
 ### July 11 2026 (Claude Code) — later session
 

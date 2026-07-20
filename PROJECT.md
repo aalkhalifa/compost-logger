@@ -30,23 +30,44 @@ NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not
 
 **Production:** **v3.82** (promoted July 20 2026, tag `v3.82`) — PocketBase accounts plus
 the demo-pile purge fix. Drive still present and working (removal is Group G).
-**Live beta:** v3.82 — identical to production; next line opens when work starts.
-Next up: Group G (Drive/GSI removal), deferred to ~July 27.
+**Live beta:** v3.82 — mirrors production; no line open. The next line opens at **v3.83a**
+and will ship as **v3.83**. Next up: Group G (Drive/GSI removal), deferred to ~July 27.
 **Backend:** `https://api.compostlogger.com` (Caddy + Let's Encrypt on the DO box)
 **Domain:** compostlogger.com, registered on Cloudflare (July 20 2026)
 
-### Version convention (changed July 20 2026)
+### Version convention (July 20 2026)
 
-**Production releases get clean numbers: `v3.80`, `v3.81`, `v3.82`.**
-**Letter suffixes are for beta iterations only: `v3.81a`, `v3.81b`, …**
+**A beta build always carries a letter. A production build never does.** That single rule
+is the whole convention — a version on someone's phone says at a glance which channel it
+came from.
 
-So a line opens as `v3.81`, iterates through `v3.81a…z` in beta, and is promoted as the
-next clean number. The old scheme (promoting a lettered build like `v3.78b` straight to
-production) is retired — a version on someone's phone should say at a glance whether it is
-a release or a beta iteration.
+**A line is promoted as its own number.** Line `v3.83` opens in beta at **`v3.83a`**,
+iterates `v3.83b`, `v3.83c`, …, and ships to production as **`v3.83`**. No number is
+skipped and no number is used twice.
+
+```
+beta   v3.83a -> v3.83b -> v3.83c ──┐                     v3.84a -> ...
+                                 promote
+prod   ─────────────────────────────┴──> v3.83 ───────────────────────
+```
+
+- The line opens directly at the **`a`** iteration — there is never a letterless build in
+  beta while a line is in progress.
+- When no line is open, `beta/index.html` simply mirrors production at the production
+  number (as now: both `v3.82`).
+- After `v3.83` ships, the next line opens at `v3.84a`.
+
+Retired: the pre-July-20 scheme of promoting a lettered build straight to production
+(`v3.77q`, `v3.78b`), and the brief intermediate scheme where a line promoted to the
+*next* number.
+
+> **Known gap: there is no `v3.81` tag.** The `v3.81` line existed only as `v3.81a`, which
+> shipped as `v3.82` under the intermediate scheme. Under the current rule it would have
+> shipped as `v3.81`. Left as-is rather than retagging — `v3.82` is what is live and what
+> users have. The gap is an artifact, not a missing release.
 
 `sw.js` is shared by prod and beta, so its cache key always tracks the **newest deploy**
-of either.
+of either channel.
 
 ### Deployment structure
 ```
@@ -851,11 +872,14 @@ Commit both files alongside any code changes.
 ### Before any code is written
 List all proposed changes → wait for explicit approval → then build.
 
-### Version numbering (convention changed July 20 2026)
-- **Production releases: clean numbers** — `v3.80`, `v3.81`, `v3.82`.
-- **Beta iterations: letter suffixes** — `v3.81a`, `v3.81b`, … Bump on every meaningful
-  change while the line is in beta.
-- A line opens at the clean number, iterates through letters, and is promoted as the next
-  clean number. Promoting a lettered build (as `v3.77q` and `v3.78b` were) is retired.
+### Version numbering (July 20 2026)
+- **Beta always has a letter; production never does.** The one rule that matters.
+- A line opens in beta at its **`a`** iteration (`v3.83a`), bumps a letter on every
+  meaningful change (`v3.83b`, `v3.83c`, …), and is promoted to production as **its own
+  number** (`v3.83`). No gaps, no number reused.
+- The next line then opens at `v3.84a`.
+- When no line is open, beta mirrors production at the production number.
 - `sw.js` cache key must match the newest deploy of either channel:
   `compost-logger-v3.XX`. The file is shared by prod and beta.
+- See *Version convention* near the top for the full statement, including why there is no
+  `v3.81` tag.

@@ -23,10 +23,11 @@ syncing, and the same again after the backend moved to `api.compostlogger.com`.
   PocketBase takes precedence when signed in; unmigrated users keep syncing to Drive.
 - `sw.js` cache key → `compost-logger-v3.80`.
 
-> **Version convention changed here.** Production releases now get **clean numbers**
-> (`v3.80`, `v3.81`); **letter suffixes are beta-only** (`v3.81a`, `v3.81b`). That is why
-> this is v3.80 rather than v3.79w. Promoting a lettered build — as `v3.77q` and `v3.78b`
-> were — is retired.
+> **Version convention changed here.** **Beta builds always carry a letter; production
+> builds never do.** That is why this shipped as v3.80 rather than v3.79w, and why
+> promoting a lettered build — as `v3.77q` and `v3.78b` were — is retired.
+> *(Refined again on the same day: a line is promoted as **its own** number, not the next
+> one. See the v3.82 entry.)*
 
 > **Rollback note:** production is no longer the untouched Drive-only build. The pure-Drive
 > fallback is now the `v3.78b` **tag** only. See ROLLBACK in PROJECT.md, including what
@@ -45,6 +46,17 @@ sync a few minutes later stayed clean, which is the case that matters: the origi
 minted a new duplicate on *every* sign-in.
 
 Google Drive remains retained — removal is still Group G, deferred to ~2026-07-27.
+
+> **Version convention refined.** A line is now promoted as **its own number**, not the
+> next one: line `v3.83` opens in beta at `v3.83a`, iterates `v3.83b…`, and ships as
+> `v3.83`. Beta always carries a letter, production never does; no number is skipped or
+> reused.
+>
+> **This is why there is no `v3.81` tag.** The `v3.81` line existed only as `v3.81a`, which
+> shipped as `v3.82` under the earlier promote-as-next-number rule. Under the current rule
+> it would have shipped as `v3.81`. Left as-is rather than retagging — `v3.82` is what is
+> live and what users have. The gap is an artifact of a same-day convention change, not a
+> missing release. The next line opens at `v3.83a` and ships as `v3.83`.
 
 ## [3.81] - 2026-07-20 [beta]
 

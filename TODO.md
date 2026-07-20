@@ -134,12 +134,14 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
 
 ---
 
-## 🟡 NEXT — After bugs are fixed
+## 🟡 NEXT
 
-- [ ] **PocketBase migration (major)** — SCOPED July 11 2026, awaiting build approval.
-  Decisions locked: **blob-per-user** data model, **import-then-remove** Drive cutover,
-  **existing DigitalOcean box + subdomain** hosting. Phase 1 = drop-in replacement for
-  Drive that reuses the current merge logic. Approvable change groups:
+- [x] **PocketBase migration (major) — SHIPPED July 20 2026, live in production as v3.82.**
+  **Only Group G (Drive/GSI removal) is outstanding**, deferred to ~July 27 — see NOW.
+  Scoped July 11; built July 20. The group-by-group record below is kept as reference for
+  *why* things are shaped the way they are; it is not a task list any more.
+  Decisions locked at scoping time: **blob-per-user** data model, **import-then-remove**
+  Drive cutover, **existing DigitalOcean box + subdomain** hosting.
   - **A. Server/infra (outside repo):** PocketBase binary on the existing DO box behind
     a TLS subdomain; `users` (built-in) + one `vaults` collection (`user` relation,
     `data` JSON = full ca_v5 shape, `updated` autodate, `analyticsOptIn` bool); CORS
@@ -226,11 +228,10 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
     tokens, actual analytics pipeline. Capacitor and pointing the app at
     compostlogger.com are now near-term — see the cutover checklist in NOW.
 
-- [x] **Promote beta to production** — done July 11 2026 (v3.78b, tag v3.78b)
-
-- [ ] **Custom domain**
-  - Decide: rootsofarabia.com or product-specific
-  - Point to GitHub Pages (free) or DigitalOcean (after PocketBase)
+- [x] **Custom domain — DONE July 20 2026.** **compostlogger.com**, registered on
+  Cloudflare. `api.compostlogger.com` serves the backend (Caddy + Let's Encrypt); the apex
+  is unused so far. Pointing the *app* at it is a separate job with its own checklist —
+  see "Before pointing compostlogger.com at the app" in NOW.
 
 ---
 
@@ -268,10 +269,22 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   - **Trigger to fix:** any user's vault passing ~3MB (60% of cap).
   - **Fix:** raise the PocketBase field limit, or split the blob across multiple records.
 
-- [ ] Degree-hours above 131°F (area under curve)
-- [ ] Core spread / probe uniformity (std dev between probes)
-- [ ] Heating rate (dT/dt first derivative)
-- [ ] PFRP compliance auto-flag (EPA 503 pass/fail)
+- [x] ~~Degree-hours above 131°F~~ — **SHIPPED** (`degreeHoursAbove`, trapezoidal). Shown
+  in the status card, Operation Summary ("Avg degree-hours >131°F") and the PDF. **Uses
+  `complianceTemp()`, so it follows the AVG/MIN display basis** — folded into the
+  `complianceTemp` review item above.
+- [x] ~~Core spread / probe uniformity~~ — **SHIPPED in v3.79k** as a PROBE SPREAD mini
+  chart. Note it computes **hottest − coldest (range)**, not the std dev this item
+  originally asked for. If std dev is actually wanted, that is still open.
+- [x] ~~Heating rate (dT/dt)~~ — **SHIPPED in v3.79k** as a HEATING RATE mini chart, plus
+  PEAK HEATING RATE in the status card.
+- [ ] **PFRP compliance auto-flag (EPA 503 pass/fail)** — *partially built, deliberately
+  not claimed.* `pfrpStatus()` already returns `windrowMet` (≥3 days ≥131°F by coldest
+  probe, ≥5 hot turns) and `staticMet`, surfaced as a ✓/✗ column and a "Windrow-PFRP pass
+  rate" in the Operation Summary. What is **not** done — and should not be done casually —
+  is presenting that as an EPA 503 determination. The code currently describes itself as
+  *"On-pile temperature record, NOT a certified test"*, which is the honest framing.
+  Promoting it to a pass/fail claim is gated on the compliance review in NOW.
 - [ ] Compliance profiles (CA vs PFRP vs Bahrain)
 - [ ] RAG-based AI consultant (rule-based live, API version parked)
 - [ ] LoRaWAN probe API endpoint (hardware build ongoing)

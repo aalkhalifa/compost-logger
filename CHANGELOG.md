@@ -13,6 +13,18 @@ PocketBase migration line (replacing Google Drive sync). Ships from `/beta/`; ad
 during the transition (Drive/GSI keeps working until Group G's import-then-remove).
 
 ### Added
+- **v3.79t — Group F (account UI).** The PocketBase migration is now reachable by a user.
+  `updatePbUI()` — the renderer every `pb*` function has been calling behind a `typeof`
+  guard since Group B — maps all eight `pbStatus` values to the header dot and label. New
+  sign-in/sign-up overlay (`openAuth` / `authSubmit` / `authToggleMode`) with email and
+  password, Enter-to-submit, `autocomplete` hints for iOS Keychain, client-side length
+  validation on signup only, and a submit button that disables while a request is in
+  flight. New Settings ACCOUNT card with status, email and sign-out.
+- **v3.79t — Group E (analytics consent).** `pbSetAnalyticsOptIn()` writes consent via a
+  dedicated single-field PATCH (never folded into `pbSaveNow`, which could push a stale
+  local default over a cloud opt-in), `pbLoad` restores it from the vault, and a Settings
+  row lets a user change their mind. Opt-in checkbox on signup, unchecked by default.
+  Wiring only — no analytics pipeline exists, and the copy says so.
 - **v3.79s — Group D (first-login migration).** A decision now sits in front of the first
   vault write. `pbFirstRunDecision()` classifies what the device holds via
   `pbLocalDataState()` (`empty` / `sample-only` / `real`) and only prompts when real data
@@ -39,6 +51,23 @@ during the transition (Drive/GSI keeps working until Group G's import-then-remov
   blob-per-user `vaults` collection schema, systemd unit, and Caddy TLS template.
 
 ### Changed
+- **v3.79t — Drive connect moves to Settings.** The header keeps one status line;
+  PocketBase takes precedence over Drive whenever a session exists (`updateDriveUI` and
+  `updatePbUI` yield to each other on complementary guards, so exactly one renders). A
+  Drive-only user's header is unchanged — which matters, since every existing user is
+  one. `CONNECT DRIVE` stays in the DOM but renders only from the Settings Drive card.
+- **v3.79t — `showToast` no longer renders a dead UNDO button.** It was hardcoded into
+  the markup, so every informational toast — including Group D's import confirmation,
+  already shipped — showed an UNDO that did nothing. Now rendered only when there is
+  something to undo.
+- **v3.79t — expired sessions say so.** `pbRestoreAuth` used to call `pbLogout()`
+  silently on a failed refresh: the header just read NOT SIGNED IN and edits quietly
+  stopped syncing. It now shows a toast, and an offline boot keeps the session instead
+  of signing the user out.
+- **v3.79t — signup can no longer strand a user.** If the account is created but the
+  follow-on login fails (email verification, or a dropped connection), the error is
+  tagged by leg and the form switches to sign-in with "Account created. Sign in to
+  continue." — instead of a retry that reports the email as already registered.
 - **v3.79s — first login no longer uploads silently.** `pbLoad`'s create branch used to
   POST the entire local vault the moment a user authenticated, with no consent and with
   the demo pile included. Both of its branches now route through the Group D decision.

@@ -17,14 +17,14 @@
 **Storage:** localStorage primary (`ca_v5` key), Google Drive as cloud backup (to be replaced with PocketBase)
 **Auth:** Google Identity Services OAuth (testing mode, max 100 users, 7-day token expiry)
 **License:** Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia. See LICENSE.
-**Service worker:** sw.js — network-first, falls back to cache offline. Cache key = `compost-logger-v3.79s` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
+**Service worker:** sw.js — network-first, falls back to cache offline. Cache key = `compost-logger-v3.79t` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
 **SW registration (fixed v3.78a):** registration derives the repo root from `location.pathname` (strip the page filename, then a trailing `beta/`) and registers that root `sw.js`. Works from both `/<repo>/` and `/<repo>/beta/`, no hardcoded repo path. The root sw.js's default scope covers `/beta/`. Because the path is computed at runtime, promoting via `cp beta/index.html -> root index.html` stays a plain copy with no edits.
 
 ---
 
 ## Current Version
 
-**Live beta:** v3.79s (as of July 20 2026) — PocketBase migration line, Groups A-D done
+**Live beta:** v3.79t (as of July 20 2026) — PocketBase migration line, Groups A-F done
 **Production:** v3.78b (promoted from beta on July 11 2026, tag v3.78b)
 
 ### Deployment structure
@@ -139,9 +139,38 @@ A/C work was rebased on top of them. Those versions are not documented in this l
   C's 12/12 equivalence harness re-run and still passing. Import paths exercised against
   the live backend; test accounts removed.
 
-**Next:** Group F (login UI) — nothing in A-D is reachable by a user until it lands, and
-D's prompts have never been seen by a human. Then E (analytics consent, small enough to
-ride with F), G (Drive removal), H (release/promotion).
+**Groups E + F built — beta v3.79t. The migration is now reachable by a user.**
+- **Group E (consent):** `pbSetAnalyticsOptIn` writes via a *dedicated single-field
+  PATCH* — deliberately not folded into `pbSaveNow`, which fires from `save()` and could
+  push a stale local default over a cloud opt-in. `pbLoad` restores it from the vault
+  (authoritative); a local cache key only drives the Settings row before load resolves.
+  Fixed a consent leak found while building: `pbLogout` did not clear `pbAnalyticsOptIn`,
+  so a second account created in the same session inherited the first one's opt-in.
+- **Group F (account UI):** `updatePbUI` created — the renderer every `pb*` function has
+  called behind a `typeof` guard since Group B — covering all 8 `pbStatus` values.
+  Sign-in/sign-up overlay (Enter-to-submit, iOS Keychain `autocomplete`, signup-only
+  length validation, in-flight submit lock), Settings ACCOUNT card, and
+  `pbAuthErrorMessage` mapping PocketBase failures to human text. Bad credentials stay
+  deliberately opaque so accounts cannot be enumerated.
+- **Header:** one status line, PocketBase takes precedence. `updateDriveUI` and
+  `updatePbUI` yield to each other on complementary guards, so exactly one renders and
+  there is no recursion. Drive keeps its Settings card but loses its header button; a
+  Drive-only user's header is unchanged.
+- **Three latent bugs fixed on the way:** `showToast` hardcoded an UNDO button, so every
+  informational toast (including Group D's, already shipped) showed a dead control;
+  `pbRestoreAuth` signed users out silently on a failed refresh, and did so even when the
+  real problem was being offline; and a signup whose follow-on login failed left the
+  account created but the user stuck on "already registered" when they retried.
+- **Verified:** 31-case Group F harness (error mapping, the mutual-yield recursion guard,
+  all 8 status values, mode rendering, settings card); C and D harnesses still 12/12 and
+  18/18. Then driven **in a real browser** (headless Chrome) against the live backend:
+  boot, signup with consent, both Group D migration prompts, the destructive decline
+  path, wrong-password vs unknown-account (identical messages), offline, Enter-to-submit,
+  session restore across reload, and sign-out. No JS errors. All test accounts removed.
+
+**Next:** beta-test v3.79t on a real device, then Group G (Drive/GSI removal) and H
+(release/promotion). G deletes the Drive fallback, so it is worth confirming A-F work on
+an actual iPhone first — everything so far has been verified headlessly.
 
 ### July 11 2026 (Claude Code) — later session
 

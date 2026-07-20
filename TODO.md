@@ -2,23 +2,23 @@
 
 > One source of truth for what's next.
 > Updated: July 20 2026
-> Current version: beta v3.79s (PocketBase line) / production v3.78b
+> Current version: beta v3.79t (PocketBase line) / production v3.78b
 
 ---
 
-## 🔴 NOW — Active beta work (v3.79s)
+## 🔴 NOW — Active beta work (v3.79t)
 
-- PocketBase migration **Groups A, B, C, D are done**. Backend is live on the DO box and
-  reachable over HTTPS; the app can authenticate, sync, and migrate a device's existing
-  data into an account.
-- **Next up: Group F** (login UI) — it is what makes any of this reachable by a real user.
-  Nothing above is user-visible until F lands, and Group D's prompts have never been seen
-  by a human because there is still no way to sign in. E (analytics consent) is small and
-  can ride along with F.
+- PocketBase migration **Groups A–F are done**. The migration is now **reachable by a
+  real user**: sign up, sign in, sync, migrate a device's existing data into an account,
+  and set analytics consent.
+- **Beta-test v3.79t on a real device before Group G.** G deletes the Drive code, which
+  is the last exit if something in A–F is wrong. Everything so far has been verified
+  headlessly (harnesses + a headless Chrome run) — nobody has touched it on an iPhone.
+- **Next up: Group G** (Drive/GSI removal), then H (release/promotion).
 - **Operational caveat:** `PB_BASE_URL` points at a Cloudflare *quick* tunnel, whose
-  hostname changes on every `cloudflared` restart. If beta suddenly cannot reach the
-  backend, re-read the hostname (command in `deploy/pocketbase/README.md`) before
-  suspecting the code.
+  hostname changes on every `cloudflared` restart. Now that logins are real, a rotated
+  hostname surfaces as "Can't reach the server" on every sign-in. Re-read the hostname
+  (command in `deploy/pocketbase/README.md`) before suspecting the code.
 
 ---
 
@@ -70,8 +70,25 @@
       it would add a third merge authority. Verified by an 18-case decision-matrix harness.
   - **E. Analytics consent:** opt-in checkbox on signup → `analyticsOptIn` (wiring
     only; analytics pipeline stays backlog).
+    - **[DONE in beta, July 20 2026 — v3.79t]** `pbSetAnalyticsOptIn` writes via a
+      dedicated single-field PATCH (deliberately not folded into `pbSaveNow`, which fires
+      from `save()` and could push a stale local default over a cloud opt-in);
+      `pbLoad` restores it from the vault; Settings row lets the user change their mind.
+      Also fixed a consent leak: `pbLogout` did not clear `pbAnalyticsOptIn`, so a second
+      account signed up in the same session inherited the first one's opt-in. Copy is
+      honest that nothing is collected yet — there is still no pipeline and no privacy
+      policy.
   - **F. UI:** swap DATA-card CONNECT/DISCONNECT/SYNC for login/signup/logout + email +
     status; `updateDriveUI` -> `updatePbUI`.
+    - **[DONE in beta, July 20 2026 — v3.79t]** `updatePbUI` created (all 8 `pbStatus`
+      values); sign-in/sign-up overlay with Enter-to-submit, iOS Keychain `autocomplete`
+      hints, signup-only length validation, and an in-flight submit lock; Settings ACCOUNT
+      card. `pbAuthErrorMessage` maps PocketBase failures to human text without leaking
+      server strings, and keeps bad credentials opaque so accounts cannot be enumerated.
+      Drive keeps its Settings card but loses its header button — one status line, PB
+      takes precedence, Drive-only users see no change. Verified in a real (headless
+      Chrome) browser end-to-end against the live backend, including both Group D
+      migration prompts and the destructive decline path.
   - **G. Drive removal:** keep a one-time "import from Drive" during beta, then delete
     all Drive/GSI code once migrated.
   - **H. Release:** bump BUILD_VER (v3.79 line) + sw.js cache key; ship to /beta/ first,

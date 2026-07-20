@@ -23,7 +23,7 @@ html,body{background:#000;color:#fff;font-family:Inter,sans-serif;min-height:100
 .mono{font-family:"Share Tech Mono",monospace}
 .card{background:#0a0a0a;border:1px solid #1e1e1e;border-radius:4px;padding:1rem;margin-bottom:1rem}
 .lbl{display:block;font-size:0.72rem;letter-spacing:0.1em;color:#666;font-weight:600;margin-bottom:0.3rem}
-input[type=text],input[type=number],input[type=date],input[type=time],textarea{
+input[type=text],input[type=number],input[type=date],input[type=time],input[type=email],input[type=password],textarea{
   background:#050505;border:1px solid #222;border-radius:3px;color:#fff;
   padding:0.6rem 0.75rem;font-size:0.9rem;font-family:Inter,sans-serif;width:100%;box-sizing:border-box}
 input:focus,textarea:focus{border-color:#555;outline:none}
@@ -119,7 +119,8 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       </div>
       <div style="display:flex;gap:0.5rem">
         <button id="btn-sync-now" class="btn-sm" onclick="forceSyncNow()" style="display:none">SYNC NOW</button>
-        <button id="btn-connect-home" class="btn-sm" onclick="connectDrive()">CONNECT DRIVE</button>
+        <button id="btn-connect-home" class="btn-sm" onclick="connectDrive()" style="display:none">CONNECT DRIVE</button>
+        <button id="btn-account" class="btn-sm" onclick="openAuth()">SIGN IN</button>
         <button onclick="openSettings()" class="btn-sm" style="font-size:0.85rem;padding:0.3rem 0.6rem" title="Settings">&#9881;</button>
       </div>
     </div>
@@ -702,6 +703,22 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       </div>
     </div>
 
+    <!-- Account (Group F). Placed above Drive: this is the forward path -->
+    <div class="card">
+      <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">ACCOUNT</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0">
+        <div>
+          <div class="mono" style="font-size:0.85rem;color:#ccc">CLOUD SYNC</div>
+          <div id="s-pb-status" style="font-size:0.65rem;color:#555;margin-top:0.15rem">Not signed in</div>
+          <div id="s-pb-email" class="mono" style="font-size:0.65rem;color:#4ade80;margin-top:0.15rem;display:none"></div>
+        </div>
+        <div style="display:flex;gap:0.4rem">
+          <button id="s-btn-signin" onclick="closeSettings();openAuth();" class="btn-sm" style="font-size:0.7rem">SIGN IN</button>
+          <button id="s-btn-signout" onclick="pbSignOutConfirm()" class="btn-sm" style="font-size:0.7rem;color:#ef4444;border-color:#3a1a1a;display:none">SIGN OUT</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Google Drive -->
     <div class="card">
       <div class="hd" style="font-size:0.75rem;color:#555;letter-spacing:0.15em;margin-bottom:0.75rem">GOOGLE DRIVE SYNC</div>
@@ -738,6 +755,17 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
         </div>
         <button onclick="exportAllJSON()" class="btn-sm" style="font-size:0.7rem">EXPORT</button>
       </div>
+      <!-- Analytics consent (Group E). Opt-in: OFF by default. No pipeline exists yet -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;border-top:1px solid #111">
+        <div>
+          <div class="mono" style="font-size:0.85rem;color:#ccc">ANONYMOUS USAGE DATA</div>
+          <div style="font-size:0.65rem;color:#555;margin-top:0.15rem">Not collected yet. If we ever build it, this is your answer. Never includes pile data or your email.</div>
+        </div>
+        <div style="display:flex;gap:0.4rem">
+          <button id="s-analytics-on" onclick="pbSetAnalyticsOptIn(true)" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">ON</button>
+          <button id="s-analytics-off" onclick="pbSetAnalyticsOptIn(false)" class="btn-sm" style="font-size:0.75rem;padding:0.4rem 0.75rem">OFF</button>
+        </div>
+      </div>
     </div>
 
     <!-- App Info -->
@@ -746,10 +774,41 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <div style="font-size:0.7rem;color:#555;line-height:1.8;font-family:'Share Tech Mono',monospace">
         <div id="app-version-settings">COMPOST LOGGER &middot; FIELD LOGGER v3.76</div>
         <div>COMPOST LOGGER</div>
-        <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Connect Drive for cloud backup.</div>
+        <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Sign in to sync it to your account.</div>
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- Account sign in / sign up (Group F).
+     MUST stay after #settings-overlay: all overlays share z-index 500, so stacking is
+     decided by DOM order, and SIGN IN is reachable from inside Settings. -->
+<div id="auth-overlay" class="overlay hidden">
+  <div style="max-width:500px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <span id="auth-title" class="hd" style="font-size:1.2rem;color:#fff">SIGN IN</span>
+      <button onclick="closeAuth()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
+    </div>
+    <div class="card">
+      <div id="auth-intro" style="font-size:0.68rem;color:#666;line-height:1.5;margin-bottom:0.9rem">Sync your piles across devices. Your data stays on this device too.</div>
+      <label class="lbl">EMAIL</label>
+      <input type="email" id="auth-email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@example.com" style="margin-bottom:0.75rem" onkeydown="authKeydown(event)"/>
+      <label class="lbl">PASSWORD</label>
+      <input type="password" id="auth-password" autocomplete="current-password" placeholder="at least 8 characters" style="margin-bottom:0.75rem" onkeydown="authKeydown(event)"/>
+      <div id="auth-consent-row" style="display:none;margin-bottom:0.9rem;padding-top:0.25rem">
+        <label style="display:flex;align-items:flex-start;gap:0.5rem;cursor:pointer">
+          <input type="checkbox" id="auth-analytics" style="flex-shrink:0;margin-top:0.1rem"/>
+          <span style="font-size:0.7rem;color:#ccc;line-height:1.45">Share anonymous usage data to help improve the app.
+            <span style="display:block;color:#555;font-size:0.62rem;margin-top:0.2rem">Nothing is collected today &mdash; this records your answer for if we ever build it. It would never include your pile data or your email. You can change this any time in Settings.</span>
+          </span>
+        </label>
+      </div>
+      <div id="auth-error" class="error-msg hidden"></div>
+      <button id="auth-submit" onclick="authSubmit()" class="btn" style="width:100%;margin-bottom:0.5rem;margin-top:0.5rem">SIGN IN</button>
+      <button id="auth-switch" onclick="authToggleMode()" class="btn-sm" style="width:100%;margin-bottom:0.5rem">NEED AN ACCOUNT? SIGN UP</button>
+      <button onclick="closeAuth()" style="width:100%;padding:0.6rem;background:none;border:1px solid #222;color:#555;border-radius:3px;cursor:pointer;font-family:Inter,sans-serif;font-size:0.85rem">CANCEL</button>
+    </div>
   </div>
 </div>
 
@@ -766,7 +825,7 @@ var PB_BASE_URL="https://democrats-rocky-dining-highs.trycloudflare.com";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79s";
+var BUILD_VER="v3.79t";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -834,7 +893,11 @@ var tokenClient=null,timerInterval=null;
 // PocketBase auth state (migration). Coexists with Drive during the beta transition
 // (Drive/GSI is removed in Group G). Auth persists in the "pb_auth" localStorage key.
 var pbToken=null,pbUserId=null,pbEmail=null,pbStatus="signedout";
-var pbAnalyticsOptIn=false;  // captured at signup; applied to the vault in Group E
+// Analytics consent (Group E). The vault's analyticsOptIn column is authoritative;
+// PB_ANALYTICS_KEY is a display-only local cache so the Settings row renders correctly
+// before pbLoad resolves. pbLoad overwrites it from the vault on every login.
+var pbAnalyticsOptIn=(function(){try{return localStorage.getItem("pb_analytics_optin")==="1";}catch(e){return false;}})();
+var PB_ANALYTICS_KEY="pb_analytics_optin";
 // PocketBase vault/sync state (Group C). pbVaultUpdated holds the "updated" stamp from
 // the last successful read and is the optimistic-concurrency baseline for pbSaveNow.
 // The pending/in-progress flags are deliberately SEPARATE from the Drive ones below:
@@ -2250,9 +2313,13 @@ function showToast(msg,undoFn,duration){
   var toast=document.createElement("div");
   toast.className="toast";
   toast.id="active-toast";
-  toast.innerHTML='<span class="toast-msg">'+msg+'</span><button class="toast-btn" id="toast-undo-btn">UNDO</button>';
+  // The UNDO button is only rendered when there is something to undo. Before this it was
+  // hardcoded, so any informational toast (e.g. Group D's import confirmation) showed a
+  // dead UNDO that did nothing.
+  toast.innerHTML='<span class="toast-msg">'+msg+'</span>'+(undoFn?'<button class="toast-btn" id="toast-undo-btn">UNDO</button>':'');
   container.appendChild(toast);
-  document.getElementById("toast-undo-btn").onclick=function(){
+  var undoBtn=document.getElementById("toast-undo-btn");
+  if(undoBtn)undoBtn.onclick=function(){
     if(undoFn)undoFn();
     hideToast();
   };
@@ -4643,6 +4710,11 @@ function driveLabelShort(){
 }
 
 function updateDriveUI(){
+  // Group F: PocketBase owns the shared status line whenever a session exists. The
+  // complementary guard in updatePbUI (it yields back when !pbToken) means exactly one
+  // of the two ever renders - no recursion. Drive-only users hit none of this and see
+  // identical behavior to before, which matters because every existing user is one.
+  if(pbToken){updatePbUI();return;}
   var colors={
     disconnected:"#333",
     connecting:"#f59e0b",
@@ -4669,8 +4741,19 @@ function updateDriveUI(){
   var label=labels[driveStatus]||"LOCAL ONLY";
   if(dot)dot.style.background=color;
   if(lbl){lbl.style.color=color;lbl.textContent=label;}
-  if(btnConnect)btnConnect.style.display=(driveStatus==="disconnected"||driveStatus==="error"||driveStatus==="offline")?"inline-block":"none";
+  // Group F: Drive connect now lives only in Settings (the GOOGLE DRIVE SYNC card), so
+  // the header has room for the account button. The element and connectDrive() stay
+  // alive and callable; Group G deletes both wholesale.
+  if(btnConnect)btnConnect.style.display="none";
   if(btnSync)btnSync.style.display=driveToken?"inline-block":"none";
+  updateAccountButton();
+}
+
+// Header account button label. Shared by both status renderers so it is correct
+// regardless of which one is driving the bar.
+function updateAccountButton(){
+  var btnAcct=document.getElementById("btn-account");
+  if(btnAcct)btnAcct.textContent=(pbToken&&pbUserId)?"ACCOUNT":"SIGN IN";
 }
 
 function setStatus(s){driveStatus=s;updateDriveUI();}
@@ -4679,6 +4762,81 @@ function setStatus(s){driveStatus=s;updateDriveUI();}
 // updateDriveUI - those stay Drive-specific until Group G removes Drive. updatePbUI is
 // built in Group F, hence the typeof guard (same pattern as the Group B auth calls).
 function setPbStatus(s){pbStatus=s;if(typeof updatePbUI==="function")updatePbUI();}
+
+// Group F: the UI renderer every pb* function has been calling behind a typeof guard.
+// Covers all eight pbStatus values - "signedin" is transient (pbSetAuth sets it, then
+// pbLoad immediately moves to connecting/synced) but must be mapped or it falls through.
+function updatePbUI(){
+  updateAccountButton();
+  // Yield to Drive when there is no PocketBase session, so a Drive-only user still sees
+  // DRIVE SYNCED. Complementary to the pbToken guard at the top of updateDriveUI, so
+  // exactly one renderer runs and there is no mutual recursion.
+  if(!pbToken){
+    updateDriveUI();
+    updatePbSettingsCard();
+    return;
+  }
+  var colors={
+    signedout:"#333",
+    connecting:"#f59e0b",
+    signedin:"#f59e0b",
+    synced:"#4ade80",
+    saving:"#f59e0b",
+    saved:"#4ade80",
+    offline:"#ef4444",
+    error:"#ef4444"
+  };
+  var labels={
+    signedout:"NOT SIGNED IN",
+    connecting:"SIGNING IN...",
+    signedin:"SYNCING...",
+    synced:"ACCOUNT SYNCED",
+    saving:"SAVING...",
+    saved:"SAVED \u2713",
+    offline:"OFFLINE (local only)",
+    error:"SYNC ERROR"
+  };
+  var color=colors[pbStatus]||"#333";
+  var label=labels[pbStatus]||"NOT SIGNED IN";
+  var dot=document.getElementById("home-drive-dot");
+  var lbl=document.getElementById("home-drive-label");
+  var btnSync=document.getElementById("btn-sync-now");
+  var btnConnect=document.getElementById("btn-connect-home");
+  if(dot)dot.style.background=color;
+  if(lbl){lbl.style.color=color;lbl.textContent=label;}
+  if(btnSync)btnSync.style.display=(pbToken||driveToken)?"inline-block":"none";
+  if(btnConnect)btnConnect.style.display="none";
+  // Submit button doubles as the double-submit guard: pbLogin/pbSignup both set
+  // "connecting" and call through here before the network round-trip starts.
+  var submit=document.getElementById("auth-submit");
+  if(submit){
+    var busy=(pbStatus==="connecting");
+    submit.disabled=busy;
+    submit.style.opacity=busy?"0.5":"1";
+    submit.textContent=busy?"WORKING...":(authMode==="signup"?"CREATE ACCOUNT":"SIGN IN");
+  }
+  updatePbSettingsCard();
+}
+
+// Settings ACCOUNT card. Split out so both renderers can refresh it.
+function updatePbSettingsCard(){
+  var st=document.getElementById("s-pb-status");
+  var em=document.getElementById("s-pb-email");
+  var inBtn=document.getElementById("s-btn-signin");
+  var outBtn=document.getElementById("s-btn-signout");
+  var signedIn=!!(pbToken&&pbUserId);
+  if(st){
+    if(!signedIn){st.textContent="Not signed in";st.style.color="#555";}
+    else if(pbStatus==="error"){st.textContent="Sync error";st.style.color="#ef4444";}
+    else if(pbStatus==="offline"){st.textContent="Offline - saved on this device";st.style.color="#ef4444";}
+    else if(pbStatus==="saving"){st.textContent="Saving...";st.style.color="#f59e0b";}
+    else if(pbStatus==="connecting"){st.textContent="Connecting...";st.style.color="#f59e0b";}
+    else{st.textContent="Synced";st.style.color="#4ade80";}
+  }
+  if(em){em.textContent=signedIn&&pbEmail?pbEmail:"";em.style.display=signedIn&&pbEmail?"block":"none";}
+  if(inBtn)inBtn.style.display=signedIn?"none":"inline-block";
+  if(outBtn)outBtn.style.display=signedIn?"inline-block":"none";
+}
 
 async function driveGet(path){
   var r=await fetch("https://www.googleapis.com/drive/v3"+path,{headers:{Authorization:"Bearer "+driveToken}});
@@ -5048,8 +5206,18 @@ function pbSignup(email,password,analyticsOptIn){
   return pbApi("/api/collections/users/records",{
     method:"POST",
     json:{email:email,password:password,passwordConfirm:password}
+  }).catch(function(err){
+    // Group F: tag which leg failed. The account does NOT exist yet at this point.
+    if(err)err.pbLeg="create";
+    throw err;
   }).then(function(){
-    return pbLogin(email,password);
+    return pbLogin(email,password).catch(function(err){
+      // The account DOES exist now, but we could not authenticate (email verification
+      // required, or the connection dropped between the two calls). The UI needs to
+      // know, or the user retries signup and is told the email is already taken.
+      if(err)err.pbLeg="login";
+      throw err;
+    });
   }).catch(function(err){
     pbStatus="signedout";
     if(typeof updatePbUI==="function")updatePbUI();
@@ -5078,8 +5246,200 @@ function pbLogout(){
   // Group C: drop vault state too, or a later sign-in would PATCH the previous
   // account's record with this account's data.
   pbVaultId=null;pbVaultUpdated=null;pbPendingSave=false;pbSyncInProgress=false;
-  try{localStorage.removeItem("pb_auth");}catch(e){}
+  // Group E: consent is per-account. Without this, signing up a second account in the
+  // same page session would create its vault carrying the previous account's opt-in -
+  // consent the new user never gave.
+  pbAnalyticsOptIn=false;
+  try{localStorage.removeItem("pb_auth");localStorage.removeItem(PB_ANALYTICS_KEY);}catch(e){}
   if(typeof updatePbUI==="function")updatePbUI();
+}
+
+// Display only - recolors the two buttons to match current state. Safe to call on every
+// Settings open; makes no network call and changes no state.
+function pbSyncAnalyticsButtons(){
+  var on=pbAnalyticsOptIn;
+  var onB=document.getElementById("s-analytics-on");
+  var offB=document.getElementById("s-analytics-off");
+  if(onB){onB.style.color=on?"#4ade80":"#555";onB.style.borderColor=on?"#4ade80":"#222";}
+  if(offB){offB.style.color=!on?"#fff":"#555";offB.style.borderColor=!on?"#fff":"#222";}
+}
+
+// Set analytics consent. Local-only until a vault exists; once it does, this fires a
+// dedicated single-field PATCH rather than riding along with pbSaveNow - pbSaveNow can
+// run from save() before pbLoad has read the vault's value back, which would push the
+// local default over a cloud "true". A single-field PATCH also cannot clobber "data"
+// or race pbSaveNow's optimistic-concurrency read.
+function pbSetAnalyticsOptIn(on){
+  pbAnalyticsOptIn=!!on;
+  try{localStorage.setItem(PB_ANALYTICS_KEY,on?"1":"0");}catch(e){}
+  pbSyncAnalyticsButtons();
+  if(pbToken&&pbUserId&&pbVaultId){
+    // Deliberately no setPbStatus here: a consent toggle failing must not paint the
+    // header red or disturb the sync status machine.
+    pbApi("/api/collections/vaults/records/"+pbVaultId,{
+      method:"PATCH",auth:true,json:{analyticsOptIn:!!on}
+    }).catch(function(err){console.error("Analytics consent save failed",err);});
+  }
+}
+
+// ============================================================
+// ACCOUNT UI (Group F)
+// The login/signup overlay - the first part of the PocketBase migration a human can
+// actually reach. Everything in Groups B-E runs behind this.
+// ============================================================
+
+var authMode="login";   // "login" | "signup"
+
+// Turn a pbApi rejection into something a person can act on. Never surfaces the raw
+// server message. PocketBase deliberately returns an opaque body for bad credentials so
+// an attacker cannot enumerate accounts - that opacity is preserved here on purpose.
+function pbAuthErrorMessage(err,mode){
+  if(!err)return "Something went wrong. Try again.";
+  if(!err.status)return "Can't reach the server. Check your connection and try again.";
+  var d=(err.body&&err.body.data)?err.body.data:null;
+  if(err.status===400){
+    if(d&&d.email){
+      var ec=d.email.code||"";
+      if(ec==="validation_invalid_email")return "That email is already registered. Try signing in instead.";
+      if(ec==="validation_is_email")return "Enter a valid email address.";
+      return "Check your email address.";
+    }
+    if(d&&d.password)return "Password must be 8 to 72 characters.";
+    if(d&&d.passwordConfirm)return "Passwords do not match.";
+    if(mode==="signup")return "Could not create your account. Check your details and try again.";
+    return "Wrong email or password.";
+  }
+  if(err.status===403)return "This account needs to be verified before you can sign in. Check your email.";
+  if(err.status===404)return "Account service unavailable. Try again later.";
+  if(err.status===429)return "Too many attempts. Wait a minute and try again.";
+  if(err.status>=500)return "The server is having trouble. Try again in a minute.";
+  return "Something went wrong. Try again.";
+}
+
+function authShowError(msg){
+  var el=document.getElementById("auth-error");
+  if(!el)return;
+  el.textContent=msg;              // textContent, not innerHTML - keeps it inert
+  el.classList.remove("hidden");
+}
+function authClearError(){
+  var el=document.getElementById("auth-error");
+  if(el)el.classList.add("hidden");
+}
+
+// Render the overlay for the current mode. Also swaps the password autocomplete hint so
+// iOS Keychain offers "save new password" on signup and autofill on login.
+function authRenderMode(){
+  var isSignup=(authMode==="signup");
+  var title=document.getElementById("auth-title");
+  var intro=document.getElementById("auth-intro");
+  var consent=document.getElementById("auth-consent-row");
+  var submit=document.getElementById("auth-submit");
+  var sw=document.getElementById("auth-switch");
+  var pw=document.getElementById("auth-password");
+  if(title)title.textContent=isSignup?"CREATE ACCOUNT":"SIGN IN";
+  if(intro)intro.textContent=isSignup?"Sync your piles across devices. Your data stays on this device too.":"Welcome back. Sign in to sync your piles.";
+  if(consent)consent.style.display=isSignup?"block":"none";
+  if(submit)submit.textContent=isSignup?"CREATE ACCOUNT":"SIGN IN";
+  if(sw)sw.textContent=isSignup?"ALREADY HAVE AN ACCOUNT? SIGN IN":"NEED AN ACCOUNT? SIGN UP";
+  if(pw){
+    pw.setAttribute("autocomplete",isSignup?"new-password":"current-password");
+    pw.setAttribute("placeholder",isSignup?"at least 8 characters":"your password");
+  }
+}
+
+function authToggleMode(){
+  authMode=(authMode==="signup")?"login":"signup";
+  authClearError();
+  authRenderMode();
+}
+
+function openAuth(){
+  // Signed in already? The account button is a shortcut to Settings, not a second login.
+  if(pbToken&&pbUserId){openSettings();return;}
+  authMode="login";
+  authClearError();
+  var em=document.getElementById("auth-email");
+  var pw=document.getElementById("auth-password");
+  if(em)em.value="";
+  if(pw)pw.value="";
+  var cb=document.getElementById("auth-analytics");
+  if(cb)cb.checked=false;          // opt-in: never pre-checked
+  authRenderMode();
+  document.getElementById("auth-overlay").classList.remove("hidden");
+  if(em)em.focus();
+}
+
+function closeAuth(){
+  document.getElementById("auth-overlay").classList.add("hidden");
+  authClearError();
+}
+
+// No <form> element anywhere in this app - an accidental GET navigation would wipe app
+// state - so Enter is wired by hand. Mobile keyboards show "Go" and would otherwise no-op.
+function authKeydown(e){
+  if(e&&e.key==="Enter"){
+    if(e.preventDefault)e.preventDefault();
+    authSubmit();
+  }
+}
+
+function authSubmit(){
+  var emEl=document.getElementById("auth-email");
+  var pwEl=document.getElementById("auth-password");
+  var cbEl=document.getElementById("auth-analytics");
+  var email=emEl?String(emEl.value||"").trim():"";
+  var pw=pwEl?String(pwEl.value||""):"";
+  var isSignup=(authMode==="signup");
+  authClearError();
+  if(!email){authShowError("Enter your email address.");return;}
+  if(!pw){authShowError("Enter your password.");return;}
+  // Length is a SIGNUP rule only. Enforcing it on login would lock out any account that
+  // predates a server-side rule change.
+  if(isSignup&&(pw.length<8||pw.length>72)){authShowError("Password must be 8 to 72 characters.");return;}
+  if(pbStatus==="connecting")return;   // belt-and-braces double-submit guard
+
+  if(isSignup){
+    var wantsAnalytics=!!(cbEl&&cbEl.checked);
+    pbSignup(email,pw,wantsAnalytics).then(function(){
+      authOnSuccess();
+    }).catch(function(err){
+      // If the ACCOUNT was created but the follow-on login failed (email verification
+      // on, or the connection dropped between the two calls), retrying signup would say
+      // "already registered" - a dead end. Send them to the login form instead.
+      if(err&&err.pbLeg==="login"){
+        authMode="login";
+        authRenderMode();
+        authShowError("Account created. Sign in to continue.");
+        return;
+      }
+      authShowError(pbAuthErrorMessage(err,"signup"));
+    });
+  } else {
+    pbLogin(email,pw).then(function(){
+      authOnSuccess();
+    }).catch(function(err){
+      authShowError(pbAuthErrorMessage(err,"login"));
+    });
+  }
+}
+
+// Close immediately and do NOT await pbLoad. pbSetAuth already started it, and its
+// Group D confirm() lives inside a pending network round-trip - which cannot resolve in
+// the microtask before this runs. So the overlay is always gone before any migration
+// prompt appears, and that prompt lands on the plain app view, which is the context its
+// wording assumes. Chaining pbLoad here would double-prompt.
+function authOnSuccess(){
+  closeAuth();
+  showToast("Signed in as "+(pbEmail||"your account"));
+  updatePbUI();
+}
+
+function pbSignOutConfirm(){
+  if(!confirm("Sign out? Your piles stay on this device."))return;
+  pbLogout();
+  closeSettings();
+  showToast("Signed out. Your piles are still on this device.");
 }
 
 // Restore a persisted session on load and validate it via auth-refresh. Returns true
@@ -5094,8 +5454,18 @@ function pbRestoreAuth(){
   if(typeof updatePbUI==="function")updatePbUI();
   pbApi("/api/collections/users/auth-refresh",{method:"POST",auth:true}).then(function(res){
     pbSetAuth(res&&res.token,res&&res.record);
-  }).catch(function(){
+  }).catch(function(err){
+    // Group F: an offline boot fails this refresh too, and signing the user out there
+    // would be wrong - their session is fine, the network is not. Keep the session and
+    // let the offline status say so.
+    if(!navigator.onLine||(err&&!err.status)){
+      setPbStatus("offline");
+      return;
+    }
+    // A genuinely rejected token used to log the user out silently: the header just read
+    // NOT SIGNED IN and their edits quietly stopped syncing. Say what happened.
     pbLogout();
+    if(typeof showToast==="function")showToast("Your session expired. Sign in again.");
   });
   return true;
 }
@@ -5275,6 +5645,12 @@ function pbLoad(){
     }
     pbVaultId=rec.id;
     pbVaultUpdated=rec.updated||null;
+    // Group E: the vault is authoritative for consent. Guarded on the type so a
+    // malformed or field-less response cannot silently revoke an opt-in.
+    if(typeof rec.analyticsOptIn==="boolean"){
+      pbAnalyticsOptIn=rec.analyticsOptIn;
+      try{localStorage.setItem(PB_ANALYTICS_KEY,rec.analyticsOptIn?"1":"0");}catch(e){}
+    }
     // PocketBase returns the JSON field already parsed; tolerate a string just in case.
     var d=rec.data;
     if(typeof d==="string"){try{d=JSON.parse(d);}catch(e){d=null;}}
@@ -6011,6 +6387,10 @@ function openSettings(){
   if(sSync)sSync.style.display=driveToken?"inline-block":"none";
   if(sConn)sConn.style.display=(driveStatus==="disconnected"||driveStatus==="error"||driveStatus==="offline")?"inline-block":"none";
   var sDisc=document.getElementById("s-btn-disconnect");if(sDisc)sDisc.style.display=driveToken?"inline-block":"none";
+  // Group E: reflect current consent state on the analytics row (display only)
+  pbSyncAnalyticsButtons();
+  // Group F: account card reflects the current PocketBase session
+  updatePbUI();
   // Update version string in about section
   renderSettingsRecipes();
   document.getElementById("settings-overlay").classList.remove("hidden");

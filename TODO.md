@@ -14,6 +14,10 @@
 - **Beta-test v3.79t on a real device before Group G.** G deletes the Drive code, which
   is the last exit if something in A–F is wrong. Everything so far has been verified
   headlessly (harnesses + a headless Chrome run) — nobody has touched it on an iPhone.
+- **Rollback is ready if it misbehaves.** Beta builds are tagged `v3.79r` / `v3.79s` /
+  `v3.79t`; exact revert commands are in the **ROLLBACK** section of PROJECT.md. Note the
+  service-worker trap documented there: a rollback needs a *new* `sw.js` cache key, never
+  the old one. Production stays v3.78b (pure Drive, untouched) as the ultimate fallback.
 - **Next up: Group G** (Drive/GSI removal), then H (release/promotion).
 - **Operational caveat:** `PB_BASE_URL` points at a Cloudflare *quick* tunnel, whose
   hostname changes on every `cloudflared` restart. Now that logins are real, a rotated
@@ -121,10 +125,6 @@
   - Google Play: $25 one-time, 1-3 day review
   - Apple App Store: $99/year, stricter review
 
-- [ ] **"Download My Data" button**
-  - Complete JSON export (after fixing incomplete export bug above)
-  - GDPR/PDPL compliance tool
-
 ---
 
 ## 🔵 PARKED — Good ideas, revisit later
@@ -161,6 +161,14 @@
 ---
 
 ## ✅ DONE — Reference
+
+- **PocketBase migration Groups A–F** (July 20 2026) — backend live on the DO box under
+  systemd behind a Cloudflare tunnel; shared `mergeCloudData`; `pbLoad`/`pbSaveNow`;
+  first-login migration gate; analytics consent; account UI. Beta v3.79t is the first
+  build a user can sign into. Tagged `v3.79r`/`v3.79s`/`v3.79t`. **G and H remain.**
+- **"Download My Data" button** — shipped: full JSON export via `exportAllJSON` (complete
+  `ca_v5` shape + separate-key settings, fixed v3.77q), surfaced in Settings > DATA with
+  that label since v3.78b. Group D's destructive confirm points users at it.
 
 - **v3.78b promoted to production** (July 11 2026, tag v3.78b); prod went v3.77q -> v3.78b
 - **v3.78b — rename** "EXPORT ALL PILES" label to "Download My Data" (July 11 2026)

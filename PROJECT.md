@@ -75,9 +75,100 @@ When beta is stable: copy `beta/index.html` → root `index.html`, commit with v
 
 ---
 
+## ROLLBACK
+
+Every beta build in the PocketBase line is tagged. Rolling back restores a **file** from
+a tag and commits that as a **new** commit — history is never rewritten, nothing is lost,
+and you can roll forward again the same way. Do **not** use `git reset --hard` on `main`:
+it is pushed, and a force-push would destroy commits.
+
+### Tags
+
+| Tag | Build | What it is |
+|---|---|---|
+| `v3.78b` | production | **The Drive-based fallback.** No PocketBase code at all. |
+| `v3.79r` | beta | Group C — shared `mergeCloudData` + `pbLoad`/`pbSaveNow`. No UI. |
+| `v3.79s` | beta | Group D — first-login migration decision. No UI. |
+| `v3.79t` | beta | Groups E+F — consent + account UI. First user-reachable build. |
+
+Group A (`85ade7f`) carried no version bump — it was server infra plus the `PB_BASE_URL`
+value — so there is no `v3.79` tag between `q` and `r`.
+
+### Roll beta back to a tagged version
+
+```bash
+cd /root/compost-logger
+git checkout main && git pull
+
+# pick one: v3.79r | v3.79s | v3.79t
+git checkout v3.79s -- beta/index.html
+
+# REQUIRED: bump the SW cache key to something NEW (see the trap below)
+#   edit sw.js -> const CACHE = 'compost-logger-v3.79s-rollback';
+
+git commit -am "Roll beta back to v3.79s"
+git push origin main
+```
+
+**The service-worker trap:** `sw.js` is network-first but falls back to cache. Restoring
+an *older* cache key means clients that already cached the newer build may keep serving
+it. Always set a **new, never-used** key on a rollback (e.g. `...-rollback`), never the
+old one. `BUILD_VER` inside the restored `beta/index.html` will read as the old version —
+that is expected and correct.
+
+### Emergency: fall back to Drive entirely
+
+Production `index.html` is **v3.78b, untouched by the whole migration** — verified
+byte-identical to the `v3.78b` tag, with zero PocketBase code and the Google Drive sync
+path fully intact. It is the real safety net: nothing in Groups A–F has touched it, and
+GitHub Pages serves it at the production URL independently of `/beta/`.
+
+To point beta at it too:
+
+```bash
+git checkout v3.78b -- beta/index.html   # beta becomes the Drive build
+# bump sw.js cache key to a new value, then commit + push
+```
+
+### What a rollback does and does not undo
+
+- **Does not touch server state.** Accounts and vaults on the DigitalOcean box survive.
+  Rolling back is a client change only.
+- **Does not remove data from devices.** `ca_v5` in localStorage is untouched; the app is
+  offline-first and reads it the same way in every version.
+- **Leaves stale localStorage keys.** `pb_auth`, `pb_import_<userId>` and
+  `pb_analytics_optin` remain. Harmless — older builds ignore keys they do not know — but
+  rolling back to `v3.79r`/`s` leaves a signed-in session with **no UI to sign out of**,
+  because the account UI only exists in `v3.79t`. Those builds still restore the session
+  and sync via `pbRestoreAuth`.
+- **Rolling back past `v3.79r` loses `mergeCloudData`**, which both Drive paths now
+  depend on. Anything earlier than `v3.79r` means going to `v3.78b`, not an intermediate.
+
+Verify any rollback the same way as a build: extract the inline script and run
+`node --check`, confirm `BUILD_VER` and the `sw.js` key are consistent, and load the page.
+
+---
+
 ## Session Log
 
-### July 20 2026 (Claude Code) — Group A executed on the box + Group C built
+### July 20 2026 (Claude Code) — PocketBase migration, Groups A through F
+
+**One session, six groups.** The migration went from "scoped, nothing running" to
+"reachable by a real user": backend live on the DigitalOcean box, and beta v3.79t with
+sign-up, sign-in, sync, first-login data migration, and analytics consent. Tagged
+`v3.79r` / `v3.79s` / `v3.79t`; see **ROLLBACK** above. Production is untouched at
+v3.78b, still pure Drive.
+
+Sequence: **A** (server, live) → **C** (storage/sync) → **D** (migration gate) →
+**E + F** (consent + account UI). B was already done in the previous session. G (Drive
+removal) and H (promotion) remain.
+
+**Verification approach, since none of this had ever run:** each group got a purpose-built
+harness rather than inspection — a differential harness for C (old vs new merge, byte
+comparison), a decision-matrix harness for D (scripted `confirm()` answers), and a
+DOM-stub harness for F. The C harness was mutation-tested to prove it could actually
+detect a regression. Groups E/F then got driven in a real headless Chrome against the
+live backend, which is the only reason the end-to-end flows are known to work at all.
 
 **Group A is live.** Executed the `deploy/pocketbase/` runbook directly on the
 DigitalOcean droplet (`fra1`, `64.226.83.129`): PocketBase **0.22.21** (version-pinned)
@@ -168,9 +259,31 @@ A/C work was rebased on top of them. Those versions are not documented in this l
   path, wrong-password vs unknown-account (identical messages), offline, Enter-to-submit,
   session restore across reload, and sign-out. No JS errors. All test accounts removed.
 
+**Bugs found and fixed that were not in any group's scope.** Worth recording, because
+each was found by building the next layer on top rather than by review:
+1. `pbLoad` silently uploaded the whole local vault (demo pile included) on first login —
+   found while starting D, which then became a gate rather than a new feature.
+2. `pbLogout` did not clear `pbAnalyticsOptIn`, so a second account created in the same
+   session inherited the first user's consent — found while building E.
+3. `showToast` hardcoded an UNDO button, so every informational toast showed a dead
+   control. **Group D had already shipped this.**
+4. `pbRestoreAuth` signed users out silently on a failed refresh, including when the real
+   problem was simply being offline.
+5. A signup whose follow-on login failed left the account created but the user stuck on
+   "already registered" if they retried.
+6. `sw.js` had drifted at cache key `v3.78b` while beta advanced through v3.79b–q.
+7. A "1 entries" grammar bug in D's destructive confirm, caught by the D harness.
+
+**Open items carried forward:** no domain (so Caddy/TLS and the CORS lockdown are both
+still pending, and CORS remains permissive); no privacy policy (a launch blocker — E's
+consent copy is deliberately written not to depend on one); and `PB_BASE_URL` points at
+an ephemeral quick-tunnel hostname. Two accepted limitations are parked in TODO.md with
+triggers: non-atomic read-merge-write concurrency, and the 5 MB vault field cap.
+
 **Next:** beta-test v3.79t on a real device, then Group G (Drive/GSI removal) and H
 (release/promotion). G deletes the Drive fallback, so it is worth confirming A-F work on
-an actual iPhone first — everything so far has been verified headlessly.
+an actual iPhone first — everything so far has been verified headlessly, and the
+Safari/iOS constraints in this document exist because that is where this app breaks.
 
 ### July 11 2026 (Claude Code) — later session
 

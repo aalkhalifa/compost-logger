@@ -12,6 +12,11 @@ This project uses date-stamped `v3.XX` releases with letter sub-revisions
 PocketBase migration line (replacing Google Drive sync). Ships from `/beta/`; additive
 during the transition (Drive/GSI keeps working until Group G's import-then-remove).
 
+**Groups A–F landed 2026-07-20.** Backend live on the DigitalOcean box; beta v3.79t is
+the first build a user can sign into. Tagged `v3.79r`, `v3.79s`, `v3.79t` — see the
+ROLLBACK section of PROJECT.md for the revert procedure. Production remains v3.78b,
+untouched and still Drive-based, as the fallback.
+
 ### Added
 - **v3.79t — Group F (account UI).** The PocketBase migration is now reachable by a user.
   `updatePbUI()` — the renderer every `pb*` function has been calling behind a `typeof`
@@ -56,21 +61,6 @@ during the transition (Drive/GSI keeps working until Group G's import-then-remov
   `updatePbUI` yield to each other on complementary guards, so exactly one renders). A
   Drive-only user's header is unchanged — which matters, since every existing user is
   one. `CONNECT DRIVE` stays in the DOM but renders only from the Settings Drive card.
-- **v3.79t — `showToast` no longer renders a dead UNDO button.** It was hardcoded into
-  the markup, so every informational toast — including Group D's import confirmation,
-  already shipped — showed an UNDO that did nothing. Now rendered only when there is
-  something to undo.
-- **v3.79t — expired sessions say so.** `pbRestoreAuth` used to call `pbLogout()`
-  silently on a failed refresh: the header just read NOT SIGNED IN and edits quietly
-  stopped syncing. It now shows a toast, and an offline boot keeps the session instead
-  of signing the user out.
-- **v3.79t — signup can no longer strand a user.** If the account is created but the
-  follow-on login fails (email verification, or a dropped connection), the error is
-  tagged by leg and the form switches to sign-in with "Account created. Sign in to
-  continue." — instead of a retry that reports the email as already registered.
-- **v3.79s — first login no longer uploads silently.** `pbLoad`'s create branch used to
-  POST the entire local vault the moment a user authenticated, with no consent and with
-  the demo pile included. Both of its branches now route through the Group D decision.
 - **v3.79r — shared cloud merge.** The two near-duplicate Drive merge blocks (~115 lines in
   `initDriveStorage` and `driveSaveNow`) collapse into one `mergeCloudData(remote, opts)`
   used by both Drive and PocketBase. The two blocks were *not* identical — only the connect
@@ -85,8 +75,6 @@ during the transition (Drive/GSI keeps working until Group G's import-then-remov
   localStorage-first and fire-and-forget, so offline behavior is unchanged. `forceSyncNow`
   and the `online`/`offline`/`beforeunload` handlers follow the same preference; the unload
   warning is now backend-neutral (a migrated user has no "SYNC NOW" button).
-- **v3.79r — `sw.js` cache key** corrected to `compost-logger-v3.79r`; it had drifted at
-  `v3.78b` while beta advanced through v3.79b-q.
 - **Group B (auth layer).** PocketBase email/password auth in `beta/index.html`: a single
   configurable `PB_BASE_URL` constant and `pbApi` / `pbSignup` / `pbLogin` / `pbLogout` /
   `pbRestoreAuth` (raw `fetch`, no PB JS SDK). Session persists in the `pb_auth`
@@ -94,6 +82,34 @@ during the transition (Drive/GSI keeps working until Group G's import-then-remov
   zero network calls when no session is stored. No Google popup. Storage/sync (Group C)
   and login UI (Group F) not yet wired, so the auth functions are callable but not yet
   surfaced. Drive/GSI untouched (removed in Group G).
+
+### Fixed
+
+All of these were latent bugs found by building the next layer on top, not by review.
+
+- **v3.79s — first login uploaded the local vault silently.** `pbLoad`'s create branch
+  POSTed the entire local vault the moment a user authenticated — no consent, and the
+  onboarding demo pile included, which then synced to every device on that account. Both
+  branches now route through the Group D decision.
+- **v3.79t — consent leaked between accounts.** `pbLogout` cleared token and vault state
+  but not `pbAnalyticsOptIn`, so an account created after signing out of another in the
+  same session had its vault built with the previous user's opt-in.
+- **v3.79t — `showToast` rendered a dead UNDO button on every call.** It was hardcoded
+  into the markup, so any informational toast showed an UNDO that did nothing —
+  including Group D's import confirmation, which had already shipped. Now rendered only
+  when there is something to undo.
+- **v3.79t — expired sessions failed silently.** `pbRestoreAuth` called `pbLogout()` on a
+  failed refresh with no user-facing signal: the header read NOT SIGNED IN and edits
+  quietly stopped syncing. It now says so, and an offline boot keeps the session rather
+  than signing the user out for what is only a network problem.
+- **v3.79t — a failed signup could strand a user.** If the account was created but the
+  follow-on login failed (email verification, or a dropped connection), retrying reported
+  the email as already registered — a dead end. The failing leg is now tagged and the
+  form switches to sign-in with "Account created. Sign in to continue."
+- **v3.79s — "1 entries" grammar** in Group D's destructive confirm, caught by its
+  decision-matrix harness.
+- **v3.79r — `sw.js` cache key had drifted** at `compost-logger-v3.78b` while beta
+  advanced through v3.79b–q, so the service worker could serve stale assets offline.
 
 ## [3.78] - 2026-07-11
 

@@ -3,7 +3,7 @@
 > One source of truth for what's next.
 > Updated: July 20 2026
 > **Production: v3.80** (promoted July 20 2026) — PocketBase accounts live, Drive retained
-> **Beta: v3.81** (opened July 20 2026) — identical to prod except `BUILD_VER`; first item is Group G
+> **Beta: v3.81a** (July 20 2026) — demo-pile purge fix; production v3.80 still has the broken filter
 > Backend: https://api.compostlogger.com (stable, TLS, CORS locked)
 > Versioning: production = clean numbers, beta = letter suffixes (`v3.81a`, …)
 
@@ -20,10 +20,16 @@ v3.78b → v3.80. **Drive is retained and still works.**
   an account UI for the first time. Things worth checking early: nobody is stuck on SYNC
   ERROR, Drive-only users see an unchanged header, and no unexpected `— Local Copy`
   duplicates appear in vaults.
-- [ ] **Confirm the vault self-cleans on the real account.** It holds `Demo Pile — 30 Days`
-  plus five `— Local Copy` duplicates from before the v3.79v fix. No manual cleanup — sign
-  in, make any edit, and the next save purges them. Verify the six demo entries are gone
-  **and the real piles are intact**.
+- [ ] **Confirm the vault self-cleans — retry on v3.81a.** Checked on v3.80: it did **not**
+  clean. The v3.79v filter was defeated by its own data-loss guard (`mergeCloudData` stamps
+  `lastModified` on every merged pile, which the guard read as "user edited this"). Fixed
+  in **v3.81a**, which is beta-only right now.
+  - Sign in on **/beta/** and make any edit, then confirm the vault drops from 13 piles to
+    7 with all real piles intact.
+  - **Production v3.80 still has the broken filter.** It is not harmful — new signups are
+    unaffected, since a fresh demo pile is local-only at first sync and gets filtered
+    before any merge can stamp it — but an already-polluted vault will not clean itself on
+    prod. Promote v3.81a once the beta check passes.
 - [ ] **Group G — Drive/GSI removal, deferred to ~July 27 2026.** Now that production runs
   on PocketBase, Drive is the fallback for anyone who has not migrated. Let it sit a week
   before deleting it.

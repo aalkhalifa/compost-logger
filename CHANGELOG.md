@@ -34,8 +34,23 @@ syncing, and the same again after the backend moved to `api.compostlogger.com`.
 
 ## [3.81] - unreleased [beta]
 
-Next beta line, opened 2026-07-20. Identical to v3.80 until work lands. Group G
-(Drive/GSI removal) is the first item, deferred to ~2026-07-27.
+Next beta line, opened 2026-07-20. Group G (Drive/GSI removal) is deferred to ~2026-07-27.
+
+### Fixed
+- **v3.81a — the v3.79v demo-pile purge never actually ran.** Checking the real account
+  showed the vault still holding `Demo Pile — 30 Days` plus five `— Local Copy`
+  duplicates *after* syncing on the fixed build. Cause: `isSamplePile` treated any pile
+  carrying `lastModified` as user-edited and therefore real — but `mergeCloudData` stamps
+  `lastModified=Date.now()` on **every** pile present on both sides, so one sync marked
+  all six as "real" and the filter became a no-op. The guard added to prevent data loss
+  defeated the fix it was guarding.
+  `isSamplePile` now keys on merge-stable signals: a pile is onboarding data only if it
+  is not explicitly marked adopted (`isSample:false`), still carries the demo name, **and**
+  still has the pristine sample entry count (counted from `SAMPLE_CSV`, not hardcoded).
+  Any one of those failing means the user made it theirs. `save()` and `renamePile` now
+  set `isSample:false` explicitly, which survives merges where `lastModified` does not.
+  Verified against the real vault blob: 13 piles → 7, all six demo entries gone, all seven
+  real piles intact with unchanged entry counts.
 
 ## [3.79] - 2026-07-11 [beta]
 

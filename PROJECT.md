@@ -19,7 +19,7 @@
 **License:** Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia. See LICENSE.
 **Service worker:** sw.js — network-first, falls back to cache offline, and (since v3.79u)
 **only handles same-origin requests plus a static-CDN allowlist; all API traffic bypasses
-it entirely**. Cache key = `compost-logger-v3.81` — bump on every deploy; sw.js is shared by
+it entirely**. Cache key = `compost-logger-v3.81a` — bump on every deploy; sw.js is shared by
 prod + beta, so the key tracks the **newest deploy of either channel** (currently beta).
 NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
 **SW registration (fixed v3.78a):** registration derives the repo root from `location.pathname` (strip the page filename, then a trailing `beta/`) and registers that root `sw.js`. Works from both `/<repo>/` and `/<repo>/beta/`, no hardcoded repo path. The root sw.js's default scope covers `/beta/`. Because the path is computed at runtime, promoting via `cp beta/index.html -> root index.html` stays a plain copy with no edits.
@@ -30,8 +30,8 @@ NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not
 
 **Production:** **v3.80** (promoted July 20 2026, tag `v3.80`) — first production build
 with PocketBase accounts. Drive still present and working (removal is Group G).
-**Live beta:** v3.81 (opened July 20 2026) — identical to production except `BUILD_VER`,
-until work lands on it. First item: Group G (Drive/GSI removal), deferred to ~July 27.
+**Live beta:** v3.81a (July 20 2026) — fixes the demo-pile purge that v3.79v never actually
+applied. Next up on this line: Group G (Drive/GSI removal), deferred to ~July 27.
 **Backend:** `https://api.compostlogger.com` (Caddy + Let's Encrypt on the DO box)
 **Domain:** compostlogger.com, registered on Cloudflare (July 20 2026)
 
@@ -51,9 +51,9 @@ of either.
 ### Deployment structure
 ```
 compost-logger/
-├── index.html          ← production (v3.78b, stable)
+├── index.html          ← production (v3.80 — PocketBase accounts + Drive)
 ├── beta/
-│   └── index.html      ← active development (v3.78b — clean, next line not yet opened)
+│   └── index.html      ← active development (v3.81a)
 ├── sw.js               ← service worker (shared)
 ├── manifest.json
 ├── LICENSE             ← proprietary, all rights reserved
@@ -194,6 +194,44 @@ Verify any rollback the same way as a build: extract the inline script and run
 ---
 
 ## Session Log
+
+### July 20 2026 (Claude Code) — v3.81a: the demo-pile purge never actually ran
+
+Checking the real account to confirm the v3.79v self-clean showed it had **not** happened:
+still 13 piles, six demo-related, with a vault `updated` stamp *after* a sync on the fixed
+build.
+
+**Cause — the fix was defeated by its own safety guard.** `isSamplePile` returned false for
+any pile carrying `lastModified`, on the assumption that it meant "the user edited this".
+It does not: `mergeCloudData` sets `merged.lastModified=Date.now()` on **every** pile
+present on both sides. The six demo piles carried stamps `…702` through `…705` — six
+sequential milliseconds from a single merge pass — so after one sync every one of them
+looked user-edited and the filter became a no-op.
+
+**Why the harness missed it.** Its demo-pile fixtures were only ever *local-only*, so they
+never went through the branch that stamps `lastModified`. The convergence test even ran
+merges, but the fresh demo pile had a new id each round and so was never matched against a
+remote copy. The one shape that mattered — a demo pile present on **both** sides — was
+exactly the shape never constructed. Harness fixtures that only cover the path you were
+thinking about will confirm whatever you already believed.
+
+**Fix:** `isSamplePile` now keys only on merge-stable signals. A pile is onboarding data
+only if it is not explicitly marked adopted (`isSample:false`), **and** still carries the
+demo name, **and** still has the pristine sample entry count (counted from `SAMPLE_CSV`,
+so it cannot drift). Any one failing means the user made it theirs — dropping a real pile
+is far worse than leaving a demo pile behind. `save()` and `renamePile` now set
+`isSample:false` explicitly, which survives merges where `lastModified` does not.
+
+Tightening it also closed a gap the first attempt had: a demo pile renamed by an *older*
+build still carries `isSample:true`, and keying on the flag alone would have discarded it.
+
+**Verified against the real vault blob**, not fixtures: 13 piles → 7, all six demo entries
+gone, all seven real piles intact with unchanged entry counts. Harnesses now 94 checks
+across five suites, including the both-sides case and the old-build-rename case.
+
+**Production v3.80 still carries the broken filter.** Not harmful — a fresh signup's demo
+pile is local-only at first sync and gets filtered before any merge can stamp it — but an
+already-polluted vault will not self-clean on production until v3.81a is promoted.
 
 ### July 20 2026 (Claude Code) — v3.80 PROMOTED TO PRODUCTION
 

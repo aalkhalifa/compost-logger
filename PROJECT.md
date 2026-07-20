@@ -17,14 +17,14 @@
 **Storage:** localStorage primary (`ca_v5` key), Google Drive as cloud backup (to be replaced with PocketBase)
 **Auth:** Google Identity Services OAuth (testing mode, max 100 users, 7-day token expiry)
 **License:** Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia. See LICENSE.
-**Service worker:** sw.js — network-first, falls back to cache offline. Cache key = `compost-logger-v3.79r` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
+**Service worker:** sw.js — network-first, falls back to cache offline. Cache key = `compost-logger-v3.79s` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
 **SW registration (fixed v3.78a):** registration derives the repo root from `location.pathname` (strip the page filename, then a trailing `beta/`) and registers that root `sw.js`. Works from both `/<repo>/` and `/<repo>/beta/`, no hardcoded repo path. The root sw.js's default scope covers `/beta/`. Because the path is computed at runtime, promoting via `cp beta/index.html -> root index.html` stays a plain copy with no edits.
 
 ---
 
 ## Current Version
 
-**Live beta:** v3.79r (as of July 20 2026) — PocketBase migration line, Groups A-C done
+**Live beta:** v3.79s (as of July 20 2026) — PocketBase migration line, Groups A-D done
 **Production:** v3.78b (promoted from beta on July 11 2026, tag v3.78b)
 
 ### Deployment structure
@@ -117,8 +117,31 @@ returning 0 items and a duplicate vault rejected by the unique index.
 water labels, probe-spread/heating-rate mini charts, freeze cap raised 8h -> 24h). Group
 A/C work was rebased on top of them. Those versions are not documented in this log.
 
-**Next:** Group D (migration path — detect local `ca_v5` on first PB login, one-tap
-import). Then E (analytics consent), F (login UI), G (Drive removal), H (release).
+**Group D (first-login migration) built — beta v3.79s.**
+- Found that `pbLoad`'s create branch was silently uploading the entire local vault —
+  demo pile included — the moment a user authenticated. D's real job was putting a
+  decision in front of that write, not adding a new capability.
+- `pbLocalDataState()` classifies the device as `empty` / `sample-only` / `real`;
+  `pbFirstRunDecision()` only prompts when real data is at stake.
+- Declining the import is destructive (it replaces local with the vault, which may be
+  empty), so it takes a second confirm naming the exact pile + entry count and pointing
+  at "Download My Data" first. Cancelling that second confirm falls back to import —
+  the safe direction when the user is unsure.
+- Decision remembered per (device, account) in `pb_import_<userId>`; a second device
+  asks again, which is the correct grain.
+- Demo pile now carries `isSample:true`, with a name fallback (`"Demo Pile"` prefix) so
+  devices from earlier builds are also covered.
+- **Drive-file import deferred** — every Drive user's data is already in local
+  `ca_v5`, and pulling Drive too would add a third merge authority to the flow.
+- **Verified:** 18-case decision-matrix harness with scripted `confirm()` answers
+  (classification, prompt counts, both destructive branches, the fallback, warning-text
+  assertions, per-account persistence). It caught a real "1 entries" grammar bug. Group
+  C's 12/12 equivalence harness re-run and still passing. Import paths exercised against
+  the live backend; test accounts removed.
+
+**Next:** Group F (login UI) — nothing in A-D is reachable by a user until it lands, and
+D's prompts have never been seen by a human. Then E (analytics consent, small enough to
+ride with F), G (Drive removal), H (release/promotion).
 
 ### July 11 2026 (Claude Code) — later session
 

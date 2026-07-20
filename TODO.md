@@ -2,17 +2,19 @@
 
 > One source of truth for what's next.
 > Updated: July 20 2026
-> Current version: beta v3.79r (PocketBase line) / production v3.78b
+> Current version: beta v3.79s (PocketBase line) / production v3.78b
 
 ---
 
-## 🔴 NOW — Active beta work (v3.79r)
+## 🔴 NOW — Active beta work (v3.79s)
 
-- PocketBase migration **Groups A, B, C are done**. Backend is live on the DO box and
-  reachable over HTTPS; the app can authenticate and sync against it.
-- **Next up: Group D** (migration path — detect local `ca_v5` on first PB login and offer
-  a one-tap import), then F (login UI) which is what makes any of this reachable by a
-  real user. Nothing is user-visible until F lands.
+- PocketBase migration **Groups A, B, C, D are done**. Backend is live on the DO box and
+  reachable over HTTPS; the app can authenticate, sync, and migrate a device's existing
+  data into an account.
+- **Next up: Group F** (login UI) — it is what makes any of this reachable by a real user.
+  Nothing above is user-visible until F lands, and Group D's prompts have never been seen
+  by a human because there is still no way to sign in. E (analytics consent) is small and
+  can ride along with F.
 - **Operational caveat:** `PB_BASE_URL` points at a Cloudflare *quick* tunnel, whose
   hostname changes on every `cloudflared` restart. If beta suddenly cannot reach the
   backend, re-read the hostname (command in `deploy/pocketbase/README.md`) before
@@ -57,6 +59,15 @@
       missed, but the union-by-id merge bounds the loss to an edit, never a whole pile.
   - **D. Migration path:** on first PB login detect local `ca_v5` (and optionally an
     existing Drive file) → one-tap import that pushes to the vault.
+    - **[DONE in beta, July 20 2026 — v3.79s]** `pbFirstRunDecision` gates the first vault
+      write; `pbLocalDataState` classifies empty / sample-only / real so the prompt only
+      appears when real data is at stake. Declining is destructive (option (a)), so it
+      takes a second confirm naming the exact pile + entry count and pointing at
+      "Download My Data"; cancelling that second confirm falls back to import. Decision
+      remembered per (device, account) in `pb_import_<userId>`. The demo pile is now
+      flagged `isSample` (with a name fallback for older devices) and is never uploaded.
+      **Drive-file import deferred** — local `ca_v5` already covers every Drive user, and
+      it would add a third merge authority. Verified by an 18-case decision-matrix harness.
   - **E. Analytics consent:** opt-in checkbox on signup → `analyticsOptIn` (wiring
     only; analytics pipeline stays backlog).
   - **F. UI:** swap DATA-card CONNECT/DISCONNECT/SYNC for login/signup/logout + email +
@@ -100,6 +111,23 @@
 ---
 
 ## 🔵 PARKED — Good ideas, revisit later
+
+- [ ] **Sync concurrency — non-atomic read-merge-write** (known limitation, accepted
+  July 20 2026). `pbSaveNow` does PULL-merge-PUSH using the vault's `updated` stamp as
+  its baseline, but PocketBase has no `If-Match`, so a write landing between our GET and
+  PATCH is missed. Union-by-id merging bounds the damage: a **lost edit** to an existing
+  pile when two devices edit the *same* pile simultaneously — never a lost pile.
+  - **Trigger to fix:** the first multi-user facility (two people writing one account),
+    which turns a rare race into a routine one.
+  - **Fix:** relational per-pile records instead of one blob, so concurrent edits to
+    different piles cannot collide at all.
+
+- [ ] **Vault size — 5MB `data` field cap** (known limitation, accepted July 20 2026).
+  The `vaults.data` JSON field is capped at 5,242,880 bytes (`vaults.collection.json`),
+  which is roughly **20k entries** before writes start failing. Nothing currently warns
+  the user as they approach it, and the failure would surface as a sync error.
+  - **Trigger to fix:** any user's vault passing ~3MB (60% of cap).
+  - **Fix:** raise the PocketBase field limit, or split the blob across multiple records.
 
 - [ ] Degree-hours above 131°F (area under curve)
 - [ ] Core spread / probe uniformity (std dev between probes)

@@ -766,7 +766,7 @@ var PB_BASE_URL="https://democrats-rocky-dining-highs.trycloudflare.com";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79r";
+var BUILD_VER="v3.79s";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -1797,6 +1797,9 @@ function loadSamplePileIfFirstRun(){
       name:parsed.pile.name,
       created:parsed.pile.created?new Date(parsed.pile.created).toISOString():new Date().toISOString(),
       status:"active",
+      // Group D: marks onboarding demo data so it is never uploaded to a real account.
+      // Users who ran an earlier build have no flag, hence the name fallback in isSamplePile.
+      isSample:true,
       materials:parsed.materials||{highN:[],greens:[],browns:[]},
       entries:parsed.entries||[]
     };
@@ -5132,16 +5135,131 @@ function pbPersistLocal(){
   localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
 }
 
+// ============================================================
+// FIRST-LOGIN MIGRATION (Group D)
+// Puts a decision in front of the first vault write. Before this, pbLoad silently
+// uploaded whatever was in localStorage - including the onboarding demo pile - the
+// moment a user signed in.
+// ============================================================
+
+// Onboarding demo data. New sample piles carry isSample; anyone who ran an earlier
+// build has an unflagged one, hence the name fallback. "Demo Pile" is an ASCII prefix
+// of the real name, so no non-ASCII literal is needed here.
+function isSamplePile(p){
+  if(!p)return false;
+  if(p.isSample===true)return true;
+  return String(p.name||"").indexOf("Demo Pile")===0;
+}
+
+// Classify what this device is actually holding: "empty", "sample-only" (nothing but
+// onboarding data) or "real". Counts are for the prompt text. No side effects.
+function pbLocalDataState(){
+  var real=(piles||[]).filter(function(p){return !isSamplePile(p);});
+  var entryCount=0;
+  real.forEach(function(p){entryCount+=((p.entries||[]).length);});
+  var state="real";
+  if(!piles||!piles.length)state="empty";
+  else if(!real.length)state="sample-only";
+  return {state:state,pileCount:real.length,entryCount:entryCount};
+}
+
+// Drop onboarding piles so they are never pushed into a real account.
+function pbDropSamplePiles(){
+  var before=(piles||[]).length;
+  piles=(piles||[]).filter(function(p){return !isSamplePile(p);});
+  if(piles.length!==before)pbPersistLocal();
+}
+
+// The import decision is remembered per (device, account): the question is what should
+// happen to THIS device's data for THIS account, so a second device asks again. Kept
+// across logout so re-login does not re-prompt.
+function pbImportKey(){return "pb_import_"+(pbUserId||"");}
+function pbGetImportDecision(){
+  if(!pbUserId)return null;
+  try{return localStorage.getItem(pbImportKey());}catch(e){return null;}
+}
+function pbSetImportDecision(v){
+  if(!pbUserId)return;
+  try{localStorage.setItem(pbImportKey(),v);}catch(e){}
+}
+
+// DESTRUCTIVE: discard this device's data and take the vault's version wholesale.
+// Only reached after the two confirms in pbFirstRunDecision. A null/empty vault means
+// local is cleared - that is the honest meaning of "use the cloud version" on a brand
+// new account, and the confirm says so.
+function pbAdoptCloudOnly(d){
+  d=d||{};
+  piles=d.piles||[];
+  sites=d.sites||[];
+  recipes=d.recipes||[];
+  ingHist=d.ingHist||DEF_HIST;
+  if(d.tempUnit)tempUnit=d.tempUnit;
+  if(d.volumeUnit)volumeUnit=d.volumeUnit;
+  if(d.containerUnit)containerUnit=d.containerUnit;
+  deletedPileIds=d.deletedPileIds||[];
+  pbApplySettings(d);
+  migrateSites();
+  pbPersistLocal();
+  if(typeof renderHome==="function")renderHome();
+}
+
+// Decide what happens to local data on first login for this account. Returns "import"
+// (merge local into the vault, the default and only non-destructive answer) or "cloud"
+// (discard local, take the vault). Never prompts when there is nothing real to lose.
+function pbFirstRunDecision(hasVault){
+  var prior=pbGetImportDecision();
+  if(prior==="import"||prior==="cloud")return prior;
+
+  var st=pbLocalDataState();
+  if(st.state==="empty"){pbSetImportDecision("import");return "import";}
+  if(st.state==="sample-only"){
+    // Nothing worth keeping, and the demo pile must not reach a real account.
+    pbDropSamplePiles();
+    pbSetImportDecision("import");
+    return "import";
+  }
+
+  var noun=st.pileCount===1?"pile":"piles";
+  var enoun=st.entryCount===1?"entry":"entries";
+  var msg;
+  if(hasVault){
+    msg="This device has "+st.pileCount+" "+noun+" ("+st.entryCount+" "+enoun+") that are not in your account yet.\n\n"+
+        "OK = import and merge them into your account.\n"+
+        "Cancel = use only the version already in your account.";
+  } else {
+    msg="This device has "+st.pileCount+" "+noun+" ("+st.entryCount+" "+enoun+").\n\n"+
+        "OK = import them into your new account.\n"+
+        "Cancel = start the account empty.";
+  }
+  if(confirm(msg)){pbSetImportDecision("import");return "import";}
+
+  // Declining is destructive: local data is replaced by the vault's (which may be
+  // empty). Name the exact count and point at the export before doing it. Declining
+  // THIS confirm falls back to import - the safe direction when the user is unsure.
+  var warn="Discard "+st.pileCount+" "+noun+" ("+st.entryCount+" "+enoun+") from this device?\n\n"+
+           "This cannot be undone. If you want a backup first, tap Cancel and use "+
+           "\"Download My Data\" in Settings, then sign in again.\n\n"+
+           "OK = permanently discard these "+st.pileCount+" "+noun+".\n"+
+           "Cancel = keep them and import instead.";
+  if(confirm(warn)){pbSetImportDecision("cloud");return "cloud";}
+  pbSetImportDecision("import");
+  return "import";
+}
+
 // Fetch this user's vault and merge it in. The collection's list rule scopes results to
 // the caller server-side, so an unfiltered list returns at most this user's own record.
-// No vault yet => create one from current local state (first login on a fresh account).
-// Group D wraps this to offer the one-tap import before the first write.
+// No vault yet => create one, seeded per the Group D decision.
 function pbLoad(){
   if(!pbToken||!pbUserId)return Promise.resolve(false);
   setPbStatus("connecting");
   return pbApi("/api/collections/vaults/records?perPage=1",{auth:true}).then(function(res){
     var rec=(res&&res.items&&res.items.length)?res.items[0]:null;
     if(!rec){
+      // No vault yet. Ask before seeding it - the pre-Group-D code uploaded local
+      // data (demo pile included) unconditionally at this point.
+      var decisionNew=pbFirstRunDecision(false);
+      if(decisionNew==="cloud")pbAdoptCloudOnly(null);
+      var importedCount=(piles||[]).length;
       return pbApi("/api/collections/vaults/records",{
         method:"POST",auth:true,
         json:{user:pbUserId,data:pbBuildPayload(),analyticsOptIn:!!pbAnalyticsOptIn}
@@ -5149,6 +5267,9 @@ function pbLoad(){
         pbVaultId=created&&created.id?created.id:null;
         pbVaultUpdated=created&&created.updated?created.updated:null;
         setPbStatus("synced");
+        if(decisionNew==="import"&&importedCount&&typeof showToast==="function"){
+          showToast("Imported "+importedCount+" pile"+(importedCount===1?"":"s")+" into your account");
+        }
         return true;
       });
     }
@@ -5157,13 +5278,35 @@ function pbLoad(){
     // PocketBase returns the JSON field already parsed; tolerate a string just in case.
     var d=rec.data;
     if(typeof d==="string"){try{d=JSON.parse(d);}catch(e){d=null;}}
-    if(d&&typeof d==="object"){
+    var hadRemote=!!(d&&typeof d==="object");
+    // Captured BEFORE the decision, which may drop sample piles.
+    var preState=pbLocalDataState();
+    var decision=pbFirstRunDecision(hadRemote);
+    if(decision==="cloud"){
+      // Destructive path, already double-confirmed: take the vault verbatim and do NOT
+      // merge local in. No push follows, so the vault is left exactly as it was.
+      pbAdoptCloudOnly(hadRemote?d:null);
+      setPbStatus("synced");
+      return true;
+    }
+    if(hadRemote){
       mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:true,renameOnConflict:true,strictSitesGuard:true});
       pbApplySettings(d);
       pbPersistLocal();
       if(typeof renderHome==="function")renderHome();
     }
     setPbStatus("synced");
+    // A real import must reach the vault, not sit locally until the next edit. Only
+    // when this device actually contributed something. pbVaultId is set above, so this
+    // cannot recurse back into pbLoad.
+    if(preState.state==="real"&&preState.pileCount){
+      return pbSaveNow().then(function(){
+        if(typeof showToast==="function"){
+          showToast("Imported "+preState.pileCount+" pile"+(preState.pileCount===1?"":"s")+" into your account");
+        }
+        return true;
+      });
+    }
     return true;
   }).catch(function(err){
     setPbStatus(navigator.onLine?"error":"offline");

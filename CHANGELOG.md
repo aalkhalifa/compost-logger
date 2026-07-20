@@ -13,6 +13,17 @@ PocketBase migration line (replacing Google Drive sync). Ships from `/beta/`; ad
 during the transition (Drive/GSI keeps working until Group G's import-then-remove).
 
 ### Added
+- **v3.79s — Group D (first-login migration).** A decision now sits in front of the first
+  vault write. `pbFirstRunDecision()` classifies what the device holds via
+  `pbLocalDataState()` (`empty` / `sample-only` / `real`) and only prompts when real data
+  is at stake; `pbAdoptCloudOnly()` handles the destructive "use the cloud version"
+  answer, and the choice is remembered per (device, account) in `pb_import_<userId>` so
+  it asks once. On import, the merged result is pushed immediately rather than waiting
+  for the next edit, and a toast confirms the pile count.
+- **v3.79s — the onboarding demo pile no longer reaches real accounts.** New sample piles
+  carry `isSample:true`; `isSamplePile()` also falls back to a name match so devices from
+  earlier builds are covered. A device holding nothing but demo data signs in silently
+  and seeds an empty vault.
 - **v3.79r — Group C (storage/sync).** PocketBase read/write path: `pbLoad()` fetches (or
   creates) this user's vault and merges it in; `pbSaveNow()` does PULL-merge-PUSH with the
   record's `updated` stamp as an optimistic-concurrency baseline. `pbBuildPayload()` writes
@@ -28,6 +39,9 @@ during the transition (Drive/GSI keeps working until Group G's import-then-remov
   blob-per-user `vaults` collection schema, systemd unit, and Caddy TLS template.
 
 ### Changed
+- **v3.79s — first login no longer uploads silently.** `pbLoad`'s create branch used to
+  POST the entire local vault the moment a user authenticated, with no consent and with
+  the demo pile included. Both of its branches now route through the Group D decision.
 - **v3.79r — shared cloud merge.** The two near-duplicate Drive merge blocks (~115 lines in
   `initDriveStorage` and `driveSaveNow`) collapse into one `mergeCloudData(remote, opts)`
   used by both Drive and PocketBase. The two blocks were *not* identical — only the connect

@@ -1,4 +1,4 @@
-const CACHE = 'compost-logger-v3.78b';
+const CACHE = 'compost-logger-v3.79r';
 const ASSETS = [
 '/compost-logger/',
 '/compost-logger/index.html',

@@ -1,16 +1,22 @@
 # Compost Logger — Task List
 
 > One source of truth for what's next.
-> Updated: July 11 2026
-> Current version: v3.78b (beta = production; promoted July 11 2026)
+> Updated: July 20 2026
+> Current version: beta v3.79r (PocketBase line) / production v3.78b
 
 ---
 
-## 🔴 NOW — Active beta work (v3.78b)
+## 🔴 NOW — Active beta work (v3.79r)
 
-- Beta v3.78b is clean and **now promoted to production** (tag v3.78b). Beta == prod.
-  Next major work is the PocketBase migration below; nothing else queued for the
-  v3.78 line yet.
+- PocketBase migration **Groups A, B, C are done**. Backend is live on the DO box and
+  reachable over HTTPS; the app can authenticate and sync against it.
+- **Next up: Group D** (migration path — detect local `ca_v5` on first PB login and offer
+  a one-tap import), then F (login UI) which is what makes any of this reachable by a
+  real user. Nothing is user-visible until F lands.
+- **Operational caveat:** `PB_BASE_URL` points at a Cloudflare *quick* tunnel, whose
+  hostname changes on every `cloudflared` restart. If beta suddenly cannot reach the
+  backend, re-read the hostname (command in `deploy/pocketbase/README.md`) before
+  suspecting the code.
 
 ---
 
@@ -24,12 +30,11 @@
     a TLS subdomain; `users` (built-in) + one `vaults` collection (`user` relation,
     `data` JSON = full ca_v5 shape, `updated` autodate, `analyticsOptIn` bool); CORS
     allows the GitHub Pages origin.
-    - **[deliverables DONE, July 11 2026]** Runbook + config authored in
-      `deploy/pocketbase/` (`README.md`, `vaults.collection.json`, `pocketbase.service`,
-      `Caddyfile`). **Server execution is on Abdulla** (I can't reach the DO box) — and
-      TLS/CORS-lockdown wait on the domain. Testing-before-domain path documented (local
-      `http://localhost` dev, or a temporary `nip.io`/Cloudflare-Tunnel HTTPS host).
-      Group B needs one value out of this: the reachable base URL -> `PB_BASE_URL`.
+    - **[DONE and LIVE, July 20 2026]** Executed on the DO box: PocketBase 0.22.21 pinned,
+      under systemd, `vaults` imported and verified (fields, unique index, all 5 rules),
+      superuser created. **Caddy/TLS skipped** — HTTPS is a Cloudflare quick tunnel, also
+      under systemd. `PB_BASE_URL` set. Remaining: buy the domain, then do the Caddy/TLS
+      step and lock CORS to `https://aalkhalifa.github.io` (currently permissive).
   - **B. Auth:** add a single configurable `PB_BASE_URL` constant (all PB calls read from
     it); add `pbLogin/pbSignup/pbLogout/pbRestoreAuth` (+ `pbApi` helper) via raw `fetch`
     (no PB JS SDK — respects single-file + Safari/no-optional-chaining rules); store
@@ -42,6 +47,14 @@
   - **C. Storage/sync:** extract the duplicated merge into `mergeCloudData(remote)`;
     add `pbLoad()` + `pbSaveNow()` (PULL-merge-PUSH, same shape as driveSaveNow, with
     `updated`-based optimistic concurrency); repoint `save()` from driveSaveNow.
+    - **[DONE in beta, July 20 2026 — v3.79r]** `mergeCloudData(remote, opts)` shared by
+      both backends. The two Drive blocks were **not** duplicates (recipes, remote
+      settings, rename-on-conflict, sites guard were connect-path only), so those became
+      `opts` flags and each Drive site passes the flags preserving its old behavior —
+      verified byte-identical over 6 fixtures x 2 paths (12/12), harness mutation-tested.
+      `save()` prefers PB when signed in, else Drive. Concurrency is read-merge-write, not
+      atomic (PB has no If-Match): a write landing between GET and PATCH can still be
+      missed, but the union-by-id merge bounds the loss to an edit, never a whole pile.
   - **D. Migration path:** on first PB login detect local `ca_v5` (and optionally an
     existing Drive file) → one-tap import that pushes to the vault.
   - **E. Analytics consent:** opt-in checkbox on signup → `analyticsOptIn` (wiring

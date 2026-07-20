@@ -13,8 +13,37 @@ PocketBase migration line (replacing Google Drive sync). Ships from `/beta/`; ad
 during the transition (Drive/GSI keeps working until Group G's import-then-remove).
 
 ### Added
+- **v3.79r — Group C (storage/sync).** PocketBase read/write path: `pbLoad()` fetches (or
+  creates) this user's vault and merges it in; `pbSaveNow()` does PULL-merge-PUSH with the
+  record's `updated` stamp as an optimistic-concurrency baseline. `pbBuildPayload()` writes
+  the full `ca_v5` shape plus the four separate-key settings (`displayBasis`, `showPFRP`,
+  `pilesSortMode`, `entriesSortMode`), `pbApplySettings()` restores them, and
+  `setPbStatus()` drives PocketBase status without touching Drive's. `pbLoad` is invoked
+  from `pbSetAuth`, covering both login and session restore.
+- **v3.79r — Group A execution (server).** Ran the runbook on the DigitalOcean box:
+  PocketBase 0.22.21 version-pinned under systemd, `vaults` collection imported and
+  verified, HTTPS via a Cloudflare Tunnel (also under systemd). Caddy/TLS skipped pending
+  a domain. `PB_BASE_URL` now points at the tunnel.
 - **Group A (infra, no app code).** `deploy/pocketbase/` — deployment runbook, importable
   blob-per-user `vaults` collection schema, systemd unit, and Caddy TLS template.
+
+### Changed
+- **v3.79r — shared cloud merge.** The two near-duplicate Drive merge blocks (~115 lines in
+  `initDriveStorage` and `driveSaveNow`) collapse into one `mergeCloudData(remote, opts)`
+  used by both Drive and PocketBase. The two blocks were *not* identical — only the connect
+  path merged recipes, adopted remote `ingHist`/`tempUnit`, renamed same-name piles to
+  "— Local Copy", and guarded against a remote file with no `sites` array — so those four
+  differences became `opts` flags and each Drive call site passes the flags reproducing its
+  previous behavior exactly. Verified byte-identical against the pre-extraction code across
+  6 remote fixtures on both paths (12/12).
+- **v3.79r — `save()` prefers PocketBase.** When signed into PocketBase, `save()` pushes
+  there instead of Drive, so a migrated user does not write to two competing merge
+  authorities. Unmigrated users are unaffected and keep syncing to Drive. Still
+  localStorage-first and fire-and-forget, so offline behavior is unchanged. `forceSyncNow`
+  and the `online`/`offline`/`beforeunload` handlers follow the same preference; the unload
+  warning is now backend-neutral (a migrated user has no "SYNC NOW" button).
+- **v3.79r — `sw.js` cache key** corrected to `compost-logger-v3.79r`; it had drifted at
+  `v3.78b` while beta advanced through v3.79b-q.
 - **Group B (auth layer).** PocketBase email/password auth in `beta/index.html`: a single
   configurable `PB_BASE_URL` constant and `pbApi` / `pbSignup` / `pbLogin` / `pbLogout` /
   `pbRestoreAuth` (raw `fetch`, no PB JS SDK). Session persists in the `pb_auth`

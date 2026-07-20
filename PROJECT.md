@@ -17,14 +17,14 @@
 **Storage:** localStorage primary (`ca_v5` key), Google Drive as cloud backup (to be replaced with PocketBase)
 **Auth:** Google Identity Services OAuth (testing mode, max 100 users, 7-day token expiry)
 **License:** Proprietary / All Rights Reserved (c) 2026 Abdulla Al-Khalifa / Roots of Arabia. See LICENSE.
-**Service worker:** sw.js — network-first, falls back to cache offline. Cache key = `compost-logger-v3.78b` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
+**Service worker:** sw.js — network-first, falls back to cache offline. Cache key = `compost-logger-v3.79r` (bump on every deploy; sw.js is shared by prod + beta, so key tracks the newest deploy). NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not parse; fixed to ASCII in v3.77q.
 **SW registration (fixed v3.78a):** registration derives the repo root from `location.pathname` (strip the page filename, then a trailing `beta/`) and registers that root `sw.js`. Works from both `/<repo>/` and `/<repo>/beta/`, no hardcoded repo path. The root sw.js's default scope covers `/beta/`. Because the path is computed at runtime, promoting via `cp beta/index.html -> root index.html` stays a plain copy with no edits.
 
 ---
 
 ## Current Version
 
-**Live beta:** v3.78b (as of July 11 2026) — clean; identical to production after the v3.78b promotion
+**Live beta:** v3.79r (as of July 20 2026) — PocketBase migration line, Groups A-C done
 **Production:** v3.78b (promoted from beta on July 11 2026, tag v3.78b)
 
 ### Deployment structure
@@ -76,6 +76,49 @@ When beta is stable: copy `beta/index.html` → root `index.html`, commit with v
 ---
 
 ## Session Log
+
+### July 20 2026 (Claude Code) — Group A executed on the box + Group C built
+
+**Group A is live.** Executed the `deploy/pocketbase/` runbook directly on the
+DigitalOcean droplet (`fra1`, `64.226.83.129`): PocketBase **0.22.21** (version-pinned)
+at `/opt/pocketbase`, bound to `127.0.0.1:8090`, owned by an unprivileged `pocketbase`
+user, under `pocketbase.service` (enabled). `vaults` collection imported from
+`vaults.collection.json` — 3 fields, unique index on `user`, all 5 API rules verified.
+Superuser `aalkhalifa@gmail.com` created (password in `/root/.pb_admin_password`, 0600).
+
+**Caddy/TLS skipped** (no domain yet). HTTPS comes from a Cloudflare **quick tunnel** run
+as `cloudflared-pocketbase.service` (enabled, `Restart=always`). Verified end-to-end
+through the public URL: health 200, CORS preflight from the Pages origin allowed, and
+signup -> login -> vault create -> per-user scoped list, with unauthenticated list
+returning 0 items and a duplicate vault rejected by the unique index.
+
+> **Caveat:** a Cloudflare *quick* tunnel mints a **new random hostname on every
+> `cloudflared` restart**. The unit keeps the tunnel up and reconnecting but cannot pin
+> the hostname, so a reboot leaves `PB_BASE_URL` stale. Recovery command is in
+> `deploy/pocketbase/README.md`. Durable fix = domain + Caddy/TLS, or a named tunnel.
+
+**Group C (storage/sync) built — beta v3.79r.**
+- `mergeCloudData(remote, opts)` extracted from the two Drive merge blocks. They were
+  **not** duplicates: only the connect path merged recipes, adopted remote
+  `ingHist`/`tempUnit`, renamed same-name piles, and guarded a missing `sites` array. Those
+  four became `opts` flags so each Drive site reproduces its old behavior exactly.
+- `pbLoad()` / `pbSaveNow()` (PULL-merge-PUSH, `updated` as the concurrency baseline),
+  plus `pbBuildPayload` / `pbApplySettings` / `pbPersistLocal` / `setPbStatus`.
+- `save()` now prefers PocketBase when signed in, else Drive. Same for `forceSyncNow` and
+  the online/offline/beforeunload handlers.
+- **Verified:** a differential harness ran the pre-extraction code and `mergeCloudData`
+  over 6 remote fixtures on both Drive paths — 12/12 byte-identical. The harness was
+  mutation-tested (flipping the sync flags produced 6 failures) to confirm it can detect
+  a regression. PocketBase API shapes validated against the live server.
+- `sw.js` cache key corrected to `v3.79r`; it had drifted at `v3.78b` while beta moved
+  through v3.79b-q.
+
+**Note:** `origin/main` had 16 unrecorded commits (beta v3.79b-q: chart refinements,
+water labels, probe-spread/heating-rate mini charts, freeze cap raised 8h -> 24h). Group
+A/C work was rebased on top of them. Those versions are not documented in this log.
+
+**Next:** Group D (migration path — detect local `ca_v5` on first PB login, one-tap
+import). Then E (analytics consent), F (login UI), G (Drive removal), H (release).
 
 ### July 11 2026 (Claude Code) — later session
 

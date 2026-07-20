@@ -766,7 +766,7 @@ var PB_BASE_URL="https://democrats-rocky-dining-highs.trycloudflare.com";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.79q";
+var BUILD_VER="v3.79r";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -835,6 +835,14 @@ var tokenClient=null,timerInterval=null;
 // (Drive/GSI is removed in Group G). Auth persists in the "pb_auth" localStorage key.
 var pbToken=null,pbUserId=null,pbEmail=null,pbStatus="signedout";
 var pbAnalyticsOptIn=false;  // captured at signup; applied to the vault in Group E
+// PocketBase vault/sync state (Group C). pbVaultUpdated holds the "updated" stamp from
+// the last successful read and is the optimistic-concurrency baseline for pbSaveNow.
+// The pending/in-progress flags are deliberately SEPARATE from the Drive ones below:
+// both backends are live through the beta, and sharing them would let a Drive sync in
+// flight suppress a PocketBase sync (and vice versa).
+var pbVaultId=null,pbVaultUpdated=null;
+var pbPendingSave=false;
+var pbSyncInProgress=false;
 var newMaterials={},editMaterials={};
 var editingEntryId=null;
 var expandedCats=new Set();
@@ -1768,7 +1776,12 @@ function save(){
   // Stamp lastModified on any pile that just changed
   if(activeId){var ap=piles.find(function(p){return p.id===activeId;});if(ap)ap.lastModified=Date.now();}
   localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
-  if(driveToken&&driveFileId)driveSaveNow();
+  // Cloud push is fire-and-forget - localStorage above is the source of truth, so this
+  // stays offline-first. PocketBase wins when signed in: a migrated user must not also
+  // write to Drive, or the two backends become competing merge authorities. Users who
+  // have not migrated are untouched and keep syncing to Drive (removed in Group G).
+  if(pbToken&&pbUserId)pbSaveNow();
+  else if(driveToken&&driveFileId)driveSaveNow();
 }
 
 var SAMPLE_CSV="[PILE]\nName,Demo Pile — 30 Days\nCreated,2026-04-01\n\n[RECIPE]\nCategory,Ingredient,Volume,Notes\nHIGH NITROGEN,Chicken manure,8,Coop cleanout aged 1 week\nHIGH NITROGEN,Horse manure,7,Local stable fresh\nGREENS,Alfalfa,15,Bagged from feed store\nGREENS,Grass clippings,15,Lawn cuttings first mow\nBROWNS,Wood chips,45,Arborist drop mixed hardwoods\nBROWNS,Dry leaves,10,Last fall collection\n\n[ENTRIES]\nDate,Time,Core,Top,Bottom,Moisture,Turned,Notes\n2026-04-01,08:10,92,89,89,49,NO,\n2026-04-01,14:20,115,111,110,44,NO,\n2026-04-01,19:30,128,125,126,49,NO,\n2026-04-02,08:15,158,155,155,55,NO,\n2026-04-02,19:35,161,156,156,42,NO,\n2026-04-03,08:20,162,159,159,50,NO,\n2026-04-03,09:45,158,152,155,44,YES,Turn 1 - Stage 3 satisfied\n2026-04-03,13:30,118,114,115,50,NO,\n2026-04-03,19:40,128,123,125,54,NO,\n2026-04-04,08:15,152,148,148,53,NO,\n2026-04-04,19:30,154,149,152,49,NO,\n2026-04-05,08:20,153,147,149,45,NO,\n2026-04-05,19:35,152,148,147,47,NO,\n2026-04-06,08:18,151,147,148,44,NO,\n2026-04-06,09:30,150,147,146,47,YES,Turn 2 - Stage 2 satisfied\n2026-04-06,13:45,120,116,115,49,NO,\n2026-04-06,19:40,128,123,124,49,NO,\n2026-04-07,08:15,138,133,135,44,NO,\n2026-04-07,19:30,141,135,136,52,NO,\n2026-04-08,08:20,142,137,137,56,NO,\n2026-04-08,19:35,141,137,136,50,NO,\n2026-04-09,08:18,140,136,136,53,NO,\n2026-04-09,19:40,139,133,135,44,NO,\n2026-04-10,08:22,138,133,136,47,NO,\n2026-04-10,09:50,137,133,135,54,YES,Turn 3 - Stage 1 satisfied\n2026-04-10,13:30,120,116,117,42,NO,\n2026-04-10,19:40,128,125,124,50,NO,\n2026-04-11,08:15,138,134,135,47,NO,\n2026-04-11,19:30,140,134,135,50,NO,\n2026-04-12,08:20,139,134,136,45,NO,\n2026-04-12,19:35,138,134,134,48,NO,\n2026-04-13,08:18,137,131,133,58,NO,\n2026-04-13,19:40,136,132,133,45,NO,\n2026-04-14,08:20,135,130,131,51,NO,\n2026-04-14,09:30,134,130,130,44,YES,Turn 4 - Stage 1 satisfied\n2026-04-14,13:45,119,114,116,46,NO,\n2026-04-14,19:30,128,123,124,50,NO,\n2026-04-15,08:15,136,131,131,48,NO,\n2026-04-15,19:30,135,131,131,53,NO,\n2026-04-16,08:20,134,129,132,49,NO,\n2026-04-16,19:35,133,130,129,49,NO,\n2026-04-17,08:18,132,126,129,44,NO,\n2026-04-17,19:40,132,127,130,49,NO,\n2026-04-18,08:22,132,127,128,57,NO,\n2026-04-18,10:15,131,126,128,45,YES,Turn 5 - Stage 1 satisfied\n2026-04-18,14:00,119,114,115,56,NO,\n2026-04-18,19:40,128,125,124,45,NO,\n2026-04-19,08:18,126,120,121,45,NO,\n2026-04-19,19:30,125,121,121,55,NO,\n2026-04-20,08:18,124,119,119,44,NO,\n2026-04-20,19:30,123,117,119,43,NO,\n2026-04-21,08:18,122,118,120,44,NO,\n2026-04-21,19:30,121,116,119,57,NO,\n2026-04-22,08:18,120,114,115,47,NO,\n2026-04-22,19:30,119,113,116,56,NO,\n2026-04-23,08:18,118,113,114,57,NO,\n2026-04-23,19:30,117,113,112,43,NO,\n2026-04-24,08:18,116,113,112,58,NO,\n2026-04-24,19:30,115,111,113,58,NO,\n2026-04-25,08:18,114,110,110,49,NO,\n2026-04-25,19:30,113,107,109,43,NO,\n2026-04-26,08:18,112,108,108,58,NO,\n2026-04-26,19:30,111,107,107,52,NO,\n2026-04-27,08:18,110,106,106,51,NO,\n2026-04-27,19:30,109,103,104,42,NO,\n2026-04-28,08:18,108,102,103,44,NO,\n2026-04-28,19:30,107,103,105,53,NO,\n2026-04-29,08:18,106,101,103,47,NO,\n2026-04-29,19:30,105,100,102,58,NO,\n2026-04-30,08:18,104,98,101,45,NO,\n2026-04-30,19:30,103,100,101,45,NO,\n\n# 30-DAY PILE - REALISTIC BIOLOGY\n# Turns happen 1-2h after stage satisfaction\n# Each turn entry shows PRE-turn (hot) temp\n# Post-turn drops below 131F then quickly rebuilds in next cycle";
@@ -4659,6 +4672,11 @@ function updateDriveUI(){
 
 function setStatus(s){driveStatus=s;updateDriveUI();}
 
+// PocketBase status setter (Group C). Deliberately does NOT touch driveStatus or call
+// updateDriveUI - those stay Drive-specific until Group G removes Drive. updatePbUI is
+// built in Group F, hence the typeof guard (same pattern as the Group B auth calls).
+function setPbStatus(s){pbStatus=s;if(typeof updatePbUI==="function")updatePbUI();}
+
 async function driveGet(path){
   var r=await fetch("https://www.googleapis.com/drive/v3"+path,{headers:{Authorization:"Bearer "+driveToken}});
   if(!r.ok)throw new Error("Drive GET failed: "+r.status);
@@ -4695,6 +4713,113 @@ async function driveCreateFile(name,folderId,data){
   return r.json();
 }
 
+// ============================================================
+// SHARED CLOUD MERGE (Group C)
+// Single merge used by BOTH backends: Drive (initDriveStorage / driveSaveNow) and
+// PocketBase (pbLoad / pbSaveNow). Takes a remote object in the ca_v5 shape, merges it
+// into the live globals (piles, sites, recipes, ingHist, tempUnit, deletedPileIds), and
+// returns nothing.
+//
+// The two Drive call sites it replaced were NOT identical, so the differences are opts
+// flags rather than a silent unification - each Drive site passes the flags that
+// reproduce exactly what it did before, so Drive behavior is unchanged:
+//   mergeRecipes       - merge remote recipes by id/lastModified   (connect only)
+//   adoptRemoteSettings- take remote ingHist/tempUnit              (connect only)
+//   renameOnConflict   - same-name/different-id local pile becomes "Name - Local Copy"
+//                                                                  (connect only)
+//   strictSitesGuard   - only merge sites when remote actually carries a sites array,
+//                        so an old remote file without one cannot wipe local sites
+//                                                                  (connect only)
+// PocketBase passes the full (connect-style) set: its vault is always written by this
+// same app, so it always carries recipes, settings and sites.
+function mergeCloudData(remote,opts){
+  if(!remote||typeof remote!=="object")return;
+  opts=opts||{};
+  var remotePiles=remote.piles||[];
+  var remoteRecipes=remote.recipes||[];
+  var remoteDeletedIds=remote.deletedPileIds||[];
+  var remoteSites=remote.sites;   // may be undefined on old remote files
+  var localPiles=piles.slice();
+
+  // Combine tombstones from both sides
+  var allDeletedIds=remoteDeletedIds.slice();
+  deletedPileIds.forEach(function(id){if(allDeletedIds.indexOf(id)<0)allDeletedIds.push(id);});
+
+  // Merge piles: lastModified wins; tombstone removes
+  var mergedPiles=[];
+  remotePiles.forEach(function(rp){
+    if(allDeletedIds.indexOf(rp.id)>=0)return;
+    var lm=localPiles.find(function(lp){return lp.id===rp.id;});
+    if(lm){
+      // Same pile on both devices - merge entries by ID, keep all unique ones
+      var entryMap={};
+      var localNewer=(lm.lastModified||0)>(rp.lastModified||0);
+      (rp.entries||[]).forEach(function(e){entryMap[e.id]=e;});
+      (lm.entries||[]).forEach(function(e){
+        // New local entry, or local pile is newer (e.g. just edited) -> local wins
+        if(!entryMap[e.id]||localNewer){entryMap[e.id]=e;}
+      });
+      var mergedEntries=Object.values(entryMap).sort(function(a,b){
+        return new Date(a.ts)-new Date(b.ts);
+      });
+      // Use newer pile for metadata (name, recipe, materials etc)
+      var base=(rp.lastModified||0)>=(lm.lastModified||0)?rp:lm;
+      var merged=JSON.parse(JSON.stringify(base));
+      merged.entries=mergedEntries;
+      merged.lastModified=Date.now();
+      // If the base (e.g. an old remote copy) has no siteId but local does, keep local's.
+      if((merged.siteId===undefined||merged.siteId===null)&&lm.siteId!=null)merged.siteId=lm.siteId;
+      mergedPiles.push(merged);
+    } else {
+      mergedPiles.push(rp);
+    }
+  });
+  localPiles.forEach(function(lp){
+    if(allDeletedIds.indexOf(lp.id)>=0)return;
+    if(remotePiles.find(function(rp){return rp.id===lp.id;}))return;
+    if(opts.renameOnConflict){
+      var nm=remotePiles.find(function(rp){return rp.name.toLowerCase()===lp.name.toLowerCase();});
+      if(nm){var r=JSON.parse(JSON.stringify(lp));r.name=lp.name+" — Local Copy";r.id=uid();mergedPiles.push(r);}
+      else{mergedPiles.push(lp);}
+    } else {
+      mergedPiles.push(lp);
+    }
+  });
+
+  // Merge recipes: keep newer version by id
+  if(opts.mergeRecipes){
+    var mergedRecipes=remoteRecipes.slice();
+    (recipes||[]).forEach(function(lr){
+      var rr=remoteRecipes.find(function(r){return r.id===lr.id;});
+      if(!rr){mergedRecipes.push(lr);}
+      else if((lr.lastModified||0)>(rr.lastModified||0)){
+        mergedRecipes=mergedRecipes.filter(function(r){return r.id!==lr.id;});
+        mergedRecipes.push(lr);
+      }
+    });
+    recipes=mergedRecipes;
+  }
+
+  piles=mergedPiles;
+  deletedPileIds=allDeletedIds;
+  if(opts.adoptRemoteSettings){
+    ingHist=remote.ingHist||DEF_HIST;
+    tempUnit=remote.tempUnit||tempUnit;
+  }
+
+  // Merge sites into local by id (local wins on conflict): remote is applied first, then
+  // local overwrites, so a local rename is never lost. Under strictSitesGuard a remote
+  // file with no sites array is skipped entirely rather than wiping local sites.
+  if(!opts.strictSitesGuard||Array.isArray(remoteSites)){
+    var siteMap={};
+    (remoteSites||[]).forEach(function(st){siteMap[st.id]=st;});
+    sites.forEach(function(st){siteMap[st.id]=st;});
+    sites=Object.values(siteMap);
+  }
+  // Re-run the inline-site migration so any newly-merged piles get linked.
+  migrateSites();
+}
+
 async function initDriveStorage(){
   var q1=encodeURIComponent("name='Compost Logger' and mimeType='application/vnd.google-apps.folder' and trashed=false");
   var fr=await driveGet("/files?q="+q1+"&fields=files(id)");
@@ -4715,75 +4840,10 @@ async function initDriveStorage(){
     if(r.ok){
       var d=await r.json();
       if(d&&typeof d==="object"){
-        var drivePiles=d.piles||[];
-        var driveRecipes=d.recipes||[];
-        var driveIngHist=d.ingHist||DEF_HIST;
-        var driveUnit=d.tempUnit||tempUnit;
-        var driveDeletedIds=d.deletedPileIds||[];
-        var driveSites=d.sites; // may be undefined on old Drive files; do NOT default to []
-        // Combine tombstones from both sides
-        var allDeletedIds=driveDeletedIds.slice();
-        deletedPileIds.forEach(function(id){if(allDeletedIds.indexOf(id)<0)allDeletedIds.push(id);});
-        // Merge piles: lastModified wins; tombstone removes
-        var localPiles=piles.slice();
-        var mergedPiles=[];
-        drivePiles.forEach(function(dp){
-          if(allDeletedIds.indexOf(dp.id)>=0)return;
-          var lm=localPiles.find(function(lp){return lp.id===dp.id;});
-          if(lm){
-            // Same pile on both devices — merge entries by ID, keep all unique ones
-            var entryMap={};
-            var localNewer=(lm.lastModified||0)>(dp.lastModified||0);
-            (dp.entries||[]).forEach(function(e){entryMap[e.id]=e;});
-            (lm.entries||[]).forEach(function(e){
-              // New local entry, or local pile is newer (e.g. just edited) → local wins
-              if(!entryMap[e.id]||localNewer){entryMap[e.id]=e;}
-            });
-            // Sort merged entries by timestamp
-            var mergedEntries=Object.values(entryMap).sort(function(a,b){
-              return new Date(a.ts)-new Date(b.ts);
-            });
-            // Use newer pile for metadata (name, recipe, materials etc)
-            var base=(dp.lastModified||0)>=(lm.lastModified||0)?dp:lm;
-            var merged=JSON.parse(JSON.stringify(base));
-            merged.entries=mergedEntries;
-            merged.lastModified=Date.now();
-            // If the base (e.g. an old Drive copy) has no siteId but local does, keep local's.
-            if((merged.siteId===undefined||merged.siteId===null)&&lm.siteId!=null)merged.siteId=lm.siteId;
-            mergedPiles.push(merged);
-          } else {
-            mergedPiles.push(dp);
-          }
-        });
-        localPiles.forEach(function(lp){
-          if(allDeletedIds.indexOf(lp.id)>=0)return;
-          if(drivePiles.find(function(dp){return dp.id===lp.id;}))return;
-          var nm=drivePiles.find(function(dp){return dp.name.toLowerCase()===lp.name.toLowerCase();});
-          if(nm){var r=JSON.parse(JSON.stringify(lp));r.name=lp.name+" — Local Copy";r.id=uid();mergedPiles.push(r);}
-          else{mergedPiles.push(lp);}
-        });
-        // Merge recipes: keep newer version by id
-        var mergedRecipes=driveRecipes.slice();
-        (recipes||[]).forEach(function(lr){
-          var dr2=driveRecipes.find(function(r){return r.id===lr.id;});
-          if(!dr2){mergedRecipes.push(lr);}
-          else if((lr.lastModified||0)>(dr2.lastModified||0)){
-            mergedRecipes=mergedRecipes.filter(function(r){return r.id!==lr.id;});
-            mergedRecipes.push(lr);
-          }
-        });
-        piles=mergedPiles;recipes=mergedRecipes;ingHist=driveIngHist;tempUnit=driveUnit;
-        deletedPileIds=allDeletedIds;
-        // Merge Drive sites into local by id (local wins on conflict). Only when the
-        // Drive file actually carries a sites array; an old file without one must not
-        // wipe local sites. Then re-link any newly merged piles to their sites.
-        if(Array.isArray(driveSites)){
-          var siteMap0={};
-          driveSites.forEach(function(st){siteMap0[st.id]=st;});
-          sites.forEach(function(st){siteMap0[st.id]=st;});
-          sites=Object.values(siteMap0);
-        }
-        migrateSites();
+        // Connect path: full merge - recipes, remote ingHist/tempUnit, rename-on-conflict,
+        // and the strict sites guard (an old Drive file with no sites array must not wipe
+        // local sites). See mergeCloudData for what each flag preserves.
+        mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:true,renameOnConflict:true,strictSitesGuard:true});
         localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
         await driveUpload(driveFileId,{piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds});
       }
@@ -4816,51 +4876,10 @@ async function driveSaveNow(){
     if(r.ok){
       var d=await r.json();
       if(d&&d.piles){
-        var drivePiles2=d.piles||[];
-        var driveDeletedIds2=d.deletedPileIds||[];
-        // Combine tombstones
-        var allDeleted2=driveDeletedIds2.slice();
-        deletedPileIds.forEach(function(id){if(allDeleted2.indexOf(id)<0)allDeleted2.push(id);});
-        // Merge piles entry-by-entry
-        var merged2=[];
-        drivePiles2.forEach(function(dp){
-          if(allDeleted2.indexOf(dp.id)>=0)return;
-          var lm=piles.find(function(lp){return lp.id===dp.id;});
-          if(lm){
-            var entryMap={};
-            var localNewer2=(lm.lastModified||0)>(dp.lastModified||0);
-            (dp.entries||[]).forEach(function(e){entryMap[e.id]=e;});
-            (lm.entries||[]).forEach(function(e){
-              if(!entryMap[e.id]||localNewer2){entryMap[e.id]=e;}
-            });
-            var mergedEntries=Object.values(entryMap).sort(function(a,b){return new Date(a.ts)-new Date(b.ts);});
-            var base=(dp.lastModified||0)>=(lm.lastModified||0)?dp:lm;
-            var mp=JSON.parse(JSON.stringify(base));
-            mp.entries=mergedEntries;
-            mp.lastModified=Date.now();
-            // If the base (e.g. an old Drive copy) has no siteId but local does, keep local's.
-            if((mp.siteId===undefined||mp.siteId===null)&&lm.siteId!=null)mp.siteId=lm.siteId;
-            merged2.push(mp);
-          } else {
-            merged2.push(dp);
-          }
-        });
-        piles.forEach(function(lp){
-          if(allDeleted2.indexOf(lp.id)>=0)return;
-          if(!drivePiles2.find(function(dp){return dp.id===lp.id;}))merged2.push(lp);
-        });
-        piles=merged2;
-        deletedPileIds=allDeleted2;
-        // Merge sites (union by id; local copy wins on conflict). Drive is applied
-        // first, then local overwrites, so a local rename is never lost. An old Drive
-        // file without a sites array leaves local sites untouched. Then re-run the
-        // inline-site migration so any newly-merged piles get linked.
-        var driveSites2=d.sites||[];
-        var siteMap2={};
-        driveSites2.forEach(function(st){siteMap2[st.id]=st;});
-        sites.forEach(function(st){siteMap2[st.id]=st;});
-        sites=Object.values(siteMap2);
-        migrateSites();
+        // Sync path: piles + tombstones + sites only. Deliberately does NOT merge recipes,
+        // adopt remote ingHist/tempUnit, or rename same-name piles - this reproduces
+        // exactly what this path did before the merge was extracted.
+        mergeCloudData(d,{mergeRecipes:false,adoptRemoteSettings:false,renameOnConflict:false,strictSitesGuard:false});
         localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
         renderHome();
       }
@@ -4886,7 +4905,8 @@ async function driveSaveNow(){
 }
 
 function forceSyncNow(){
-  driveSaveNow();
+  if(pbToken&&pbUserId)pbSaveNow();
+  else driveSaveNow();
 }
 
 async function onDriveToken(resp){
@@ -5010,6 +5030,10 @@ function pbSetAuth(token,record){
   pbStatus=pbToken?"signedin":"signedout";
   pbSaveAuth();
   if(typeof updatePbUI==="function")updatePbUI();
+  // Group C: pull the vault as soon as we are authenticated. Covers both entry points
+  // (pbLogin and pbRestoreAuth). Kept as its own call so Group D can interpose the
+  // "import your local data?" prompt ahead of the first vault write.
+  if(pbToken&&pbUserId&&typeof pbLoad==="function")pbLoad();
 }
 
 // Create an account, then immediately authenticate to obtain a token. analyticsOptIn
@@ -5048,6 +5072,9 @@ function pbLogin(email,password){
 
 function pbLogout(){
   pbToken=null;pbUserId=null;pbEmail=null;pbStatus="signedout";
+  // Group C: drop vault state too, or a later sign-in would PATCH the previous
+  // account's record with this account's data.
+  pbVaultId=null;pbVaultUpdated=null;pbPendingSave=false;pbSyncInProgress=false;
   try{localStorage.removeItem("pb_auth");}catch(e){}
   if(typeof updatePbUI==="function")updatePbUI();
 }
@@ -5070,20 +5097,148 @@ function pbRestoreAuth(){
   return true;
 }
 
+// ============================================================
+// POCKETBASE STORAGE / SYNC (Group C)
+// Blob-per-user: one "vaults" record holds the whole ca_v5 shape plus the settings that
+// live in their own localStorage keys. Same PULL-merge-PUSH shape as driveSaveNow, and
+// it shares the merge via mergeCloudData.
+// ============================================================
+
+// The payload written to the vault: full ca_v5 shape + the separate-key settings, so a
+// restore on a new device brings back preferences too. Mirrors exportAllJSON's shape.
+function pbBuildPayload(){
+  return {
+    piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,
+    tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,
+    deletedPileIds:deletedPileIds,
+    displayBasis:displayBasis,showPFRP:showPFRP,
+    pilesSortMode:pilesSortMode,entriesSortMode:entriesSortMode
+  };
+}
+
+// Apply the separate-key settings carried in a vault payload. Piles/sites/recipes are
+// handled by mergeCloudData; these four live outside ca_v5 in their own keys.
+function pbApplySettings(d){
+  if(!d)return;
+  try{
+    if(d.displayBasis==="avg"||d.displayBasis==="min"){displayBasis=d.displayBasis;localStorage.setItem("ca_displayBasis",d.displayBasis);}
+    if(typeof d.showPFRP==="boolean"){showPFRP=d.showPFRP;localStorage.setItem("ca_showPFRP",d.showPFRP?"on":"off");}
+    if(d.pilesSortMode){pilesSortMode=d.pilesSortMode;localStorage.setItem("ca_pilesSort",d.pilesSortMode);}
+    if(d.entriesSortMode){entriesSortMode=d.entriesSortMode;localStorage.setItem("ca_entriesSort",d.entriesSortMode);}
+  }catch(e){}
+}
+
+function pbPersistLocal(){
+  localStorage.setItem("ca_v5",JSON.stringify({piles:piles,sites:sites,recipes:recipes,ingHist:ingHist,tempUnit:tempUnit,volumeUnit:volumeUnit,containerUnit:containerUnit,deletedPileIds:deletedPileIds}));
+}
+
+// Fetch this user's vault and merge it in. The collection's list rule scopes results to
+// the caller server-side, so an unfiltered list returns at most this user's own record.
+// No vault yet => create one from current local state (first login on a fresh account).
+// Group D wraps this to offer the one-tap import before the first write.
+function pbLoad(){
+  if(!pbToken||!pbUserId)return Promise.resolve(false);
+  setPbStatus("connecting");
+  return pbApi("/api/collections/vaults/records?perPage=1",{auth:true}).then(function(res){
+    var rec=(res&&res.items&&res.items.length)?res.items[0]:null;
+    if(!rec){
+      return pbApi("/api/collections/vaults/records",{
+        method:"POST",auth:true,
+        json:{user:pbUserId,data:pbBuildPayload(),analyticsOptIn:!!pbAnalyticsOptIn}
+      }).then(function(created){
+        pbVaultId=created&&created.id?created.id:null;
+        pbVaultUpdated=created&&created.updated?created.updated:null;
+        setPbStatus("synced");
+        return true;
+      });
+    }
+    pbVaultId=rec.id;
+    pbVaultUpdated=rec.updated||null;
+    // PocketBase returns the JSON field already parsed; tolerate a string just in case.
+    var d=rec.data;
+    if(typeof d==="string"){try{d=JSON.parse(d);}catch(e){d=null;}}
+    if(d&&typeof d==="object"){
+      mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:true,renameOnConflict:true,strictSitesGuard:true});
+      pbApplySettings(d);
+      pbPersistLocal();
+      if(typeof renderHome==="function")renderHome();
+    }
+    setPbStatus("synced");
+    return true;
+  }).catch(function(err){
+    setPbStatus(navigator.onLine?"error":"offline");
+    console.error("PocketBase load error",err);
+    return false;
+  });
+}
+
+// PULL-merge-PUSH, mirroring driveSaveNow. pbVaultUpdated is the optimistic-concurrency
+// baseline: if the record's "updated" moved since our last read, someone else wrote in
+// between, so we merge their version before pushing. NOTE this is read-merge-write, not
+// atomic - PocketBase has no If-Match - so a write landing between our GET and PATCH can
+// still be missed. The merge is union-by-id, so the realistic loss is an edit to an
+// existing pile, never a whole pile.
+function pbSaveNow(){
+  if(!pbToken||!pbUserId){pbPendingSave=true;return Promise.resolve(false);}
+  if(!pbVaultId){
+    // Signed in but the vault has not been resolved yet - load creates it, then push.
+    pbPendingSave=true;
+    return pbLoad().then(function(ok){return ok?pbSaveNow():false;});
+  }
+  if(pbSyncInProgress){pbPendingSave=true;return Promise.resolve(false);}
+  pbSyncInProgress=true;
+  pbPendingSave=true;
+  setPbStatus("saving");
+  return pbApi("/api/collections/vaults/records/"+pbVaultId,{auth:true}).then(function(rec){
+    if(rec&&rec.updated&&rec.updated!==pbVaultUpdated){
+      var d=rec.data;
+      if(typeof d==="string"){try{d=JSON.parse(d);}catch(e){d=null;}}
+      if(d&&typeof d==="object"){
+        mergeCloudData(d,{mergeRecipes:true,adoptRemoteSettings:false,renameOnConflict:false,strictSitesGuard:true});
+        pbPersistLocal();
+        if(typeof renderHome==="function")renderHome();
+      }
+    }
+    return pbApi("/api/collections/vaults/records/"+pbVaultId,{
+      method:"PATCH",auth:true,json:{data:pbBuildPayload()}
+    });
+  }).then(function(saved){
+    pbVaultUpdated=(saved&&saved.updated)?saved.updated:pbVaultUpdated;
+    pbPendingSave=false;
+    pbSyncInProgress=false;
+    setPbStatus("saved");
+    setTimeout(function(){
+      if(pbStatus==="saved"&&!pbPendingSave)setPbStatus("synced");
+    },2000);
+    return true;
+  }).catch(function(err){
+    pbSyncInProgress=false;
+    console.error("PocketBase save error",err);
+    setPbStatus(navigator.onLine?"error":"offline");
+    return false;
+  });
+}
+
 window.addEventListener("online",function(){
   if(driveStatus==="offline"&&driveToken){
     if(pendingSave)driveSaveNow();
     else setStatus("connected");
   }
+  if(pbStatus==="offline"&&pbToken){
+    if(pbPendingSave)pbSaveNow();
+    else setPbStatus("synced");
+  }
 });
 window.addEventListener("offline",function(){
   if(driveToken)setStatus("offline");
+  if(pbToken)setPbStatus("offline");
 });
 
 window.addEventListener("beforeunload",function(e){
-  if(pendingSave&&driveToken){
+  // Backend-neutral wording: a migrated user has no Drive and no "SYNC NOW" button.
+  if((pendingSave&&driveToken)||(pbPendingSave&&pbToken)){
     e.preventDefault();
-    e.returnValue="You have unsaved changes that haven't synced to Drive yet. Tap SYNC NOW first.";
+    e.returnValue="You have unsaved changes that haven't synced to the cloud yet. Sync before leaving.";
     return e.returnValue;
   }
 });

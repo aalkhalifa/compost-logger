@@ -62,6 +62,20 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   says "capped at 8h past that entry", in **both** `index.html` and `beta/index.html`.
   Comment-only, zero behavior risk — fold into the next beta line rather than cutting a
   release for it.
+- [ ] **Confirm the July 15 (v3.79b–q) behaviour changes are wanted.** Reconstructed in
+  PROJECT.md's July 15 entry. Three are compliance-relevant, live in production, and were
+  never recorded at the time:
+  - `v3.79b` — stage banding on bars now follows `displayTemp` (AVG/MIN basis) rather than
+    raw `core1`
+  - `v3.79c`/`v3.79e` — a turn closes its cycle regardless of the turn reading's own temp
+  - `v3.79d` — extrapolation cap raised **8h → 24h**, so one reading on a hot pile can
+    credit a full day of thermophilic/READY time. Most likely of the three to affect a
+    PFRP-style claim.
+  Worth an explicit confirm that these match the intended biological model, since nobody
+  reviewed them outside the session that wrote them.
+- [ ] **Find out what "Task 2" was.** Commit bodies from July 15 cite Tasks 1 and 3–12; no
+  commit mentions Task 2, and the task list is not in this repo. May have been dropped,
+  done elsewhere, or renumbered.
 - [ ] **PocketBase 0.22.21 is version-pinned.** Upgrading to 0.23+ renames the admin API
   from `/api/admins/` to `/api/_superusers/`, which breaks every server-side snippet in
   PROJECT.md's *Operating this project* section and in `deploy/pocketbase/README.md`.

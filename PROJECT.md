@@ -320,10 +320,12 @@ Verify any rollback the same way as a build: extract the inline script and run
 > **promoted v3.82**. Start at *SESSION SUMMARY* for the overview.
 >
 > Version history across sessions: **v3.75 → v3.77q → v3.78b** (July 11, two sessions) →
-> **v3.82** (July 20). Beta went v3.78 → v3.79 → v3.82 over the same span. Note the v3.79
-> line has a gap in this log: **v3.79b–q were made outside these sessions** (chart
-> refinements, water labels, probe-spread/heating-rate mini charts, and the freeze cap
-> raised 8h → 24h) and are documented only in their commit messages.
+> **v3.82** (July 20). Beta went v3.78 → v3.79 → v3.82 over the same span.
+>
+> **v3.79b–q (July 15) were made in a session that left no log.** They are reconstructed
+> below from commit messages and diffs, with certainty levels marked. Three of them changed
+> compliance-relevant behaviour and are live in production — see that entry before touching
+> cycle-closing or extrapolation logic.
 
 ### July 20 2026 (Claude Code) — v3.81a: the demo-pile purge never actually ran
 
@@ -595,9 +597,9 @@ returning 0 items and a duplicate vault rejected by the unique index.
 - `sw.js` cache key corrected to `v3.79r`; it had drifted at `v3.78b` while beta moved
   through v3.79b-q.
 
-**Note:** `origin/main` had 16 unrecorded commits (beta v3.79b-q: chart refinements,
-water labels, probe-spread/heating-rate mini charts, freeze cap raised 8h -> 24h). Group
-A/C work was rebased on top of them. Those versions are not documented in this log.
+**Note:** `origin/main` had 16 commits that were not in the local checkout (beta v3.79b-q,
+made July 15). Group A/C work was rebased on top of them. They are now reconstructed in the
+**July 15 2026** entry below, from commit messages and diffs.
 
 **Group D (first-login migration) built — beta v3.79s.**
 - Found that `pbLoad`'s create branch was silently uploading the entire local vault —
@@ -675,6 +677,84 @@ triggers: non-atomic read-merge-write concurrency, and the 5 MB vault field cap.
 actual iPhone before Group G removes the Drive fallback, since everything so far had been
 verified headlessly. That test happened the same day and immediately found two genuine
 bugs — see the v3.79u/v entry above. The caution was warranted.)*
+
+### July 15 2026 — beta v3.79b–q (reconstructed, not written at the time)
+
+**This entry was reconstructed on July 20 from commit messages and diffs.** No session log
+was written for this work. Everything below is labelled by how well it is actually known.
+The commit bodies are detailed — read them directly (`git log 04b8748..1c56380`) before
+touching this area.
+
+#### Established from the diff (high confidence)
+
+- **16 commits, all on 2026-07-15**, one build each: `v3.79b` → `v3.79q`.
+  Range: `04b8748..1c56380`. All from a single Claude Code session
+  (`session_01QPNudebVr9H65rMmYszF3r`, referenced in every commit trailer).
+- **Only `beta/index.html` was touched.** Never `sw.js`, never production `index.html`.
+  That is the direct cause of the cache-key drift found in v3.79r: sixteen beta builds
+  shipped while the shared service-worker key still said `v3.78b`.
+- **+319 / −72 lines.**
+- **New functions:** `renderMiniCharts`, `toggleMiniCharts`, `toggleChartExpand`,
+  `renderSettingsRecipes`, `loadRecipeFromSettings`.
+  `cappedNow` was **modified, not added** (it is a one-liner, so the 8h→24h change shows
+  as a whole-line replacement in the diff).
+- **New localStorage key:** `ca_chartExpand` (FIT/EXPAND chart mode).
+- **All of it is live in production v3.82**, carried in by the v3.80 promotion. Verified by
+  marker presence in both `index.html` and `beta/index.html`.
+
+#### What each build did (per its own commit body)
+
+| Build | Change |
+|---|---|
+| `v3.79b` | Segmented bar band now derived from `displayTemp(e)`, not raw `core1` — the bar had ignored the AVG/MIN display basis and could contradict the headline status. Inherited by `renderStageBarActive`, `renderCompletedCycleBar`, PDF turn history. |
+| `v3.79c` | A logged turn now closes its cycle regardless of the turn reading's own temperature. Previously a turn logged at/just below the band floor could fail to close a cycle whose *earlier* readings had satisfied a stage, leaving it stuck on SATISFIED / TURN NOW. The closing turn extends a running streak but never breaks or starts one. |
+| `v3.79d` | `cappedNow()` extrapolation cap **8h → 24h**. Its own body flags the side effect: a stale-but-hot pile now credits up to 24h of the logging gap as thermophilic/READY. |
+| `v3.79e` | Completes v3.79c's user-visible half: `calcSmartTimer` detects an already-closed last cycle and returns a `betweenCycles` state, so a just-turned pile stops showing TURN NOW. Renders "CYCLE N COMPLETE / TURNED". |
+| `v3.79f` | AVG column added to the on-screen log table, coloured by band. PDF left alone. |
+| `v3.79g` | (a) `validateEntry` no longer requires a temperature — turn/water/moisture-only entries save, with a guard against a truly empty entry. (b) On-screen moisture line steps vertically at rises, stays smooth on drops. |
+| `v3.79h` | PDF gains a conditional Water column and a "Watered:" line in Turn History; `buildTurnHistory` carries `watered`/`waterAmount`/`waterQty`. |
+| `v3.79i` | Water annotation labels y-staggered so adjacent ones stop overprinting; PDF label gains the amount word. |
+| `v3.79j` | Chart defaults to FIT (whole lifespan, no horizontal scroll); new FIT/EXPAND toggle persisted to `ca_chartExpand`; day tick labels thinned in fit mode. |
+| `v3.79k` | New collapsed-by-default section with two mini charts: probe spread (`coreSpread`) and heating rate (`heatingRateSeries`). Lazy-rendered, destroyed/rebuilt to avoid canvas leaks. |
+| `v3.79l` | Settings lists saved recipes with a LOAD action that closes Settings, opens New Pile and applies the recipe. |
+| `v3.79m` | Excel import explicitly skips any avg/average header so it can never bind to a temperature column. Body notes this was already the behaviour; the change is an explicit guard. |
+| `v3.79n`–`v3.79q` | Four iterations on chart presentation: red shade band, portrait FIT width, expand widths, and successively reworked water labels (stacked → vertical → top-anchored → bottom zone with solid background). |
+
+#### Inferred, not certain
+
+- **There was an external numbered task list.** Commit bodies cite "Task 1", "Task 3"…
+  "Task 12". Tasks **1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12** are accounted for. The list
+  itself is not in this repo, and the Claude session URLs in the trailers are not readable
+  from here.
+- **The last four builds look like one problem iterated on**, not four separate tasks: they
+  carry no task number and each reworks the same water-label placement. Whether the final
+  state (`v3.79q`) was accepted as good or merely the last attempt of the day is **not
+  recorded**.
+
+#### Genuinely unknown — do not assume
+
+- **What "Task 2" was.** No commit references it. It may have been dropped, done elsewhere,
+  or renumbered. If a numbered list resurfaces, check this before assuming it shipped.
+- **Why there is no `v3.79a`.** The base build was `v3.79` (Group B) and the first of these
+  is `v3.79b`. No commit mentions `v3.79a`.
+- **Whether any of it was tested on a device.** Nothing in the commits says so, and much of
+  it is chart/PDF layout work that only a real screen can validate.
+- **Which changes were requested vs proposed.** The bodies describe *what* and *why
+  technically*, not who asked.
+
+#### Why this matters now
+
+Three of these are **behaviour changes to the compliance-relevant model**, not cosmetics,
+and all three are live in production:
+
+- `v3.79b` changed which temperature drives stage banding on the bars.
+- `v3.79c`/`v3.79e` changed when a cycle is considered closed.
+- `v3.79d` **doubled-and-then-some the extrapolation credit** (8h → 24h), so a pile logged
+  once and left hot now accrues up to a full day of thermophilic/READY time from a single
+  reading. This is the change most likely to affect a PFRP-style compliance claim, and it
+  is the one this document previously recorded incorrectly as 8h.
+
+If compliance output is ever questioned, start here.
 
 ### July 11 2026 (Claude Code) — later session
 

@@ -78,6 +78,38 @@ Beta line opened 2026-07-20, promoted the same day as v3.82.
   Verified against the real vault blob: 13 piles → 7, all six demo entries gone, all seven
   real piles intact with unchanged entry counts.
 
+## [3.79b–3.79q] - 2026-07-15 [beta] — reconstructed
+
+Sixteen beta builds made on 2026-07-15 in a session that left no notes. **Reconstructed
+2026-07-20 from commit messages and diffs**; see PROJECT.md's July 15 entry for the
+per-build table and what remains uncertain. All of it shipped to production with v3.80.
+
+### Changed — biological / compliance model (live in production)
+- **v3.79b** — segmented stage bars derive their band from `displayTemp` (honouring the
+  AVG/MIN display basis) instead of raw `core1`, which could contradict the headline status.
+- **v3.79c** + **v3.79e** — a logged turn closes its cycle regardless of the turn reading's
+  own temperature; `calcSmartTimer` gains a `betweenCycles` state so a just-turned pile
+  stops showing TURN NOW.
+- **v3.79d** — active-cycle extrapolation cap **8h → 24h**. A pile logged once and left hot
+  now credits up to a full day as thermophilic/READY.
+
+### Added
+- **v3.79f** AVG column in the on-screen log table · **v3.79g** turn/water/moisture-only
+  entries (no temperature required) and stepped moisture rises · **v3.79h** watering in the
+  PDF log table and turn history · **v3.79j** FIT/EXPAND chart mode (`ca_chartExpand`) ·
+  **v3.79k** collapsible probe-spread and heating-rate mini charts · **v3.79l** Saved
+  Recipes in Settings with a LOAD action.
+
+### Fixed
+- **v3.79i**, **v3.79n**–**v3.79q** — water-label overprinting and chart presentation,
+  iterated across five builds · **v3.79m** — Excel import explicitly skips avg/average
+  headers so they cannot bind to a temperature column.
+
+> **Not recorded anywhere:** whether any of this was device-tested, what "Task 2" was (the
+> bodies cite Tasks 1 and 3–12), or why there is no `v3.79a`. These builds touched only
+> `beta/index.html` — never `sw.js`, which is why its cache key drifted at `v3.78b` until
+> v3.79r.
+
 ## [3.79] - 2026-07-11 [beta]
 
 PocketBase migration line (replacing Google Drive sync). Ships from `/beta/`; additive

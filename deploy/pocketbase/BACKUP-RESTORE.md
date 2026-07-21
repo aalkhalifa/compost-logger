@@ -176,6 +176,16 @@ ENV_FILE=/path/to/test.env /usr/local/bin/compost-backup.sh
 Each must end with `healthchecks ping '/fail' accepted (HTTP 200)`. Follow with
 a normal run to return the check to green.
 
+The Sunday-only weekly path can also be exercised on any day:
+
+```bash
+FORCE_WEEKLY=1 /usr/local/bin/compost-backup.sh
+```
+
+`FORCE_WEEKLY` can only turn the weekly copy **on**, never off, so a stray value
+cannot silently cost you a weekly backup. It writes a real object to `weekly/`,
+which is harmless — lifecycle expires it at 28 days like any other.
+
 There is also `--skip-offsite`, which creates and verifies a snapshot but does
 not upload. It deliberately **does not ping success** and says so loudly: a mode
 that produced a green check without an offsite copy would defeat the point.
@@ -255,6 +265,13 @@ If it recurs, the log tail in the healthchecks alert is the place to start.
   unreachable, snapshot rejected by verification, wrong admin password) each
   produced a distinct actionable message and a `/fail` ping **accepted with
   HTTP 200**. A subsequent clean run returned the check to green.
+- **Weekly path** — forced with `FORCE_WEEKLY=1` rather than waiting for a
+  Sunday. Uploaded to `daily/` **and** `weekly/`, both verified by size and md5;
+  the two objects and the local snapshot are all
+  `md5 d44bc4a073b9957794ce072ed46fa973`. Restored from the **weekly** copy into
+  a throwaway instance: 7 piles, 227 entries, all ids identical to live. This
+  also exercised the `daily/+weekly/` summary string, which is the exact branch
+  the `set -e` assignment bug had made unreachable.
 
 Comparing entry **ids** rather than counts is deliberate: a count-only check
 passes even if entries have been shuffled between piles. This is the same

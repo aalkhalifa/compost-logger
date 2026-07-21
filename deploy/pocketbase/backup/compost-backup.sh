@@ -39,6 +39,10 @@ STAMP=$(date -u +%Y%m%d-%H%M%S)
 NAME="compost-${STAMP}.zip"
 IS_WEEKLY=0
 [ "$(date -u +%u)" = "7" ] && IS_WEEKLY=1   # Sunday also lands in weekly/
+# FORCE_WEEKLY=1 exercises the Sunday path on any day. It can only turn the
+# weekly copy ON, never off, so a stray value cannot silently cost you a weekly
+# backup. Used to test that branch without waiting for a Sunday.
+[ "${FORCE_WEEKLY:-0}" = "1" ] && IS_WEEKLY=1
 
 say() { echo "[$(date -u +%H:%M:%S)] $*"; }
 

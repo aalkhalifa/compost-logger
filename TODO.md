@@ -91,6 +91,12 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   Both read the same path so rotation stays a one-file change, but run
   `/usr/local/bin/compost-backup.sh` by hand afterwards to confirm — a mistake here
   breaks backups as well as the runbook snippets.
+- [ ] **Watch the first unattended backup runs.** Everything on July 21 was manually
+  triggered, so the timer itself is the one untested link. Check after **July 22 02:10
+  UTC** (`journalctl -u compost-backup.service -n 40`) that it fired on schedule, and
+  again after **Sunday July 26**, which is the first *real* weekly write — the weekly
+  path itself is already tested via `FORCE_WEEKLY=1`, but not its Sunday trigger.
+  Silence plus a green healthchecks page means it worked.
 - [ ] **Confirm the R2 lifecycle rules are actually expiring objects.** They were set in
   the Cloudflare dashboard (`daily/` 7d, `weekly/` 28d) but **cannot be verified from the
   droplet** — a bucket-scoped token gets 403 on `GetBucketLifecycle`. Around **July 29
@@ -128,8 +134,12 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   md5 back out of R2 -> healthchecks.io ping, which is gated on that verification rather
   than on the script having run. **Restore tested end-to-end**, not just documented:
   restored from an R2-downloaded archive into a throwaway instance and diffed against
-  live by entry id — 7 piles, 227 entries, all identical. Runbook:
+  live by entry id — 7 piles, 227 entries, all identical. The Sunday-only weekly path
+  was forced with `FORCE_WEEKLY=1` and restored from too, rather than left untested until
+  July 26. Alerting was tested by inducing four distinct failures. Runbook:
   `deploy/pocketbase/BACKUP-RESTORE.md`. DO droplet snapshots deliberately declined.
+  **Admin password rotation is deliberately NOT part of this work** — Abdulla is doing it
+  in a separate focused session; see the Operational item above.
 
 ### Standing notes
 

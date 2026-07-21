@@ -84,7 +84,10 @@ compost-logger/
 ├── test/               ← node harnesses, no build step (./test/run-all.sh)
 └── deploy/
     └── pocketbase/     ← backend infra: runbook, collection schema, systemd unit, Caddyfile
-                          (mirrors of what is live on the box - keep in sync)
+        │                 (mirrors of what is live on the box - keep in sync)
+        ├── BACKUP-RESTORE.md  ← nightly backup design + tested restore runbook
+        └── backup/            ← backup script, systemd unit + timer, .env.example
+                                 (mirrors; secrets live only in /etc, never here)
 ```
 
 ### Promotion process
@@ -405,6 +408,15 @@ archives and confirming each was rejected; the restore was driven from a file
 downloaded *out of R2* and diffed against live by **entry id**, not counts; and the
 alerting was tested by inducing four distinct failures and confirming each produced
 an actionable message and a `/fail` ping accepted with HTTP 200.
+
+**The Sunday-only weekly path was forced rather than left to chance** (`FORCE_WEEKLY=1`,
+which can only turn the weekly copy on, never off). It uploaded to `daily/` *and*
+`weekly/`, both verified by size and md5, and the weekly copy was then restored into a
+throwaway instance — 7 piles, 227 entries, all ids matching. That run also exercised the
+`daily/+weekly/` summary string, **the exact branch the `set -e` bug had made
+unreachable**: the bug only bit on non-Sundays, so waiting for a real Sunday would have
+masked it. Chosen over installing `faketime`, which would have meant an `LD_PRELOAD`
+time-faking library on a production box to test a one-line conditional.
 
 > The lifecycle rules themselves **cannot be verified from the droplet** — a
 > bucket-scoped Object Read & Write token gets 403 on `GetBucketLifecycle`. They were
@@ -1153,6 +1165,62 @@ Brian was warm and impressed — invited Abdulla to contribute to their student 
 - **Compost Academy** — biological model reference (Stage 1-4, PFRP)
 - **LivingSoil.ai** — second app in development, same product family aesthetic
 - **Hardware project** — LoRaWAN probe (Heltec WiFi LoRa 32 V3 → RAK7289V2 → TTN), in progress
+
+---
+
+## How Abdulla works
+
+> Written July 21 2026, from how the sessions have actually gone. This is not a
+> style preference list — following it produces better work, and ignoring it has
+> produced rollbacks. Read it before the first substantive reply of a session.
+
+**Understand WHY before approving.** He does not want a list of proposed changes
+to rubber-stamp; he wants the reasoning that makes the list obviously right or
+obviously wrong. Explain the tradeoff, name the alternative that was rejected,
+and say what it costs. A proposal that arrives without its reasoning will get
+questions rather than approval — correctly, because the reasoning is the part he
+is actually reviewing.
+
+**Step-by-step walkthroughs while learning a new SOP.** For territory he has not
+worked in before (backend infra, backups, TLS), go one step at a time and show
+the output of each before moving on. Once a procedure is established he moves
+fast — the granularity is about unfamiliarity, not caution in general.
+
+**Strict pre-approval before any code.** Nothing gets written until the change
+list is approved. This is a hard rule with history behind it: **a build was
+rolled back for violating it (the v3.77n incident)** — see *Process rule* under
+Architecture Notes. It extends to server state: enabling a timer, writing to
+`/etc`, and changing a live service are all "code" for this purpose.
+
+**Checkpoints are load-bearing.** When he says "stop and show me X before you do
+Y", showing X and doing Y in the same breath defeats the point. Stop, show, wait.
+
+**Late nights are deliberate.** Sessions run late by choice, with full focus. Do
+not editorialise about the hour, suggest stopping for the night, or treat a 3am
+message as a reason to be extra cautious. Match his energy and keep working.
+
+**Secrets: password manager first, server second, chat never.** He populates
+secret files himself — do not ask him to paste a credential into the
+conversation. The pattern that works: tell him the exact variable names, the
+exact format, and where the file goes; he fills it in; then verify permissions
+and *structure* (names present, value lengths, no placeholders left) without
+ever echoing a value. Redact anything key-shaped in command output by reflex.
+Note **the repo is public**, so secrets never enter it — only `.example` files
+with placeholders.
+
+**Record decisions with their reasoning; do not summarise them away.** The docs
+are deliberately long because the *why* is the valuable part. When something was
+considered and rejected, write down that it was rejected and what it would have
+cost — a future session will otherwise re-propose it. Keep the failures and the
+dead ends: the demo-pile purge bug, the v3.79u service-worker bug, and the
+unexplained `data.db` verification failure are all in these docs on purpose.
+**Never quietly drop something that did not work.**
+
+**Concise answers.** Lead with the result. Skip preamble, skip restating the
+question, skip narrating what you are about to do. Concise does **not** mean
+shallow — length spent on reasoning, tradeoffs and honest caveats is welcome;
+length spent on filler and recapping is not. If an answer is getting long, the
+right cut is usually the summary, not the substance.
 
 ---
 

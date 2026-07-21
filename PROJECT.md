@@ -207,6 +207,38 @@ curl -s http://127.0.0.1:8090/api/collections/users/records -H "Authorization: $
 One real account (`aalkhalifa@gmail.com`, `verified: false` — email verification is **off**,
 so signup logs straight in), one vault, 7 piles. No test accounts remain.
 
+### Backups (live since July 21 2026)
+
+**The vault is backed up nightly off the droplet.** Full detail, including the
+restore runbook, is in **`deploy/pocketbase/BACKUP-RESTORE.md`** — read that
+before restoring anything.
+
+| | |
+|---|---|
+| Schedule | `02:10 UTC` daily (05:10 Bahrain), `compost-backup.timer` |
+| Method | PocketBase snapshot API -> verify -> `rclone` -> Cloudflare R2 -> verify |
+| Retention | `daily/` 7 days, `weekly/` 28 days, via R2 lifecycle rules |
+| Local | 2 most recent snapshots in `pb_data/backups/` for fast restore |
+| Monitoring | healthchecks.io (period 1d, grace 3h) -> aalkhalifa@gmail.com |
+| Secrets | `/etc/compost-backup.env` 0600 — **never in this repo, which is public** |
+
+Two properties worth knowing before touching any of it:
+
+- **The success ping is gated on the object being verified present in R2** (size
+  *and* md5 read back), not on the script having run. A green check next to an
+  empty bucket is the failure mode the whole design targets.
+- **PocketBase's own `backups.cron` is deliberately empty.** The systemd timer
+  drives both snapshot creation and upload, so there is no race between two
+  schedulers.
+
+The restore was **tested end-to-end on July 21 2026**, not just written down:
+restored from an R2-downloaded archive into a throwaway instance on port 8091 and
+diffed against live — 7 piles, 227 entries, every entry id identical.
+
+DigitalOcean droplet snapshots were considered and **declined**: nothing else on
+the box is irreplaceable, so the ~$2.80/mo would mostly have insured transient
+LivingSoil video.
+
 ---
 
 ## ROLLBACK
@@ -326,6 +358,58 @@ Verify any rollback the same way as a build: extract the inline script and run
 > below from commit messages and diffs, with certainty levels marked. Three of them changed
 > compliance-relevant behaviour and are live in production — see that entry before touching
 > cycle-closing or extrapolation logic.
+
+### July 21 2026 (Claude Code) — nightly backups to R2, with a tested restore
+
+**The vault had no backup at all until today.** `pb_data` was 442 KB on a single
+droplet: no PocketBase backup cron, no S3, no snapshots, no cron job, no timer. As
+of v3.82 that file is the authoritative store for every user's piles, so a droplet
+loss would have lost all of it. Now: nightly snapshot at 02:10 UTC, verified, shipped
+to Cloudflare R2, monitored by healthchecks.io. Full detail in
+`deploy/pocketbase/BACKUP-RESTORE.md`.
+
+**Design decisions worth remembering:**
+- **Not** PocketBase's built-in S3 backups. Enabling `backups.s3` does not *add* an
+  offsite copy, it **relocates** the backup filesystem — local backups stop entirely,
+  and every restore would then depend on PB's S3 client working. It would also add a
+  second reason we cannot upgrade off 0.22.21.
+- One schedule, not two: the timer creates the snapshot *and* ships it.
+- Retention is **R2 lifecycle rules**, not script deletions, so a bug in the script
+  cannot destroy history. The script only counts objects and shouts if the counts
+  drift.
+- Storage went R2 rather than DO Spaces on Abdulla's call — Spaces has a $5/mo floor
+  for what is ~4 MB of data; R2 is free at this size.
+- DO droplet snapshots **declined** — nothing else on the box is irreplaceable.
+
+**Three real bugs, all found by running it rather than reading it:**
+1. `SUMMARY="...$([ x ] && echo y)..."` — a false command substitution makes the
+   *assignment* non-zero, so `set -e` killed the script **after** the backup had
+   already succeeded. Would have sent a FAILURE alert on 6 nights in 7.
+2. `exit 1` does not fire an `ERR` trap, so every `FATAL:` validation guard aborted
+   **without pinging healthchecks at all**. The checks built to catch corruption
+   could not report that they had fired. Now an `EXIT` trap covers any non-zero exit.
+3. R2 returns **501 on the HEAD rclone issues after a successful PUT**; rclone's own
+   retry masked it by finding the object already there. `--s3-no-head` plus our own
+   size+md5 read-back replaces rclone's check with a stronger one.
+
+**One failure remains unexplained.** A run aborted with `FATAL: archive does not
+contain data.db` on an archive that demonstrably contained it. A SIGPIPE/`pipefail`
+race, a write race and memory pressure were each investigated and **ruled out**; it
+did not reproduce in ~58 attempts across three configurations. The check was
+rewritten to remove the pipeline entirely, which is robust regardless of cause, but
+the trigger is unidentified. Recorded in BACKUP-RESTORE.md rather than quietly
+papered over.
+
+**Verified, not assumed:** corruption guards were tested by constructing four bad
+archives and confirming each was rejected; the restore was driven from a file
+downloaded *out of R2* and diffed against live by **entry id**, not counts; and the
+alerting was tested by inducing four distinct failures and confirming each produced
+an actionable message and a `/fail` ping accepted with HTTP 200.
+
+> The lifecycle rules themselves **cannot be verified from the droplet** — a
+> bucket-scoped Object Read & Write token gets 403 on `GetBucketLifecycle`. They were
+> set in the Cloudflare dashboard and are taken on trust; the script's object-count
+> guard is the backstop and fails within ~10 days if the `daily/` rule stops working.
 
 ### July 20 2026 (Claude Code) — v3.81a: the demo-pile purge never actually ran
 

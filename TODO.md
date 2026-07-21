@@ -87,6 +87,16 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   (`https://api.compostlogger.com/_/`), then update that file — several runbook commands
   read it. Not urgent (admin API is not exposed publicly beyond the login form) but it
   should not stay indefinitely.
+  **Now has a second consumer:** the nightly backup script authenticates with this file.
+  Both read the same path so rotation stays a one-file change, but run
+  `/usr/local/bin/compost-backup.sh` by hand afterwards to confirm — a mistake here
+  breaks backups as well as the runbook snippets.
+- [ ] **Confirm the R2 lifecycle rules are actually expiring objects.** They were set in
+  the Cloudflare dashboard (`daily/` 7d, `weekly/` 28d) but **cannot be verified from the
+  droplet** — a bucket-scoped token gets 403 on `GetBucketLifecycle`. Around **July 29
+  2026**, check that `daily/` has stabilised at 7 objects rather than continuing to grow.
+  The script's count guard aborts the run if `daily` exceeds 10, so a silent failure
+  surfaces on its own — but it surfaces as a *failed backup*, which is worth pre-empting.
 - [ ] **Stale code comment: the freeze cap says 8h, the code does 24h.** `cappedNow()`
   caps at 24h (raised in v3.79d) but the comment above `computeIndependentStages` still
   says "capped at 8h past that entry", in **both** `index.html` and `beta/index.html`.
@@ -98,7 +108,9 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
 - [ ] **PocketBase 0.22.21 is version-pinned.** Upgrading to 0.23+ renames the admin API
   from `/api/admins/` to `/api/_superusers/`, which breaks every server-side snippet in
   PROJECT.md's *Operating this project* section and in `deploy/pocketbase/README.md`.
-  Update both if the binary is ever upgraded.
+  Update both if the binary is ever upgraded — **and `/usr/local/bin/compost-backup.sh`,
+  which authenticates the same way.** The backup would start failing nightly with
+  `admin auth was REJECTED (HTTP 404)`; the alert says so explicitly.
 
 - [ ] **Decide when to retire the Cloudflare tunnel.** It still fronts the same backend as
   a fallback. Once the domain has proven itself, `systemctl disable --now
@@ -108,6 +120,16 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   reboot is much safer now that the backend URL no longer depends on the tunnel, but it
   *will* rotate the tunnel's fallback hostname. Verify `api.compostlogger.com` comes back
   after any reboot; all three services are `enabled`.
+
+- [x] **Nightly off-droplet backups — DONE July 21 2026.** The vault had **no backup of
+  any kind** until this date. Now: PocketBase snapshot API at 02:10 UTC -> verified
+  (size, `unzip -t`, contains `data.db`, md5 vs PB's own checksum) -> Cloudflare R2
+  (`daily/` 7d, `weekly/` 28d via lifecycle rules) -> verified again by reading size and
+  md5 back out of R2 -> healthchecks.io ping, which is gated on that verification rather
+  than on the script having run. **Restore tested end-to-end**, not just documented:
+  restored from an R2-downloaded archive into a throwaway instance and diffed against
+  live by entry id — 7 piles, 227 entries, all identical. Runbook:
+  `deploy/pocketbase/BACKUP-RESTORE.md`. DO droplet snapshots deliberately declined.
 
 ### Standing notes
 
@@ -120,6 +142,9 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   not left passing against code nobody calls.
 - **Test the PWA over http(s), not `file://`.** Service workers do not register on
   `file://`, which is exactly why the API-caching bug survived every headless test.
+- **Any manual `rclone` command against the backup bucket needs `--s3-no-head`.** R2
+  returns 501 on the HEAD rclone issues after a successful PUT; without the flag the
+  upload looks like it failed when the object actually landed.
 - **Local testing needs a CORS exception now.** The backend only accepts
   `https://aalkhalifa.github.io`, so a `file://` or `localhost` build is blocked by the
   browser. Add that origin to `--origins` temporarily, or test the deployed build.

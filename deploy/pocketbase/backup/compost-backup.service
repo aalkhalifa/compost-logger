@@ -1,0 +1,30 @@
+[Unit]
+Description=Compost Logger - nightly PocketBase snapshot to Cloudflare R2
+Documentation=file:///root/compost-logger/deploy/pocketbase/BACKUP-RESTORE.md
+# Snapshot is taken through PocketBase's API, so PB must be up. If it is not,
+# the script fails loudly and healthchecks.io alerts - which is correct: a
+# night with no backup must never pass silently.
+After=network-online.target pocketbase.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/compost-backup.sh
+# Secrets are read by the script from /etc/compost-backup.env (0600 root).
+# Deliberately NOT EnvironmentFile= here: systemd would expose them in
+# `systemctl show`, and the script needs to fail with a clear message when the
+# file is missing rather than start with a silently empty environment.
+User=root
+Group=root
+TimeoutStartSec=1800
+
+# Hardening. ReadWritePaths covers only the backups dir - the script must never
+# be able to write to live pb_data.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=false
+ReadWritePaths=/opt/pocketbase/pb_data/backups
+
+[Install]
+WantedBy=multi-user.target

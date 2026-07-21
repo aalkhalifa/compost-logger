@@ -1,0 +1,19 @@
+[Unit]
+Description=Compost Logger - nightly PocketBase backup timer
+Documentation=file:///root/compost-logger/deploy/pocketbase/BACKUP-RESTORE.md
+
+[Timer]
+# 02:10 UTC = 05:10 Asia/Bahrain. Timezone is stated explicitly rather than
+# relying on the box staying UTC.
+OnCalendar=*-*-* 02:10:00 UTC
+
+# If the box was off at 02:10, run on next boot instead of silently skipping a
+# night. healthchecks.io grace is 3h, which covers this catch-up.
+Persistent=true
+
+# No RandomizedDelaySec: a deterministic start time keeps the healthchecks
+# grace window meaningful.
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

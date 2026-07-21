@@ -205,6 +205,29 @@ Two things to know about that fallback:
 Once the domain has proven itself, retiring the tunnel (`systemctl disable --now
 cloudflared-pocketbase`) removes a second public path into the backend.
 
+---
+
+## Backups
+
+Nightly off-droplet backup to Cloudflare R2, with monitoring and a **tested**
+restore procedure: see **[BACKUP-RESTORE.md](BACKUP-RESTORE.md)**.
+
+| | |
+|---|---|
+| Schedule | `02:10 UTC` daily (05:10 Asia/Bahrain), `compost-backup.timer` |
+| Method | PocketBase's own snapshot API, then `rclone` to R2 |
+| Retention | `daily/` 7 days, `weekly/` 28 days (R2 lifecycle rules) |
+| Monitoring | healthchecks.io -> aalkhalifa@gmail.com |
+| Secrets | `/etc/compost-backup.env` (0600) — **never in this repo, which is public** |
+
+Mirrors of the script and units live in [`backup/`](backup/). The live copies are
+at `/usr/local/bin/compost-backup.sh` and `/etc/systemd/system/` — keep them in
+sync, same convention as `pocketbase.service` and the `Caddyfile`.
+
+Note DigitalOcean droplet snapshots were considered and **declined** (July 2026):
+nothing else on the box is irreplaceable, so ~$2.80/mo would mostly have insured
+transient video. The vault is the only thing that matters, and R2 covers it.
+
 ## Handoff to Group B
 
 Group B (app code) needs exactly one value from this runbook: the reachable base URL,

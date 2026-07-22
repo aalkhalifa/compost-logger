@@ -124,6 +124,11 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   ever matters: preserve email (not password) in `sessionStorage`, or render the policy
   in-app - the latter costs a second copy of a legal doc. The link sits above the fields,
   so the natural order is read-then-type.
+  **Try this first, it is cheaper than both:** the reload may be caused by our own
+  `BACK TO APP` anchor in `privacy.html`, which navigates to `index.html` rather than
+  going back. `history.back()` could let the app resume from bfcache with the form
+  intact. Untested - it needs a device check, since bfcache behaviour in a standalone
+  PWA is exactly the thing that cannot be reasoned about from the desk.
 - [ ] **PocketBase 0.22.21 is version-pinned.** Upgrading to 0.23+ renames the admin API
   from `/api/admins/` to `/api/_superusers/`, which breaks every server-side snippet in
   PROJECT.md's *Operating this project* section and in `deploy/pocketbase/README.md`.

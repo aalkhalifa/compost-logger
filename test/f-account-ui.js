@@ -123,5 +123,29 @@ t("signed in: SIGN OUT shown with email",()=>{
   eq(els["s-btn-signout"].style.display,"inline-block");
   eq(els["s-pb-email"].textContent,"a@b.com");});
 
+// Static markup checks, not behavioural. v3.83a shipped the sign-in privacy link INSIDE
+// #auth-intro, where authRenderMode's textContent assignment wiped it on every openAuth().
+// It rendered zero times and all 94 checks still passed - only a device check caught it.
+console.log("-- privacy link placement --");
+function el(id){
+  const i=src.indexOf('id="'+id+'"');
+  if(i<0)throw new Error("element not found: #"+id);
+  const j=src.indexOf("</div>",i);
+  return src.slice(i,j);
+}
+t("privacy link exists in a dedicated #auth-privacy element",()=>{
+  eq(el("auth-privacy").indexOf('href="privacy.html"')>-1,true,"anchor in #auth-privacy");});
+t("#auth-intro holds no markup - authRenderMode overwrites its children",()=>{
+  const intro=el("auth-intro");
+  eq(intro.indexOf("privacy.html"),-1,"privacy link must not live in #auth-intro");
+  eq(intro.indexOf("<a "),-1,"no anchor in #auth-intro");
+  eq(intro.indexOf("<span"),-1,"no span in #auth-intro");});
+t("authRenderMode still overwrites #auth-intro (the reason for the split)",()=>{
+  eq(CODE.indexOf("intro.textContent=")>-1,true,"guard is pointless if this stops");});
+t("no JS touches #auth-privacy",()=>{
+  eq(src.indexOf('getElementById("auth-privacy")'),-1,"must stay static markup");});
+t("Settings ABOUT card links the policy too",()=>{
+  eq(src.split('href="privacy.html"').length-1,2,"expected exactly 2 privacy links");});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail?1:0);

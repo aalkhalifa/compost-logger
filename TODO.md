@@ -111,6 +111,13 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
 - [ ] **Find out what "Task 2" was.** Commit bodies from July 15 cite Tasks 1 and 3–12; no
   commit mentions Task 2, and the task list is not in this repo. May have been dropped,
   done elsewhere, or renumbered.
+- [ ] **Self-serve account deletion.** `PRIVACY.md` tells users to email a request to have
+  their account deleted. That should become a button in Settings that deletes the account
+  and cascades to the vault record. Not urgent, but it is a stated commitment in a
+  published policy, so it should not stay manual indefinitely.
+- [ ] **Repoint healthchecks.io alerts** from `aalkhalifa@gmail.com` to
+  `compostlogger.com@gmail.com`, the new project inbox. **Abdulla's task, recorded here
+  only** — not for Claude to do.
 - [ ] **PocketBase 0.22.21 is version-pinned.** Upgrading to 0.23+ renames the admin API
   from `/api/admins/` to `/api/_superusers/`, which breaks every server-side snippet in
   PROJECT.md's *Operating this project* section and in `deploy/pocketbase/README.md`.

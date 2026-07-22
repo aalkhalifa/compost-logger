@@ -28,10 +28,12 @@ NOTE: prior to v3.77q the file was corrupted with smart/curly quotes and did not
 
 ## Current Version
 
-**Production:** **v3.82** (promoted July 20 2026, tag `v3.82`) — PocketBase accounts plus
-the demo-pile purge fix. Drive still present and working (removal is Group G).
-**Live beta:** v3.82 — mirrors production; no line open. The next line opens at **v3.83a**
-and will ship as **v3.83**. Next up: Group G (Drive/GSI removal), deferred to ~July 27.
+**Production:** **v3.83** (promoted July 22 2026, tag `v3.83`) — the privacy policy is
+published and linked from the sign-in overlay and Settings. Carries everything in v3.82
+(PocketBase accounts, demo-pile purge fix). Drive still present and working (removal is
+Group G).
+**Live beta:** v3.83 — mirrors production; no line open. The next line opens at **v3.84a**
+and will ship as **v3.84**. Next up: Group G (Drive/GSI removal), deferred to ~July 27.
 **Backend:** `https://api.compostlogger.com` (Caddy + Let's Encrypt on the DO box)
 **Domain:** compostlogger.com, registered on Cloudflare (July 20 2026)
 

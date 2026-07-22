@@ -1,9 +1,10 @@
 # Compost Logger — Task List
 
 > One source of truth for what's next.
-> Updated: July 20 2026
-> **Production: v3.82** (July 20 2026) — PocketBase accounts + demo-pile fix, Drive retained
-> **Beta: v3.82** — mirrors prod, no line open. Next line opens at `v3.83a`, ships as `v3.83`
+> Updated: July 22 2026
+> **Production: v3.83** (July 22 2026) — privacy policy published and linked from sign-in
+> and Settings; carries v3.82's PocketBase accounts + demo-pile fix, Drive retained
+> **Beta: v3.83** — mirrors prod, no line open. Next line opens at `v3.84a`, ships as `v3.84`
 > Backend: https://api.compostlogger.com (stable, TLS, CORS locked)
 > Versioning: **beta always has a letter, production never does**. A line opens at `v3.83a` and ships as `v3.83` — no gaps.
 

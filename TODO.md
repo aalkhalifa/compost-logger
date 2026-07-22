@@ -33,6 +33,19 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   on PocketBase, Drive is the fallback for anyone who has not migrated. Let it sit a week
   before deleting it.
 
+  **Group G opens the `v3.84a` beta line, and that line carries these riders** — each is
+  too small to justify its own release, and all three need the same beta soak and device
+  check, so they ship together:
+  - **`history.back()` in `privacy.html`'s BACK TO APP anchor** — the cheap candidate fix
+    for the standalone-PWA reload. Needs an iPad check on the beta build; if bfcache does
+    not restore the form, drop it and leave the limitation accepted. See Operational.
+  - **The stale 8h/24h freeze-cap comment** in both `index.html` and `beta/index.html`.
+    Comment-only, zero behavior risk. See Operational.
+
+  Note the riders touch `privacy.html` and comments only, while Group G heavily edits
+  `mergeCloudData`. If Group G slips again, the riders are trivially separable — do not
+  let them wait indefinitely on it.
+
 ### ⚠️ Before making any compliance claim
 
 - [ ] **Review the three July-15 biological-model changes against the intended model.**
@@ -108,7 +121,7 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   caps at 24h (raised in v3.79d) but the comment above `computeIndependentStages` still
   says "capped at 8h past that entry", in **both** `index.html` and `beta/index.html`.
   Comment-only, zero behavior risk — fold into the next beta line rather than cutting a
-  release for it.
+  release for it. **That line is now `v3.84a`, as a Group G rider** (see NOW).
 - [ ] **Find out what "Task 2" was.** Commit bodies from July 15 cite Tasks 1 and 3–12; no
   commit mentions Task 2, and the task list is not in this repo. May have been dropped,
   done elsewhere, or renumbered.
@@ -129,6 +142,8 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
   going back. `history.back()` could let the app resume from bfcache with the form
   intact. Untested - it needs a device check, since bfcache behaviour in a standalone
   PWA is exactly the thing that cannot be reasoned about from the desk.
+  **Scheduled: folded into the `v3.84a` line as a Group G rider** (see NOW). Not worth a
+  release of its own — the current behaviour is already accepted.
 - [ ] **PocketBase 0.22.21 is version-pinned.** Upgrading to 0.23+ renames the admin API
   from `/api/admins/` to `/api/_superusers/`, which breaks every server-side snippet in
   PROJECT.md's *Operating this project* section and in `deploy/pocketbase/README.md`.

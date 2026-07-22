@@ -1,6 +1,6 @@
 # Privacy Policy - Compost Logger
 
-**Last updated:** 21 July 2026
+**Last updated:** 22 July 2026
 
 Compost Logger is an independently operated application.
 

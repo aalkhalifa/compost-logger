@@ -118,6 +118,11 @@ v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and st
 - [ ] **Repoint healthchecks.io alerts** from `aalkhalifa@gmail.com` to
   `compostlogger.com@gmail.com`, the new project inbox. **Abdulla's task, recorded here
   only** — not for Claude to do.
+- [ ] **Privacy link in standalone PWA reloads the app, losing half-typed signup
+  credentials.** Accepted as minor (verified on iPad Safari, v3.83b). Fix options if it
+  ever matters: preserve email (not password) in `sessionStorage`, or render the policy
+  in-app - the latter costs a second copy of a legal doc. The link sits above the fields,
+  so the natural order is read-then-type.
 - [ ] **PocketBase 0.22.21 is version-pinned.** Upgrading to 0.23+ renames the admin API
   from `/api/admins/` to `/api/_superusers/`, which breaks every server-side snippet in
   PROJECT.md's *Operating this project* section and in `deploy/pocketbase/README.md`.

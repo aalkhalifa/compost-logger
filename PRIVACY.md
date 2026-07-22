@@ -40,7 +40,7 @@ That's the complete list. There is no tracking of your browsing, no advertising 
 
 - **The app itself** is served from GitHub Pages.
 - **Your account and compost records** are stored on a private server operated by us on DigitalOcean infrastructure in Frankfurt, Germany.
-- **Encrypted backups** of that data are stored with Cloudflare R2 in Western Europe, so your records can be recovered if the main server fails. Backups are kept for up to 7 days (daily) and 28 days (weekly), then automatically deleted.
+- **Backups** of that data are stored with Cloudflare R2 in Western Europe, encrypted at rest by our storage provider, so your records can be recovered if the main server fails. Backups are kept for up to 7 days (daily) and 28 days (weekly), then automatically deleted.
 
 Data is transmitted over HTTPS.
 

@@ -775,6 +775,7 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
         <div id="app-version-settings">COMPOST LOGGER &middot; FIELD LOGGER v3.76</div>
         <div>COMPOST LOGGER</div>
         <div style="margin-top:0.4rem;font-size:0.6rem">Data stored locally in your browser. Sign in to sync it to your account.</div>
+        <div style="margin-top:0.4rem;font-size:0.6rem"><a href="privacy.html" target="_blank" rel="noopener" style="color:#f97316">PRIVACY POLICY</a></div>
       </div>
     </div>
 
@@ -791,7 +792,8 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <button onclick="closeAuth()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
     </div>
     <div class="card">
-      <div id="auth-intro" style="font-size:0.68rem;color:#666;line-height:1.5;margin-bottom:0.9rem">Sync your piles across devices. Your data stays on this device too.</div>
+      <div id="auth-intro" style="font-size:0.68rem;color:#666;line-height:1.5;margin-bottom:0.9rem">Sync your piles across devices. Your data stays on this device too.
+        <span style="display:block;margin-top:0.3rem"><a href="privacy.html" target="_blank" rel="noopener" style="color:#f97316">Privacy Policy</a></span></div>
       <label class="lbl">EMAIL</label>
       <input type="email" id="auth-email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@example.com" style="margin-bottom:0.75rem" onkeydown="authKeydown(event)"/>
       <label class="lbl">PASSWORD</label>
@@ -828,7 +830,7 @@ var PB_BASE_URL="https://api.compostlogger.com";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.82";
+var BUILD_VER="v3.83a";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},

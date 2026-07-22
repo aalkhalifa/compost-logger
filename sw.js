@@ -1,7 +1,10 @@
-const CACHE = 'compost-logger-v3.82';
+const CACHE = 'compost-logger-v3.83a';
 const ASSETS = [
 '/compost-logger/',
 '/compost-logger/index.html',
+// Precached so the Privacy Policy link works offline. Note addAll() is all-or-nothing:
+// if this 404s, the whole precache silently fails. It exists at the root AND in /beta/.
+'/compost-logger/privacy.html',
 '/compost-logger/manifest.json',
 '/compost-logger/icon-192.png',
 '/compost-logger/icon-512.png'

@@ -792,8 +792,10 @@ input[type="date"].temp-input,input[type="time"].temp-input{-webkit-appearance:n
       <button onclick="closeAuth()" style="background:none;border:none;color:#555;cursor:pointer;font-size:1.4rem">&times;</button>
     </div>
     <div class="card">
-      <div id="auth-intro" style="font-size:0.68rem;color:#666;line-height:1.5;margin-bottom:0.9rem">Sync your piles across devices. Your data stays on this device too.
-        <span style="display:block;margin-top:0.3rem"><a href="privacy.html" target="_blank" rel="noopener" style="color:#f97316">Privacy Policy</a></span></div>
+      <div id="auth-intro" style="font-size:0.68rem;color:#666;line-height:1.5;margin-bottom:0.35rem">Sync your piles across devices. Your data stays on this device too.</div>
+      <!-- Privacy link lives OUTSIDE #auth-intro: authRenderMode() sets that element's
+           textContent, which would destroy any markup inside it. -->
+      <div id="auth-privacy" style="font-size:0.68rem;line-height:1.5;margin-bottom:0.9rem"><a href="privacy.html" target="_blank" rel="noopener" style="color:#f97316">Privacy Policy</a></div>
       <label class="lbl">EMAIL</label>
       <input type="email" id="auth-email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="you@example.com" style="margin-bottom:0.75rem" onkeydown="authKeydown(event)"/>
       <label class="lbl">PASSWORD</label>
@@ -830,7 +832,7 @@ var PB_BASE_URL="https://api.compostlogger.com";
 // Single source of truth for the build version. Bump BUILD_VER on every change;
 // it appears on screen AND must match the CACHE string in sw.js. The "BETA" suffix
 // is added automatically when the app is served from a /beta/ path.
-var BUILD_VER="v3.83a";
+var BUILD_VER="v3.83b";
 var APP_VERSION="FIELD LOGGER "+BUILD_VER+((location.pathname.indexOf("/beta/")>-1)?" BETA":"");
 var BANDS=[
   {min:131,max:149,hours:72,label:"Stage 1",color:"#f59e0b"},
@@ -5370,6 +5372,8 @@ function authRenderMode(){
   var sw=document.getElementById("auth-switch");
   var pw=document.getElementById("auth-password");
   if(title)title.textContent=isSignup?"CREATE ACCOUNT":"SIGN IN";
+  // NOTE: textContent replaces all children. Do not put markup (e.g. the privacy link)
+  // inside #auth-intro - it will be silently wiped on every openAuth(). Siblings are safe.
   if(intro)intro.textContent=isSignup?"Sync your piles across devices. Your data stays on this device too.":"Welcome back. Sign in to sync your piles.";
   if(consent)consent.style.display=isSignup?"block":"none";
   if(submit)submit.textContent=isSignup?"CREATE ACCOUNT":"SIGN IN";

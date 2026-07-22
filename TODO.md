@@ -6,16 +6,18 @@
 > and Settings; carries v3.82's PocketBase accounts + demo-pile fix, Drive retained
 > **Beta: v3.83** — mirrors prod, no line open. Next line opens at `v3.84a`, ships as `v3.84`
 > Backend: https://api.compostlogger.com (stable, TLS, CORS locked)
-> Versioning: **beta always has a letter, production never does**. A line opens at `v3.83a` and ships as `v3.83` — no gaps.
+> Versioning: **beta always has a letter, production never does**. A line opens at `v3.84a` and ships as `v3.84` — no gaps.
 
 ---
 
-## 🔴 NOW — v3.82 is in production
+## 🔴 NOW — v3.83 is in production
 
 The PocketBase migration is **live for all users**. Groups A–F shipped; v3.79v and v3.79w
 were verified on **iPad Safari** (signup, import, `ACCOUNT SYNCED`, `OFFLINE (local only)`,
 reconnect sync — and again after the domain move), which unblocked Group H. Production went
-v3.78b → v3.80 → **v3.82** (demo-pile purge fix). **Drive is retained and still works.**
+v3.78b → v3.80 → v3.82 (demo-pile purge fix) → **v3.83** (privacy policy published and
+linked, July 22 — also verified on iPad Safari before promotion). **Drive is retained and
+still works.**
 
 - [ ] **Watch production for a few days.** Every existing user is a Drive user who now sees
   an account UI for the first time. Things worth checking early: nobody is stuck on SYNC

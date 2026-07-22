@@ -357,12 +357,84 @@ Verify any rollback the same way as a build: extract the inline script and run
 > **promoted v3.82**. Start at *SESSION SUMMARY* for the overview.
 >
 > Version history across sessions: **v3.75 → v3.77q → v3.78b** (July 11, two sessions) →
-> **v3.82** (July 20). Beta went v3.78 → v3.79 → v3.82 over the same span.
+> **v3.82** (July 20) → **v3.83** (July 22). Beta went v3.78 → v3.79 → v3.82 → v3.83 over
+> the same span. July 22's arc: `v3.83a` → promotion reset for a device check → `v3.83b` →
+> **promoted v3.83**.
 >
 > **v3.79b–q (July 15) were made in a session that left no log.** They are reconstructed
 > below from commit messages and diffs, with certainty levels marked. Three of them changed
 > compliance-relevant behaviour and are live in production — see that entry before touching
 > cycle-closing or extrapolation logic.
+
+### July 22 2026 (Claude Code) — v3.83: privacy policy published, and a bug only a device found
+
+**The privacy policy was a launch blocker and is now shipped.** `PRIVACY.md` at the repo
+root is the reviewed source; `privacy.html` (root **and** `beta/`, byte-identical) is the
+page users actually read, linked from the sign-in/sign-up overlay and Settings > ABOUT.
+
+**Two factual corrections were made before publishing, both caught by checking the claim
+against the code rather than trusting the draft:**
+
+- **"Encrypted backups" → "encrypted at rest by our storage provider."** `compost-backup.sh`
+  uploads a plain PocketBase snapshot zip; Cloudflare encrypts at rest, but *we* do not
+  encrypt anything. The original wording implied we did. In a privacy policy the difference
+  is the whole point.
+- **"Cloudflare R2 in Western Europe" — confirmed, not assumed.** Nothing in the repo records
+  the bucket's jurisdiction (`rclone` uses `region=auto`, and a bucket-scoped token gets 403
+  on `GetBucketLifecycle`), so this was flagged as unverifiable from here. Abdulla confirmed
+  the WEUR location hint was set at bucket creation, and the claim stayed on that basis.
+
+**Why link out rather than render the policy in-app:** the single-file app forbids backticks
+in JS strings, so embedding 112 lines of policy means a long escaped concatenation — but the
+real objection is that it creates **two copies of a legal document**, and the one users read
+would be the one nobody reviewed. A standalone page also gives the App Store / Play backlog
+item a URL to submit, which a `github.com` blob link does not.
+
+#### The `#auth-intro` bug — shipped, invisible, caught by a thumb
+
+`v3.83a` put the overlay's privacy anchor **inside** `#auth-intro`. `authRenderMode()` sets
+that element's `.textContent`, which replaces **every child node**, and `openAuth()` calls
+`authRenderMode()` before un-hiding the overlay. So the anchor was destroyed on the way in,
+every single time. It existed in the file and **rendered zero times**.
+
+**All 94 checks passed on that build.** The Settings link worked, because nothing rewrites
+the ABOUT card — which is exactly what made it look fine from the desk. It was found by
+Abdulla tapping the link on iPad Safari in standalone PWA mode.
+
+Fix: the anchor moved to a sibling `#auth-privacy` that no JS touches — verified by grep that
+`#auth-intro` is the **only** element in the overlay whose children are replaced, and that
+there is no `innerHTML` anywhere in the auth code. `#auth-intro` went back to being a pure
+`textContent` target, with a comment above the assignment saying why markup must not go back
+in, so the trap is not re-set by a later edit.
+
+**Five new assertions in `test/f-account-ui.js`** guard the class, not the instance: the
+anchor lives in `#auth-privacy`, `#auth-intro` holds no markup, `authRenderMode` *still*
+overwrites it (so the guard cannot quietly become pointless if that line is removed), no JS
+references `#auth-privacy`, and both links exist. **Mutation-tested against the real broken
+`v3.83a` markup** rather than trusted on a green run — two correctly fail there, naming the
+cause. Suite is now **99 checks across 5 suites**.
+
+#### Version arc and the deliberate un-promotion
+
+`v3.83a` opened the line → promoted to production → **the promotion was reset and only the
+beta line pushed**, so the device check could happen before users saw it → `v3.83b` fixed the
+bug → re-promoted as **`v3.83`**, tagged and pushed. Confirmed on device: production reads
+`FIELD LOGGER v3.83` with no `BETA` suffix.
+
+That reset is the part worth keeping. The first promotion was fully built, tested and tagged
+before it was rolled back — not because anything failed, but because the one risk flagged at
+plan time (iOS `target="_blank"` behaviour) had not been checked on a device. Rolling it back
+cost minutes; shipping it would have put the broken link in front of every user.
+
+#### Accepted limitation
+
+In standalone PWA, tapping the privacy link and returning **reloads the app, losing a
+half-typed email and password.** Accepted as an annoyance rather than data loss: the link sits
+above the fields, so the natural order is read-then-type. `history.back()` in `privacy.html`'s
+BACK TO APP anchor is flagged as the cheapest thing to try — the reload may be caused by our
+own anchor navigating to `index.html` instead of going back — but it is **untested**, since
+bfcache behaviour in a standalone PWA cannot be reasoned about from the desk. Folded into
+`v3.84a` with Group G, along with the stale 8h/24h freeze-cap comment.
 
 ### July 21 2026 (Claude Code) — nightly backups to R2, with a tested restore
 
@@ -613,6 +685,9 @@ Two fixes:
 **Why the earlier verification missed it:** every browser test loaded the app from
 `file://`, where service workers do not register at all. The SW was never exercised. A
 `file://` harness cannot validate a PWA's caching layer — that needs a real http origin.
+
+*This was not a one-off: the July 22 privacy-anchor bug repeated the pattern from a
+different angle. See **The device gate before promotion** under How Abdulla works.*
 
 **v3.79v — demo pile duplicates fixed.** The same real-device session exposed a second
 problem: the vault held `Demo Pile — 30 Days` plus five `— Local Copy` duplicates.
@@ -1196,6 +1271,18 @@ Architecture Notes. It extends to server state: enabling a timer, writing to
 
 **Checkpoints are load-bearing.** When he says "stop and show me X before you do
 Y", showing X and doing Y in the same breath defeats the point. Stop, show, wait.
+
+**The device gate before promotion is load-bearing precedent, not ceremony.** Two
+days running, the bug that actually mattered was found by tapping a real device —
+never by a harness. **v3.79u** (`sw.js` caching API responses) and **the privacy
+anchor** (July 22) each passed every check while being broken in the browser: the
+first because `file://` does not register service workers, the second because
+static harnesses verify extracted *code* and could not see that the DOM assembled
+without the link. Both were invisible from the desk and obvious within seconds on
+a phone. So when a change is built, green and tagged, that is not the same as
+verified — if it has not been touched on a device, say so plainly and offer to
+hold. Promotion was reset mid-flight for exactly this on July 22 and it was the
+right call. A green suite is evidence, not proof.
 
 **Late nights are deliberate.** Sessions run late by choice, with full focus. Do
 not editorialise about the hour, suggest stopping for the night, or treat a 3am

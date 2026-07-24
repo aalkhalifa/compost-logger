@@ -366,6 +366,29 @@ Verify any rollback the same way as a build: extract the inline script and run
 > compliance-relevant behaviour and are live in production — see that entry before touching
 > cycle-closing or extrapolation logic.
 
+### July 24 2026 (Claude Code) — planning session recorded: design principles and business direction
+
+**Docs only — no app code was touched, no version bumped, production stays v3.83.**
+*The planning itself happened on the afternoon of **July 22**, after the v3.83 promotion
+below; it is dated here as July 24 because that is when it was written down.*
+
+UX and conversion research was reviewed and distilled into **`DESIGN-PRINCIPLES.md`** at the
+repo root — written product-agnostically, since it governs LivingSoil.ai and anything else
+that follows, not just Compost Logger. It records what was **rejected** (loss-aversion
+pressure, fake urgency, journey-style CTA copy, subscription pre-selection) alongside what
+was adopted, because the rejections are the part a future session would otherwise
+re-propose. Business direction was set on a **business-as-experiment** footing: a
+**founding-10 offer** whose stated after-price doubles as the pricing validation, a
+**merchant-of-record** path for payments (Paddle/Lemon Squeezy) deliberately deferred until
+someone has agreed to pay, and a **validation gate** that puts 10+ real users and a concrete
+price question *before* any billing code. The **free/Pro boundary rule** was established and
+is the one to hold: *charge for what you add, never ransom what you shipped* — single-pile
+capability and full compliance (PFRP, stages, exports) stay free permanently, because that
+is the wedge against the spreadsheet. An **onboarding wizard** (its own line, after Group G,
+since it touches settings, forms and PFRP display) and an **Excel-format export** were
+scoped as future lines. All of it is unscheduled; the detail lives in `DESIGN-PRINCIPLES.md`
+and the new *Business planning* section of TODO.md.
+
 ### July 22 2026 (Claude Code) — v3.83: privacy policy published, and a bug only a device found
 
 **The privacy policy was a launch blocker and is now shipped.** `PRIVACY.md` at the repo

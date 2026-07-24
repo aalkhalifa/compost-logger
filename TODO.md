@@ -305,6 +305,61 @@ still works.**
 
 ---
 
+## 💼 Business planning — nothing scheduled
+
+> Direction set July 22 2026, recorded July 24. **None of this is scheduled**, and the
+> ordering below is dependency order, not a queue. The principles behind these decisions —
+> including what was rejected and why — are in **`DESIGN-PRINCIPLES.md`** at the repo root;
+> read it before writing any onboarding, pricing or marketing copy.
+
+- [ ] **Onboarding wizard — its own release line, AFTER Group G.** It touches settings,
+  forms and PFRP display, so it does not ride along with anything.
+  - First-run question: **"What are you composting with?"** — *Home gardener (piles)* /
+    *Small producer (piles, sells compost)* / *Facility (windrows, multiple probes)*.
+  - Sets defaults from the answer: **PFRP display off for home gardeners, on for producers
+    and facilities** — toggleable in Settings either way, so the answer is a default and
+    never a lock-in.
+  - **Probe count (1/2/3) shapes the reading form.** Default 3, with the note "Compost
+    Academy method: 3-point average"; a one-probe user gets a one-field form rather than
+    three fields they must ignore.
+  - Progress bar starts at **~20% after the first answer** (goal gradient); **Excel import
+    is step 2**, so users land with their own history already charted instead of an empty
+    app.
+- [ ] **Export in Compost Academy Excel format.** Smaller than the wizard and could ride a
+  release sooner. We already import that format, so we should emit it: *"leave anytime with
+  everything, in the format you came from."* The open door is the trust move — it is worth
+  building precisely because it makes leaving easy.
+- [ ] **Founding member offer — draft, refine before posting.**
+
+  > "First 10 Compost Academy members: Pro free for 6 months (unlimited piles + AI
+  > consultant when it launches), then $9/month if you stay. Founding members keep
+  > **[permanent perk TBD: locked-in price or probe discount]** and get a direct line on the
+  > roadmap — you propose, we discuss, founding requests get priority when they fit the
+  > app's direction. Reply to claim a spot."
+
+  Rationale, recorded so it is not lost in a rewrite: **6 months spans a full pile cycle**
+  and forms the habit before the conversion question is ever asked; **the stated
+  after-price IS the pricing validation** — agreeing to the offer is agreeing to $9;
+  and the roadmap perk is framed as **influence, not command**, which is a promise that can
+  actually be kept.
+- [ ] **Referral — manual for now.** "Tell me their email, you both get a month of Pro when
+  they join." Build automated referral tracking only once doing it by hand becomes annoying;
+  at 10-20 users the tracking would cost more than the referrals are worth.
+- [ ] **Payments — when demand exists, and not before.** Use a **merchant of record**
+  (Paddle or Lemon Squeezy): they are legally the seller, and they handle global VAT/sales
+  tax, refunds, card compliance and monthly payouts for roughly **5% + fees**. Setup is a
+  weekend's work once somebody has actually agreed to pay, which is why it waits.
+  **Before charging anyone:** Terms of Service (the sibling of the privacy policy), a refund
+  policy, and one consultation with a local accountant on Bahrain requirements for online
+  income.
+- [ ] **Validation gate — the order is the point.** Post to Compost Academy **free** first →
+  get **10+ real users** → ask the concrete price question → **then** build billing.
+  Success for the next 3-6 months is **10-20 paying users**. Zero after a real attempt is
+  also an answer, and a cheap one — the gate exists so that answer arrives before the
+  billing code does, not after.
+
+---
+
 ## 🟢 BACKLOG — Confirmed, not urgent
 
 - [ ] **Instructor/share view**
